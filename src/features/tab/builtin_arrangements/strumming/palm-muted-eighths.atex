@@ -1,0 +1,21 @@
+// frets:fx on; distortion on drive=0.6 tone=0.5; reverb on amount=0.2 decay=1.2
+\title "Palm-muted rock eighths"
+\instrument electricguitarclean
+\ts (4 4)
+\chord ("E5" x x x x 2 0)
+\chord ("G5" x x x x 5 3)
+\chord ("A5" x x x 2 0 x)
+\chord ("D5" x x x 7 5 x)
+(2.5{pm} 0.6{pm}).8{ch "E5" txt "All downstrokes" sd} (2.5{pm} 0.6{pm}).8{sd}
+  (2.5{pm} 0.6{pm}).8{sd} (2.5{pm} 0.6{pm}).8{sd} (2.5{pm} 0.6{pm}).8{sd}
+  (2.5{pm} 0.6{pm}).8{sd} (2.5{pm} 0.6{pm}).8{sd} (2.5{pm} 0.6{pm}).8{sd} |
+(5.5{pm} 3.6{pm}).8{ch "G5" sd} (5.5{pm} 3.6{pm}).8{sd} (5.5{pm} 3.6{pm}).8{sd}
+  (5.5{pm} 3.6{pm}).8{sd} (5.5{pm} 3.6{pm}).8{sd} (5.5{pm} 3.6{pm}).8{sd}
+  (5.5{pm} 3.6{pm}).8{sd} (5.5{pm} 3.6{pm}).8{sd} |
+(2.4{pm} 0.5{pm}).8{ch "A5" sd} (2.4{pm} 0.5{pm}).8{sd} (2.4{pm} 0.5{pm}).8{sd}
+  (2.4{pm} 0.5{pm}).8{sd} (2.4{pm} 0.5{pm}).8{sd} (2.4{pm} 0.5{pm}).8{sd}
+  (2.4{pm} 0.5{pm}).8{sd} (2.4{pm} 0.5{pm}).8{sd} |
+(7.4{pm} 5.5{pm}).8{ch "D5" sd} (7.4{pm} 5.5{pm}).8{sd} (7.4{pm} 5.5{pm}).8{sd}
+  (7.4{pm} 5.5{pm}).8{sd} (7.4{pm} 5.5{pm}).8{sd} (7.4{pm} 5.5{pm}).8{sd}
+  (7.4 5.5).4{sd} |
+

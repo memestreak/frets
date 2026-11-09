@@ -25,4 +25,9 @@ these folders and answers `/tab/builtin.json`. `npm run dev` reads them on
 every request, so a new file shows the next time Arrangements… opens;
 `npm run build` writes the list once, as `out/tab/builtin.json`.
 
+`chord_types/`, `progressions/`, `strumming/` and `songs/` are for
+learning guitar rather than showing a feature
+(`docs/specs/2026-11-08-tab-learning-builtins-design.md`); every song in
+`songs/` is an original written for Frets.
+
 Never commit a whole copyrighted song here: excerpts of up to 12 bars only.

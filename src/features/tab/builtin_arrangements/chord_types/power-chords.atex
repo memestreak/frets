@@ -1,0 +1,13 @@
+\title "Power chords"
+\ts (4 4)
+\chord ("E5" x x x 2 2 0)
+\chord ("A5" x x 2 2 0 x)
+\chord ("G5" x x x 5 5 3)
+\chord ("C5" x x 5 5 3 x)
+\chord ("D5" x x 7 7 5 x)
+(2.4 2.5 0.6).8{ch "E5" txt "Root, fifth, octave" sd} (2.4 2.5 0.6).8{sd}
+  (2.4 2.5 0.6).8{sd} (2.4 2.5 0.6).8{sd} (2.3 2.4 0.5).8{ch "A5" sd}
+  (2.3 2.4 0.5).8{sd} (2.3 2.4 0.5).4{sd} |
+(5.4 5.5 3.6).4{ch "G5" sd} (5.3 5.4 3.5).4{ch "C5" sd}
+  (7.3 7.4 5.5).2{ch "D5" sd} |
+

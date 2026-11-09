@@ -1,0 +1,21 @@
+// frets:fx on; distortion on drive=0.6 tone=0.5; reverb on amount=0.2 decay=1.2
+\title "Night Drive"
+\instrument electricguitarclean
+\ts (4 4)
+\chord ("E5" x x x 2 2 0)
+\chord ("C5" x x 5 5 3 x)
+\chord ("D5" x x 7 7 5 x)
+\chord ("B5" x x 4 4 2 x)
+\section "Riff" \tempo 128 \ro 0.6{pm}.8 0.6{pm}.8 3.6.8 0.6{pm}.8 5.6.8
+  0.6{pm}.8 3.6.8 2.6.8 |
+\rc 2 0.6{pm}.8 0.6{pm}.8 3.6.8 0.6{pm}.8 2.5.8 0.6{pm}.8 3.6.4 |
+\section "Chorus" (5.3 5.4 3.5).8{ch "C5" sd} (5.3 5.4 3.5).8{sd}
+  (5.3 5.4 3.5).8{sd} (5.3 5.4 3.5).8{sd} (7.3 7.4 5.5).8{ch "D5" sd}
+  (7.3 7.4 5.5).8{sd} (7.3 7.4 5.5).8{sd} (7.3 7.4 5.5).8{sd} |
+(2.4 2.5 0.6).1{ch "E5" sd} |
+(5.3 5.4 3.5).8{ch "C5" sd} (5.3 5.4 3.5).8{sd} (5.3 5.4 3.5).8{sd}
+  (5.3 5.4 3.5).8{sd} (7.3 7.4 5.5).8{ch "D5" sd} (7.3 7.4 5.5).8{sd}
+  (7.3 7.4 5.5).8{sd} (7.3 7.4 5.5).8{sd} |
+(4.3 4.4 2.5).8{ch "B5" sd} (4.3 4.4 2.5).8{sd} (4.3 4.4 2.5).8{sd}
+  (4.3 4.4 2.5).8{sd} (2.4 2.5 0.6).2{ch "E5" sd} |
+

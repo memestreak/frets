@@ -1,0 +1,20 @@
+\title "Sus and add chords"
+\ts (4 4)
+\chord ("D" 2 3 2 0 x x)
+\chord ("Dsus4" 3 3 2 0 x x)
+\chord ("Dsus2" 0 3 2 0 x x)
+\chord ("A" 0 2 2 2 0 x)
+\chord ("Asus4" 0 3 2 2 0 x)
+\chord ("Asus2" 0 0 2 2 0 x)
+\chord ("C" 0 1 0 2 3 x)
+\chord ("Cadd9" 3 3 0 2 3 x)
+\chord ("E" 0 0 1 2 2 0)
+\chord ("Esus4" 0 0 2 2 2 0)
+(2.1 3.2 2.3 0.4).4{ch "D" sd} (3.1 3.2 2.3 0.4).4{ch "Dsus4" sd}
+  (2.1 3.2 2.3 0.4).4{ch "D" sd} (0.1 3.2 2.3 0.4).4{ch "Dsus2" sd} |
+(0.1 2.2 2.3 2.4 0.5).4{ch "A" sd} (0.1 3.2 2.3 2.4 0.5).4{ch "Asus4" sd}
+  (0.1 2.2 2.3 2.4 0.5).4{ch "A" sd} (0.1 0.2 2.3 2.4 0.5).4{ch "Asus2" sd} |
+(0.1 1.2 0.3 2.4 3.5).2{ch "C" sd} (3.1 3.2 0.3 2.4 3.5).2{ch "Cadd9" sd} |
+(0.1 0.2 2.3 2.4 2.5 0.6).2{ch "Esus4" sd}
+  (0.1 0.2 1.3 2.4 2.5 0.6).2{ch "E" sd} |
+

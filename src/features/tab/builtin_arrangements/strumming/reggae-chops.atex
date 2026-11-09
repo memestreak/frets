@@ -1,0 +1,14 @@
+\title "Reggae off-beat chops"
+\instrument electricguitarclean
+\ts (4 4)
+\chord ("Am" 5 5 5 x x x)
+\chord ("D" 5 7 7 x x x)
+r.8 (5.1 5.2 5.3).8{ch "Am" txt "Short, on the &" sd} r.8 (5.1 5.2 5.3).8{sd}
+  r.8 (5.1 5.2 5.3).8{sd} r.8 (5.1 5.2 5.3).8{sd} |
+r.8 (5.1 7.2 7.3).8{ch "D" sd} r.8 (5.1 7.2 7.3).8{sd} r.8 (5.1 7.2 7.3).8{sd}
+  r.8 (5.1 7.2 7.3).8{sd} |
+r.8 (5.1 5.2 5.3).8{ch "Am" sd} r.8 (5.1 5.2 5.3).8{sd} r.8 (5.1 5.2 5.3).8{sd}
+  r.8 (5.1 5.2 5.3).8{sd} |
+r.8 (5.1 7.2 7.3).8{ch "D" sd} r.8 (5.1 7.2 7.3).8{sd} r.8 (5.1 7.2 7.3).8{sd}
+  r.8 (5.1 7.2 7.3).8{sd} |
+

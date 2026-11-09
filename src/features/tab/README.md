@@ -442,6 +442,9 @@ or saved. Standard tuning only.
 The principles every editing spec since step 1 follows, with Dorico,
 MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
 
+- `docs/specs/2026-11-08-tab-learning-builtins-design.md`: built-in chord
+  types, progressions, strumming patterns and four short original songs
+  (issue #434)
 - `docs/specs/2026-11-08-tab-chat-markdown-design.md`: the Chat panel draws
   a reply's markdown, links in a new tab, never raw HTML (issue #427)
 - `docs/specs/2026-11-08-tab-chat-design.md`: the Chat panel, behind

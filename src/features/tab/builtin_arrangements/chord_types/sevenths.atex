@@ -1,0 +1,25 @@
+\title "Seventh chords"
+\ts (4 4)
+\chord ("G7" 1 0 0 0 2 3)
+\chord ("C7" 0 1 3 2 3 x)
+\chord ("D7" 2 1 2 0 x x)
+\chord ("A7" 0 2 0 2 0 x)
+\chord ("E7" 0 0 1 0 2 0)
+\chord ("B7" 2 0 2 1 2 x)
+\chord ("Cmaj7" 0 0 0 2 3 x)
+\chord ("Fmaj7" 0 1 2 3 x x)
+\chord ("Am7" 0 1 0 2 0 x)
+\chord ("Em7" 0 3 0 2 2 0)
+\chord ("Dm7" 1 1 2 0 x x)
+\chord ("Bm7♭5" x 3 2 3 2 x)
+(1.1 0.2 0.3 0.4 2.5 3.6).2{ch "G7" txt "Dominant 7" sd}
+  (0.1 1.2 3.3 2.4 3.5).2{ch "C7" sd} |
+(2.1 1.2 2.3 0.4).2{ch "D7" sd} (0.1 2.2 0.3 2.4 0.5).2{ch "A7" sd} |
+(0.1 0.2 1.3 0.4 2.5 0.6).2{ch "E7" sd} (2.1 0.2 2.3 1.4 2.5).2{ch "B7" sd} |
+(0.1 0.2 0.3 2.4 3.5).2{ch "Cmaj7" txt "Major 7" sd}
+  (0.1 1.2 2.3 3.4).2{ch "Fmaj7" sd} |
+(0.1 1.2 0.3 2.4 0.5).2{ch "Am7" txt "Minor 7" sd}
+  (0.1 3.2 0.3 2.4 2.5 0.6).2{ch "Em7" sd} |
+(1.1 1.2 2.3 0.4).2{ch "Dm7" sd}
+  (3.2 2.3 3.4 2.5).2{ch "Bm7♭5" txt "Half-diminished" sd} |
+
