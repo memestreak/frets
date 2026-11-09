@@ -1,0 +1,13 @@
+\title "3. Change notes"
+\ts (4 4)
+5.3.4{txt "Tab view, note input mode off. 1. Press this 5: it is selected. 2. Press the Alt+Up arrow key twice: it turns 7. Alt+Down arrow twice takes it back to 5."}
+  7.3.4 5.3.4 7.3.4 |
+5.3.4
+  7.3.4{txt "3. Press this 7, then 6: a half note, written over the 5 after it, so the bar stays full. 4. Press Ctrl/⌘+Z: the 5 is back."}
+  5.3.4 7.3.4 |
+8.2.4{txt "5. Press this 8, then Delete: a rest in its place."} 7.2.4 5.2.4
+  7.2.4 |
+8.2.4
+  7.2.4{txt "6. Press this 7, then the Ctrl/⌘+Down arrow key: the same pitch on the G string, at fret 11."}
+  5.2.4 7.2.4 |
+

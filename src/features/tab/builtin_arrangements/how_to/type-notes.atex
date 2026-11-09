@@ -1,0 +1,5 @@
+\title "1. Type notes"
+\ts (4 4)
+r.1{txt "Tab view. 1. Press N: note input mode starts, the pencil under Notes › Input lights, and a faint 0 waits on the top string. 2. Type 0, then the Right arrow key: a quarter note goes in and the caret moves on a beat. 3. Type 3, Right arrow, 5, Right arrow, 7, Right arrow: bar 1 is full. 4. Press Shift+4: the next notes are eighths (Shift+5 is a quarter, Shift+6 a half). 5. Press the Down arrow key: the caret goes to the B string. 6. Type 1, Right arrow, 3, Right arrow: two eighths in bar 2. 7. Press Esc: note input mode ends. 8. Press Space to play, Space again to stop. Press ? for every key."} |
+r.1 | r.1 |
+

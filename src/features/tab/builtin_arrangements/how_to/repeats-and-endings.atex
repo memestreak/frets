@@ -1,0 +1,9 @@
+\title "11. Repeats and endings"
+\ts (4 4)
+5.3.4{txt "Tab view. 1. Press this 5, then [ (left bracket): a repeat starts at bar 1."}
+  7.3.4 5.3.4 7.3.4 |
+8.2.4{txt "2. Press this 8, then E: the first ending, 1., over bar 2. Then ] (right bracket): the repeat ends at bar 2."}
+  7.2.4 5.2.4 7.2.4 |
+8.2.4{txt "3. Press this 8, then E twice: the second ending, 2., over bar 3. 4. Press Space: bar 2 plays the first time, bar 3 the second."}
+  10.2.4 12.2.2 |
+

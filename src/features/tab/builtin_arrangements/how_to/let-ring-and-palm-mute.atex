@@ -1,0 +1,7 @@
+\title "7. Let ring and palm mute"
+\ts (4 4)
+0.5.8{txt "Tab view. 1. Press this 0, then the Shift+Right arrow key seven times: the whole bar is selected. 2. Press I: let ring, drawn as a dashed line over the bar. Press I again to take it away."}
+  2.4.8 2.3.8 1.2.8 0.1.8 1.2.8 2.3.8 2.4.8 |
+0.6.8{txt "3. Press this 0, then Shift+Right arrow seven times, then M: P.M. over the bar, for palm mute."}
+  0.6.8 0.6.8 0.6.8 0.6.8 0.6.8 0.6.8 0.6.8 |
+
