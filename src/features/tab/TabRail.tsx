@@ -4,7 +4,7 @@
  * The Tab page's tools in a rail of panels on the left, as Dorico has them
  * (`docs/specs/2026-11-02-tab-rail-design.md`, issue #301). Each rail button opens its panel beside the
  * clip, and pressing it again closes it. The rail and panel grow into the page's left margin, so the clip
- * keeps its right edge. Its panel Chords is the track's chords (`ChordPanel`, issue #251), and Chat, shown with `?chat`, asks a model about the arrangement (`ChatPanel`, issue #424). Dragging the line
+ * keeps its right edge. Its panel Chords is the track's chords (`ChordPanel`, issue #251), and Chat asks a model about the arrangement (`ChatPanel`, issue #424). Dragging the line
  * between the panel and the clip sets every panel's width (`docs/specs/2026-11-08-tab-rail-width-design.md`,
  * issue #431). Which panel is open, and the panels' width, are kept across visits (`frets.tab.layout`), but
  * they are not preferences, so Settings doesn't list them.
@@ -85,9 +85,10 @@ const CHAT_ICON = (
   <path d="M5 5.5h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-8l-4 3.5v-3.5H5a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1z" strokeLinejoin="round" />
 );
 
-/** Every panel the rail opens, in order: the tools', then Chords, then Chat when the page has it. */
-const RAIL: readonly { id: PanelId; name: string; icon: ReactNode }[] = [...PANELS, { id: 'chords', name: 'Chords', icon: CHORDS_ICON }];
-const CHAT_PANEL = { id: 'chat', name: 'Chat', icon: CHAT_ICON } as const;
+/** Every panel the rail opens, in order: the tools', then Chords, then Chat. */
+const RAIL: readonly { id: PanelId; name: string; icon: ReactNode }[] = [
+  ...PANELS, { id: 'chords', name: 'Chords', icon: CHORDS_ICON }, { id: 'chat', name: 'Chat', icon: CHAT_ICON },
+];
 
 /**
  * The open panel, kept across visits; read after the first render, since the server has no storage.
@@ -183,15 +184,14 @@ interface TabRailProps {
   chords: ReactNode;
   /** What the Chords panel's head shows right of its title (its Hear toggle). */
   chordsHead?: ReactNode;
-  /** The Chat panel's contents; no Chat button without them (`?chat`, issue #424). */
-  chat?: ReactNode;
+  /** The Chat panel's contents (issue #424). */
+  chat: ReactNode;
   children: ReactNode;
 }
 
 /** The clip's card with the rail and its open panel on its left. */
 export function TabRail({ palette, open, onOpen: setOpen, chords, chordsHead, chat, children }: TabRailProps) {
-  const rail = chat ? [...RAIL, CHAT_PANEL] : RAIL;
-  const panel = rail.find(p => p.id === open);
+  const panel = RAIL.find(p => p.id === open);
   const tools = PANELS.find(p => p.id === open);
   const [width, setWidth] = usePanelWidth();
   return (
@@ -201,7 +201,7 @@ export function TabRail({ palette, open, onOpen: setOpen, chords, chordsHead, ch
     >
       <HoverTips className="tab-rail-column">
         <nav className="tab-rail" aria-label="Panels">
-          {rail.map(p => (
+          {RAIL.map(p => (
             <button
               key={p.id} type="button" className="tab-rail-button" aria-label={p.name} aria-pressed={open === p.id}
               data-tip={p.name}

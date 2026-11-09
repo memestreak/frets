@@ -39,7 +39,6 @@ import { ImportDialog } from './TabDialogs';
 import { TabPalette } from './TabPalette';
 import { TabRail, useOpenPanel } from './TabRail';
 import { ChatPanel } from './chat/ChatPanel';
-import { readChatParam } from './chat/chatPrefs';
 import type { PageSpot } from './chat/arrangementTools';
 import { ChordPanel, HearChordsToggle } from './ChordPanel';
 import { TabExportDialog } from './TabExportDialog';
@@ -296,11 +295,9 @@ export default function TabPage() {
   // The rail's open panel; a chord name's Edit (and so its double-click) opens Chords at that chord (issue #251).
   const [railPanel, setRailPanel] = useOpenPanel();
   /**
-   * The Chat panel (`docs/specs/2026-11-08-tab-chat-design.md`, issue #424): only with `?chat` while it
-   * is unfinished. The model's changes go through `chatClip`: a reply's first is an undo step, and its
+   * The Chat panel (`docs/specs/2026-11-08-tab-chat-design.md`, issue #424). The model's changes go through `chatClip`: a reply's first is an undo step, and its
    * later ones join it, unless the viewer edited in between.
    */
-  const [chatOn] = useState(() => readChatParam(window.location.search));
   const wholeNow = useRef(whole);
   useEffect(() => { wholeNow.current = whole; }, [whole]);
   const chatSet = useRef<Clip | null>(null);
@@ -401,7 +398,7 @@ export default function TabPage() {
     if (!next.shown) playback.stop();
     setPlaybackSettings(next);
   };
-  const settingsGroups = [useGeneralGroup(), tabSettingsGroup(prefs, savePlayback, chatOn)];
+  const settingsGroups = [useGeneralGroup(), tabSettingsGroup(prefs, savePlayback)];
   /** Note input mode on or off; going in, the keys come to the tab. */
   /** The rest last picked on the staff, so going into note input mode from it starts the caret there. */
   const restOnStaff = useRef<{ bar: number; column: number } | null>(null);
@@ -864,13 +861,13 @@ export default function TabPage() {
             onDone={() => editorRef.current?.focus({ preventScroll: true })}
           />
         )}
-        chat={chatOn && (
+        chat={
           <ChatPanel
             prefs={prefs.chat} onModel={model => prefs.setChat(c => ({ ...c, model }))}
             current={() => ({ clip: wholeNow.current, spot: chatSpot() })} onClip={chatClip}
             onOpenSettings={() => openSettings({ group: 'tab', section: 'chat' })}
           />
-        )}
+        }
         chordsHead={<HearChordsToggle hear={playbackSettings.hearChords} onHearChange={hearChords => setPlaybackSettings(s => ({ ...s, hearChords }))} />}
       >
       <section className="card tab-card" aria-label="Clip">

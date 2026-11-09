@@ -154,9 +154,9 @@ function textField<V, K extends keyof V & string>(key: K, label: string, opts: {
 
 /**
  * Settings' Tab group, on the page's state. `savePlayback` saves Playback (hiding the controls stops
- * playback). Chat is listed only while the page shows the Chat panel (`?chat`, issue #424).
+ * playback).
  */
-export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: PlaybackSettings) => void, chat = false): SettingsGroup {
+export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: PlaybackSettings) => void): SettingsGroup {
   return {
     id: 'tab',
     name: 'Tab',
@@ -246,7 +246,7 @@ export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: Playback
           twoWayField('name', 'Clip name', 'Show', 'Hide'),
         ],
       }),
-      ...(chat ? [section<ChatPrefs>({
+      section<ChatPrefs>({
         id: 'chat', name: 'Chat', value: prefs.chat, defaults: DEFAULT_CHAT,
         // Saved as read back, so a key pasted with a space round it still works.
         save: value => prefs.setChat(parseChatPrefs(value)),
@@ -256,7 +256,7 @@ export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: Playback
           instructionsField,
           customField,
         ],
-      })] : []),
+      }),
     ],
   };
 }

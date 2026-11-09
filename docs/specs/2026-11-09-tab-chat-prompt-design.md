@@ -16,8 +16,7 @@ design questions, 2026-11-09, all as recommended
 
 ## What it does
 
-- Settings › Tab › Chat (listed only with `?chat`, as before) adds two fields
-  under the key and the model:
+- Settings › Tab › Chat adds two fields under the key and the model:
   - **Instructions**: a box holding the built-in lines, editable.
     Under it: "Then the alphaTex guide, always sent." with a **Show guide** button
     that unfolds the guide read-only in its own scrolling box (**Hide guide**
