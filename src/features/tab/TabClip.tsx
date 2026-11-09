@@ -73,7 +73,7 @@ export interface DoubleClickPlace {
   rest: { bar: number; column: number } | null;
 }
 
-export const TabClip = memo(function TabClip({ clip, layout: given, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, errors, onPick, onPickText, onPickMark, onPickColumn, onPickRhythm, onPickStaff, onDragStaff, onDragFret, onDragSpan, onDragRange, onPickRect, onPickWarning, onMiss, onDoubleClick, columnReach = 0, shadow = null, gridStep = null, gridLook = null, mutedVoices = false, voiceSelections, onPickVoice, chordDiagrams = false, x, y }: {
+export const TabClip = memo(function TabClip({ clip, layout: given, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, typing = null, errors, onPick, onPickText, onPickMark, onPickColumn, onPickRhythm, onPickStaff, onDragStaff, onDragFret, onDragSpan, onDragRange, onPickRect, onPickWarning, onMiss, onDoubleClick, columnReach = 0, shadow = null, gridStep = null, gridLook = null, mutedVoices = false, voiceSelections, onPickVoice, chordDiagrams = false, x, y }: {
   clip: Part;
   /** A diagram under every chord name with a shape (issue #242), when `layout` isn't given; a given layout says so itself. */
   chordDiagrams?: boolean;
@@ -107,6 +107,8 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
   highlight?: Highlight;
   /** On the page only: the picked chord name, text, section, tempo or capo, or technique mark, outlined. */
   picked?: WordHit | MarkHit | null;
+  /** On the page only: the syllable the Lyrics field is typing at, drawn in its own colour (`ink`). */
+  typing?: { hit: WordHit; ink: string } | null;
   /** On the page only: bars with something wrong, and what, drawn as a warning under the bar's start with the words as its tip. */
   errors?: Map<number, string>;
   /** A press on the tab: the column and string under it, and whether Shift was held. */
@@ -651,7 +653,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
           <SystemDrawing
             system={drawn.systems[si]} rows={rows} index={si} clip={clip} look={look} slides={slides}
             previous={previous} joins={joins} legato={arcs.filter(a => a.system === si)} whammy={whammies[si]} lastBar={lastBar} maskId={`${maskId}-${si}`}
-            selected={highlight?.range ?? null} lit={lights.tab} word={pickedWord}
+            selected={highlight?.range ?? null} lit={lights.tab} word={pickedWord} typing={typing}
             masked={voiceViews.map(v => v.layout.systems[si])}
           />
           {rows.score && onStaff && (
@@ -667,7 +669,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
               <SystemDrawing
                 system={v.layout.systems[si]} rows={rows} index={si} clip={v.clip} look={voiceLook} slides={v.slides}
                 previous={v.previous} joins={v.joins} legato={v.arcs.filter(a => a.system === si)} whammy={v.whammies[si]} lastBar={lastBar} maskId={`${maskId}-${si}-v${v.voice}`}
-                selected={voiceSelections?.get(v.voice) ?? null} lit={noLights} word={null} notesOnly
+                selected={voiceSelections?.get(v.voice) ?? null} lit={noLights} word={null} typing={typing} notesOnly
               />
               {rows.score && v.onStaff && (
                 <StaffDrawing
@@ -791,7 +793,7 @@ function Warning({ bar, x, y, text }: { bar: number; x: number; y: number; text:
   );
 }
 
-function SystemDrawing({ system, rows, index, clip, look, previous, slides, joins, legato, whammy, lastBar, maskId, selected, lit, word, masked = [], notesOnly = false }: {
+function SystemDrawing({ system, rows, index, clip, look, previous, slides, joins, legato, whammy, lastBar, maskId, selected, lit, word, typing, masked = [], notesOnly = false }: {
   system: System;
   /** The same line in the other Voices' layouts: the string lines stop short of their numbers too. */
   masked?: System[];
@@ -817,10 +819,11 @@ function SystemDrawing({ system, rows, index, clip, look, previous, slides, join
   lit: MarkLit;
   /** The picked word or bar line, drawn in `--select`. */
   word: WordHit | null;
+  typing: { hit: WordHit; ink: string } | null;
 }) {
   const end = system.bars[system.bars.length - 1].x1;
   const parts: ReactNode[] = [];
-  const words = <SystemWords system={system} rows={rows} clip={clip} look={look} word={word} columnsOnly={notesOnly} />;
+  const words = <SystemWords system={system} rows={rows} clip={clip} look={look} word={word} typing={typing} columnsOnly={notesOnly} />;
   const rowMarks = <SystemRowMarks system={system} rows={rows} look={look} selected={selected} lit={lit} />;
   // The staff alone: the words over it and the marks under it, and no tab.
   if (!rows.tab) return <>{words}{rowMarks}</>;

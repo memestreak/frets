@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { barErrors, MAX_CAPO, type Part } from './clip';
-import { columnAt, type Cursor } from './editing';
+import { columnAt, indexOf, type Cursor } from './editing';
 import { setBarKey, setBarTime, setBeatGroups, setPickup, setBeatText, setCapo, setChordName, setEnding, setRepeatTimes, setSection } from './barEdits';
 import { BarKeyPanel } from './BarKeyPanel';
 import { BarFixPopover } from './BarFixPopover';
@@ -11,6 +11,7 @@ import { LyricField, type LyricNudge } from './LyricField';
 import { lyricAt, lyricNote, lyricValue, MAX_LYRIC_LINES, setLyric, type LyricMove } from './lyrics';
 import { SPLITS_TUPLET } from './timeline';
 import type { Layout } from './layout';
+import type { WordHit } from './layoutText';
 import { TempoPanel } from './TempoPanel';
 import { TuningPanel } from './TuningPanel';
 import type { EditorState } from './useEditorState';
@@ -48,6 +49,11 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
   const [lyric, setLyricField] = useState<{ bar: number; column: number; line: number; turn?: number } | null>(null);
   /** Where the Lyrics field was dragged to, kept while it goes note to note; it opens over the note again next time. */
   const [lyricNudge, setLyricNudge] = useState<LyricNudge>({ dx: 0, dy: 0 });
+  /**
+   * The syllable drawn in the typing colour while the field is open: the note's own when it has one, else the
+   * one the field set last, so what was just typed shows (Dorico's last lyric, in its selection colour).
+   */
+  const [lyricLit, setLyricLit] = useState<{ bar: number; column: number; line: number } | null>(null);
   /** The bar whose time signature panel is open. */
   const [timeBar, setTimeBar] = useState<number | null>(null);
   /** The bar whose key signature panel is open. */
@@ -121,6 +127,7 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
     setWord(null);
     commit(clip, { ...cursor, ...place }, null);
     if (!lyric) setLyricNudge({ dx: 0, dy: 0 });
+    setLyricLit(lyricAt(clip, place, line) ? { ...place, line } : null);
     setLyricField({ ...place, line });
   };
 
@@ -137,9 +144,13 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
     if (place) {
       // A new turn opens the field afresh even on the same note, with what it now has.
       setLyricField({ ...place, line, turn: (at.turn ?? 0) + 1 });
+      const own = lyricAt(next, place, line) ? { ...place, line } : null;
+      const set = lyricAt(next, at, at.line) ? { bar: at.bar, column: at.column, line: at.line } : null;
+      setLyricLit(own ?? set ?? (lyricLit && lyricAt(next, lyricLit, lyricLit.line) ? lyricLit : null));
       return;
     }
     setLyricField(null);
+    setLyricLit(null);
     if (byKey) editorRef.current?.focus();
   };
 
@@ -173,6 +184,7 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
   const closeAll = () => {
     setWord(null);
     setLyricField(null);
+    setLyricLit(null);
     setHeadPanel(null);
     setFixBar(null);
     closeSignatures();
@@ -256,6 +268,10 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
 
   return {
     openWord, openLyric, openSignature, openFix, closeSignatures, closeAll, panels,
+    /** The syllable to draw in the typing colour while the Lyrics field is open. */
+    typingLyric: (lyric && lyricLit && lyricLit.bar < clip.bars.length
+      ? { kind: 'lyric', index: indexOf(clip, lyricLit.bar, lyricLit.column), line: lyricLit.line }
+      : null) as WordHit | null,
     /** The score head's panels, from a press on the head (or the folded title), at that spot. */
     openCredits: (x: number, y: number, field: HeadField) => setHeadPanel({ kind: 'credits', x, y, from: clip, field }),
     openTuning: (x: number, y: number) => setHeadPanel({ kind: 'tuning', x, y }),

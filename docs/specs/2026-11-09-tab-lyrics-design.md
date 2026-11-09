@@ -56,6 +56,11 @@ syllable a note. Frets kept both as written but drew neither.
     words sung on one note, and Alt+hyphen a hyphen, as in Dorico.
   - The cursor follows the field from note to note. Each syllable set is
     one undo step.
+  - While the field is open, one syllable is drawn in the typing colour
+    (Dorico shows its last lyric in its selection colour): the note's own,
+    when it has one, else the one the field set last. The colour is being
+    picked (mocks: burnt orange `--degree-root`, amber `--accent`, blue
+    `--select`).
 - **Picking.** A press on a syllable picks it (blue, its notes tinted).
   Enter, a double-click or the right-click menu's Edit opens the field on
   it; Delete or the menu's Delete takes it away. Alt+← → step through
@@ -112,8 +117,11 @@ glossary yet; the PR says so.
   merges: its rows already leave the room.
 - Syllables on an empty bar's beats (a chord sheet with words and no
   melody), as their own FR if wanted.
-- Extender lines, and a literal hyphen at the end of a syllable (it
-  reads as joined).
+- Extender lines (repeated Space and underscore), and a literal hyphen
+  at the end of a syllable (it reads as joined).
+- Dorico's Chorus line (Up from line 1), translation line (Alt+Down) and
+  lyrics above the staff (Shift+Up): alphaTex can't store them (Jeremy,
+  round 2 of the design doc, 2026-11-09).
 
 ## Tests
 

@@ -17,10 +17,15 @@ import { TempoNote } from './TempoNote';
 const FREE_TIME_GAP = 10;
 
 /** The words over a line: endings, the capo, sections, tempos, chord names and free text. */
-export function SystemWords({ system, rows, clip, look: plain, word, columnsOnly = false }: { system: System; rows: Rows; clip: Part; look: TabLook; word: WordHit | null; columnsOnly?: boolean }) {
+export function SystemWords({ system, rows, clip, look: plain, word, typing = null, columnsOnly = false }: {
+  system: System; rows: Rows; clip: Part; look: TabLook; word: WordHit | null;
+  /** The syllable the Lyrics field is at, in its own colour. */
+  typing?: { hit: WordHit; ink: string } | null;
+  columnsOnly?: boolean;
+}) {
   const parts: ReactNode[] = [];
   // Another Voice's drawing carries only the words on its own columns: chord names and texts (step 9, Q13).
-  if (columnsOnly) return <>{columnWords(system, rows, word, plain)}</>;
+  if (columnsOnly) return <>{columnWords(system, rows, word, plain, typing)}</>;
   /** The look of a word: the selection's blue when it is the picked one (issue #276). */
   const lookOf = (hit: WordHit) => litLook(plain, sameWord(word, hit));
   // Endings: one bracket over each run of bars with the same ending.
@@ -95,12 +100,12 @@ export function SystemWords({ system, rows, clip, look: plain, word, columnsOnly
       );
     }
   }
-  parts.push(...columnWords(system, rows, word, plain));
+  parts.push(...columnWords(system, rows, word, plain, typing));
   return <>{parts}</>;
 }
 
 /** The words on a line's columns: chord names and free text. */
-function columnWords(system: System, rows: Rows, word: WordHit | null, plain: TabLook): ReactNode[] {
+function columnWords(system: System, rows: Rows, word: WordHit | null, plain: TabLook, typing: { hit: WordHit; ink: string } | null): ReactNode[] {
   const parts: ReactNode[] = [];
   const lookOf = (hit: WordHit) => litLook(plain, sameWord(word, hit));
   // Under each chord name its diagram (issue #242), picked with it.
@@ -150,7 +155,7 @@ function columnWords(system: System, rows: Rows, word: WordHit | null, plain: Ta
       }
     }
   }
-  parts.push(...lyricWords(system, rows, lookOf));
+  parts.push(...lyricWords(system, rows, hit => (typing && sameWord(typing.hit, hit) ? { ...plain, ink: typing.ink } : lookOf(hit))));
   return parts;
 }
 

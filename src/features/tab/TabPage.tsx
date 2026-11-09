@@ -70,6 +70,14 @@ import { useActiveVoice, useVoicePick } from './useVoicePick';
 import { useWidth } from './useWidth';
 import { showShortcuts } from '@/components/shortcuts/useShortcuts';
 import { isMac } from '@/lib/shortcuts';
+import { useMock, type Mock } from '@/components/mocks/useMock';
+
+/** Mock (question 17 of the lyrics doc): the colour of the syllable the Lyrics field is at. */
+const TYPING_MOCK: Mock = {
+  param: 'mock', label: 'Typing colour',
+  options: [{ value: 'a', label: 'a Burnt orange' }, { value: 'b', label: 'b Amber' }, { value: 'c', label: 'c Blue' }],
+};
+const TYPING_INK: Record<string, string> = { a: 'var(--degree-root)', b: 'var(--accent)', c: 'var(--select)' };
 
 /** What a press may land on and keep the selection and the playback line: controls, the drawing and the palette. */
 const TAB_KEEPS = `${KEEPS_SELECTION}, .tab-editor svg, .tab-palette, .tab-rail, .tab-rail-panel`;
@@ -283,6 +291,7 @@ export default function TabPage() {
 
   // The fields and panels over the tab and from the score's head.
   const head = useHeadPanels(editor, { layout, width: clipWidth, zoom, shown: { tab: view === 'tab', drawn: clipWidth > 0 } });
+  const typingInk = TYPING_INK[useMock(TYPING_MOCK)];
   // Presses and drags on the drawn tab.
   const picking = useTabPicking(editor, {
     drawn, layout, hearNote, setNotice, openWord: head.openWord, openLyric: head.openLyric,
@@ -958,6 +967,7 @@ export default function TabPage() {
                       highlight={highlight}
                       shadow={noteInputMode ? inputLength.value : null} gridStep={noteInputMode ? gridStep : null} gridLook={gridLook}
                       picked={tabFocused ? picked : null}
+                      typing={head.typingLyric ? { hit: head.typingLyric, ink: typingInk } : null}
                       errors={errors} mutedVoices={tabFocused} voiceSelections={shownVoiceSelections}
                     />
                   </HoverTips>
