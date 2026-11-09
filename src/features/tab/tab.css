@@ -605,8 +605,6 @@ body:has(.tab-rail-divider[data-dragging]) { cursor: ew-resize; user-select: non
 }
 .tab-stack-toggle:hover { color: var(--ink); }
 .tab-stack-toggle:focus-visible { outline: none; }
-.tab-stack-panel:not([data-expanded]) .tab-rail-panel-title { color: var(--ink-muted); font-weight: 500; }
-.tab-stack-toggle:hover .tab-rail-panel-title { color: var(--ink); }
 .tab-stack-chevron { flex: none; transition: transform 120ms ease; }
 .tab-stack-chevron[data-open] { transform: rotate(90deg); }
 @media (prefers-reduced-motion: reduce) { .tab-stack-chevron { transition: none; } }

@@ -31,6 +31,8 @@ describe('the palettes’ column (issue #454)', () => {
     for (const name of ['Notes', 'Articulations', 'Bars', 'Chords', 'Chat']) {
       expect(paletteHeader(name).querySelector('.tab-stack-icon svg')).not.toBeNull();
     }
+    // Articulations' icon is "mf", its two letters, not the accent's wedge (which read as an expand chevron).
+    expect(paletteHeader('Articulations').querySelectorAll('.tab-stack-icon svg g path')).toHaveLength(2);
     expect(screen.getByRole('button', { name: 'Note input mode' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Quarter note/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Tuplet/ })).toBeInTheDocument();
