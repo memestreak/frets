@@ -7,6 +7,7 @@
 import { runTool, TOOLS, type PageSpot, type ToolContext } from './arrangementTools';
 import { ChatError, type ChatMessage, type Complete, type Usage } from './openRouter';
 import type { Clip } from '../clip';
+import { DEFAULT_CHAT, instructionsOf, type ChatPrefs } from './chatPrefs';
 
 /** The most model calls one reply makes, so a model that keeps calling tools stops. */
 export const MAX_STEPS = 12;
@@ -76,19 +77,16 @@ export function askWithArrangement(ask: string, arrangement: string): string {
   return `${ask}\n\n<arrangement>\n${arrangement}\n</arrangement>`;
 }
 
-/** The system prompt: what the panel is for, then the agent guide to Frets' alphaTex. */
-export function systemPrompt(guide: string): string {
-  return [
-    'You are helping a guitarist with the arrangement open on the Tab page of Frets, a guitar app.',
-    'They may ask you to analyse it (harmony, rhythm, technique, playability) or to change it.',
-    'Each message from the viewer ends with the arrangement as it was when they sent it, as read_arrangement gives it, so you needn\'t read it first.',
-    'Read it again with read_arrangement after a change, or if they may have edited it since.',
-    'Change it only when asked, with replace_bars for a run of bars or replace_arrangement for anything else.',
-    'Every change you make in one reply is undone together by one Undo, so make the whole change the viewer asked for.',
-    'The arrangement comes with the problems Frets marks on it; mention any that bear on what was asked, and fix them only when asked.',
-    'Answer briefly. Your answer is shown as markdown: use short lists, a small table or `code` where they help (HTML shows as text). Name bars by number. Do not paste alphaTex into your answer unless asked.',
-    'Frets writes alphaTex as the guide below describes.',
-    '',
-    guide,
-  ].join('\n');
+/** The heading over the viewer's own prompt, so the model reads it as theirs and apart from the guide. */
+export const CUSTOM_HEADING = "The guitarist's own instructions:";
+
+/**
+ * The system prompt (`docs/specs/2026-11-09-tab-chat-prompt-design.md`): the instructions (the viewer's
+ * or the default), then the agent guide to Frets' alphaTex, always, then the viewer's own prompt, if any,
+ * last, where a model gives it most weight.
+ */
+export function systemPrompt(guide: string, prompts: Pick<ChatPrefs, 'instructions' | 'custom'> = DEFAULT_CHAT): string {
+  const custom = prompts.custom.trim() ? `${CUSTOM_HEADING}\n${prompts.custom}` : '';
+  // Instructions cleared to nothing send nothing; the guide is always there.
+  return [instructionsOf(prompts), guide, custom].filter(part => part.trim()).join('\n\n');
 }

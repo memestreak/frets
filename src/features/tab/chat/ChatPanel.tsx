@@ -13,6 +13,7 @@ import { arrangementNow, type PageSpot } from './arrangementTools';
 import { ModelPicker } from './ModelPicker';
 import { ReplyMarkdown } from './ReplyMarkdown';
 import { completeWithOpenRouter, fetchPresets, fetchToolModels, type ChatMessage, type Preset, type Complete, type Usage } from './openRouter';
+import { loadGuide } from './guide';
 import { askWithArrangement, runReply, systemPrompt } from './reply';
 import type { ChatPrefs } from './chatPrefs';
 
@@ -24,13 +25,6 @@ type Entry =
   | { kind: 'ask'; text: string }
   | { kind: 'reply'; text: string; notes: Note[]; model: string; usage: Usage }
   | { kind: 'error'; text: string; notes: Note[] };
-
-/** The agent guide, fetched once a visit, for the system prompt. */
-let guideText: Promise<string> | null = null;
-function loadGuide(): Promise<string> {
-  guideText ??= fetch('/tab-alphatex.txt').then(r => (r.ok ? r.text() : '')).catch(() => '');
-  return guideText;
-}
 
 export interface ChatPanelProps {
   prefs: ChatPrefs;
@@ -95,7 +89,7 @@ export function ChatPanel({ prefs, onModel, current, onClip, onOpenSettings, com
       const withArrangement: ChatMessage = { role: 'user', content: askWithArrangement(text, await arrangementNow(clip, spot, readAlphaTex)) };
       const result = await runReply({
         complete, apiKey: prefs.apiKey, model: prefs.model,
-        messages: [{ role: 'system', content: systemPrompt(await guide()) }, ...history.current, withArrangement],
+        messages: [{ role: 'system', content: systemPrompt(await guide(), prefs) }, ...history.current, withArrangement],
         current, read: readAlphaTex, signal: stop.signal,
         onClip: clip => { onClip(clip, !changed); changed = true; },
         onNote: note => { notes.push(note); setWorking({ notes: [...notes], stop }); },

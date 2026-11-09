@@ -31,6 +31,7 @@ import { PARTS, type Parts } from './layout';
 import { DEFAULT_EDITING, EDITING_KEY, parseEditing, type EditingPrefs } from './editingPrefs';
 import { GRID_LOOK_NAMES, GRID_LOOKS, GRID_NAMES, GRID_VALUES, type GridLook, type GridValue } from './grid';
 import { CHAT_KEY, DEFAULT_CHAT, parseChatPrefs, type ChatPrefs } from './chat/chatPrefs';
+import { customField, instructionsField } from './chat/promptFields';
 
 /** One section's state: read from its key once, written back on every change. */
 function usePreference<V>(key: string, parse: (raw: unknown) => V) {
@@ -252,6 +253,8 @@ export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: Playback
         fields: [
           textField('apiKey', 'OpenRouter key', { secret: true, placeholder: 'sk-or-…' }),
           textField('model', 'Model', { placeholder: DEFAULT_CHAT.model }),
+          instructionsField,
+          customField,
         ],
       })] : []),
     ],
