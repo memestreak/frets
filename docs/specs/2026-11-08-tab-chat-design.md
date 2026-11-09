@@ -12,9 +12,9 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
 
 ## What it does
 
-- **Hidden until ready (Q8).** The rail has a Chat button, after Chords, only
-  when the address has `?chat` (`/tab?chat`, any value). Without it, nothing
-  of the Chat panel is on the page and Settings doesn't list Tab › Chat.
+- **On the rail for everyone.** The rail has a Chat button, after Chords,
+  and Settings lists Tab › Chat. It first shipped hidden behind `?chat`
+  (Q8); Jeremy unhid it on 2026-11-09 ("I want to unhide it").
 - **No Frets server (Q1).** The page calls OpenRouter's chat completions
   (`https://openrouter.ai/api/v1/chat/completions`) straight from the
   browser with the viewer's own OpenRouter key. OpenRouter allows this from
@@ -107,15 +107,14 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
   the key; an ordinary key lists them, and browsers may ask, tested 2026-11-08).
 - `chat/reply.ts`: `runReply`, the loop of model calls and tool runs, at most
   `MAX_STEPS` (12) calls; `systemPrompt`.
-- `chat/chatPrefs.ts`: `frets.tab.chat`, its parser, `?chat`.
+- `chat/chatPrefs.ts`: `frets.tab.chat` and its parser.
 - `chat/ModelPicker.tsx`: the Model field and its list.
-- `chat/ChatPanel.tsx`: the panel. `TabRail` takes its contents as `chat`
-  and shows the Chat button only then.
+- `chat/ChatPanel.tsx`: the panel. `TabRail` takes its contents as `chat`.
 - `clipState.ts`: a new action, `amend`, joins a change to the last undo
   step (a step of its own when there is none). `TabPage.tsx` sends a reply's
   first change as `replace` and the rest as `amend` while the clip is still
   the one the reply last set.
-- `tabSettings.tsx`: the Chat section, listed only with `?chat`; a `textField`
+- `tabSettings.tsx`: the Chat section; a `textField`
   for a line of text.
 
 ## Not yet
@@ -123,7 +122,6 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
 - Streaming replies and thinking (after a model is chosen). Caching the
   conversation as it grows, not only the system prompt.
 - Calling Anthropic directly once Claude is chosen (option A on the page).
-- Taking `?chat` off (issue #424's last step).
 
 ## Tests
 
@@ -162,12 +160,11 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
   OpenRouter's `prompt_tokens_details.cached_tokens` is read as the cached
   tokens. Every message but the system prompt is sent as it is.
 - `frets.tab.chat` keeps a trimmed key and model; anything else falls back to
-  no key and `anthropic/claude-opus-5.5`. `?chat` and `?theme=light&chat=1`
-  show the panel; none and `?chats` don't.
+  no key and `anthropic/claude-opus-5.5`.
 - `amend` after `replace` is one undo step, and redo brings it back; `amend`
   with no step before it is a step of its own; it clears redo.
-- On the page: without `?chat`, no Chat button and no Tab › Chat. With it and
-  no key, the box is disabled and Open Settings opens Tab › Chat, whose key
+- On the page, with nothing in the address: the rail ends Chords, Chat, and
+  Settings lists Tab › Chat. With no key, the box is disabled and Open Settings opens Tab › Chat, whose key
   field shows dots and is not a password field; saving `  sk-or-typed ` keeps `sk-or-typed` and
   enables the box.
 - A reply that changes bar 1, then bar 2, then answers shows both lines, the

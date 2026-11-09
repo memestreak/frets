@@ -3,7 +3,7 @@ import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { writeAlphaTex } from '@/features/tab/alphatex';
 import { clipReducer, type ClipState } from '@/features/tab/clipState';
 import { describeArrangement, runTool, spliceBars, TOOLS, type PageSpot } from '@/features/tab/chat/arrangementTools';
-import { CHAT_KEY, DEFAULT_CHAT, DEFAULT_INSTRUCTIONS, DEFAULT_MODEL, parseChatPrefs, readChatParam } from '@/features/tab/chat/chatPrefs';
+import { CHAT_KEY, DEFAULT_CHAT, DEFAULT_INSTRUCTIONS, DEFAULT_MODEL, parseChatPrefs } from '@/features/tab/chat/chatPrefs';
 import { ChatError, errorText, fetchPresets, PRESETS_URL, readCompletion, wireMessages, type ChatMessage, type Complete, type CompletionRequest } from '@/features/tab/chat/openRouter';
 import { askWithArrangement, CUSTOM_HEADING, MAX_STEPS, runReply, systemPrompt } from '@/features/tab/chat/reply';
 import { runsOf, usageLine } from '@/features/tab/chat/ChatPanel';
@@ -288,13 +288,6 @@ describe('Settings › Tab › Chat', () => {
     expect(parseChatPrefs({ instructions: 7 }).instructions).toBeNull();
     expect(parseChatPrefs({ custom: ' Use drop D. ' }).custom).toBe(' Use drop D. ');
     expect(parseChatPrefs({ custom: ['x'] }).custom).toBe('');
-  });
-
-  it('shows the panel only for ?chat', () => {
-    expect(readChatParam('?chat')).toBe(true);
-    expect(readChatParam('?theme=light&chat=1')).toBe(true);
-    expect(readChatParam('')).toBe(false);
-    expect(readChatParam('?chats')).toBe(false);
   });
 });
 

@@ -6,7 +6,7 @@ import { setUpPage, renderAt, alphaTex, undo, BUILTIN_FILES, SLOW } from './help
 
 setUpPage();
 
-// `docs/specs/2026-11-08-tab-chat-design.md` (issue #424): the Chat panel, behind ?chat.
+// `docs/specs/2026-11-08-tab-chat-design.md` (issue #424): the Chat panel.
 const TEX = `#tab=${encodeURIComponent('\\title "Four"\n:4 0.6 1.6 2.6 3.6 | 5.6 6.6 7.6 8.6 |')}`;
 const railButton = (name: string) => screen.queryByRole('button', { name });
 const chatPanel = () => screen.getByRole('complementary', { name: 'Chat' });
@@ -43,18 +43,19 @@ const ask = (text: string) => {
 };
 
 describe('the Chat panel', () => {
-  it('is not on the rail, nor in Settings, without ?chat', async () => {
+  it('is on the rail after Chords, and in Settings, with no flag in the address', async () => {
     serve();
     renderAt(TEX);
     await screen.findAllByTestId('tab-system', undefined, SLOW);
-    expect(railButton('Chat')).toBeNull();
+    const names = within(screen.getByRole('navigation', { name: 'Panels' })).getAllByRole('button').map(b => b.getAttribute('aria-label'));
+    expect(names.slice(-2)).toEqual(['Chords', 'Chat']);
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
-    expect(screen.queryByRole('treeitem', { name: 'Chat' })).toBeNull();
+    expect(screen.getByRole('treeitem', { name: 'Chat' })).toBeInTheDocument();
   });
 
-  it('with ?chat and no key, asks for one and opens Settings at Tab › Chat', async () => {
+  it('with no key, asks for one and opens Settings at Tab › Chat', async () => {
     serve();
-    renderAt(`?chat${TEX}`);
+    renderAt(TEX);
     await screen.findAllByTestId('tab-system', undefined, SLOW);
     fireEvent.click(railButton('Chat')!);
     expect(within(chatPanel()).getByRole('textbox', { name: 'Message' })).toBeDisabled();
@@ -76,7 +77,7 @@ describe('the Chat panel', () => {
       reply({ content: null, tool_calls: [call('b', 'replace_bars', { track: 1, first_bar: 2, last_bar: 2, alphatex: ':1 9.5 |' })] }),
       reply({ content: 'Both bars are whole notes now.' }),
     );
-    renderAt(`?chat${TEX}`);
+    renderAt(TEX);
     await screen.findAllByTestId('tab-system', undefined, SLOW);
     const before = alphaTex();
     fireEvent.click(railButton('Chat')!);
@@ -107,7 +108,7 @@ describe('the Chat panel', () => {
   it('keeps the conversation for the next ask, and New chat forgets it', async () => {
     withKey();
     const sent = serve(reply({ content: 'Four quarter notes a bar.' }));
-    renderAt(`?chat${TEX}`);
+    renderAt(TEX);
     await screen.findAllByTestId('tab-system', undefined, SLOW);
     fireEvent.click(railButton('Chat')!);
     ask('What rhythm is this?');
@@ -129,7 +130,7 @@ describe('the Chat panel', () => {
   it('shows a refused key as an error, and changes nothing', async () => {
     withKey();
     serve({ status: 401, error: { message: 'User not found.' } });
-    renderAt(`?chat${TEX}`);
+    renderAt(TEX);
     await screen.findAllByTestId('tab-system', undefined, SLOW);
     const before = alphaTex();
     fireEvent.click(railButton('Chat')!);
@@ -141,7 +142,7 @@ describe('the Chat panel', () => {
   it('keeps the page’s keys out of the message box', async () => {
     withKey();
     serve();
-    renderAt(`?chat${TEX}`);
+    renderAt(TEX);
     await screen.findAllByTestId('tab-system', undefined, SLOW);
     const before = alphaTex();
     fireEvent.click(railButton('Chat')!);
@@ -156,7 +157,7 @@ describe('the Chat panel', () => {
   it('offers the presets saved on OpenRouter first, then the models that take tools, and saves the one typed', async () => {
     withKey();
     serve();
-    renderAt(`?chat${TEX}`);
+    renderAt(TEX);
     await screen.findAllByTestId('tab-system', undefined, SLOW);
     fireEvent.click(railButton('Chat')!);
     const field = within(chatPanel()).getByRole('combobox', { name: 'Model' });
@@ -194,7 +195,7 @@ describe('the Chat prompt in Settings', () => {
   it('shows the default instructions; Reset shows only while they are edited, and puts the default back', async () => {
     withKey();
     serve();
-    renderAt(`?chat${TEX}`);
+    renderAt(TEX);
     await screen.findAllByTestId('tab-system', undefined, SLOW);
     const box = await openChatSettings();
     expect(box.value).toBe(DEFAULT_INSTRUCTIONS);
@@ -214,7 +215,7 @@ describe('the Chat prompt in Settings', () => {
   it('saves edited instructions as typed; a double-click on the label resets them', async () => {
     withKey();
     serve();
-    renderAt(`?chat${TEX}`);
+    renderAt(TEX);
     await screen.findAllByTestId('tab-system', undefined, SLOW);
     let box = await openChatSettings();
     fireEvent.change(box, { target: { value: ' Be brief. ' } });
@@ -231,7 +232,7 @@ describe('the Chat prompt in Settings', () => {
   it('unfolds the guide read-only with Show, and folds it with Hide', async () => {
     withKey();
     serve();
-    renderAt(`?chat${TEX}`);
+    renderAt(TEX);
     await screen.findAllByTestId('tab-system', undefined, SLOW);
     await openChatSettings();
     expect(screen.queryByLabelText('The alphaTex guide')).toBeNull();
@@ -246,7 +247,7 @@ describe('the Chat prompt in Settings', () => {
   it('keeps Settings open on Enter in the Custom prompt box', async () => {
     withKey();
     serve();
-    renderAt(`?chat${TEX}`);
+    renderAt(TEX);
     await screen.findAllByTestId('tab-system', undefined, SLOW);
     await openChatSettings();
     const custom = screen.getByLabelText('Custom prompt');
@@ -257,7 +258,7 @@ describe('the Chat prompt in Settings', () => {
   it('sends a custom prompt saved mid-conversation with the next message', async () => {
     withKey();
     const sent = serve(reply({ content: 'Four quarter notes a bar.' }));
-    renderAt(`?chat${TEX}`);
+    renderAt(TEX);
     await screen.findAllByTestId('tab-system', undefined, SLOW);
     fireEvent.click(railButton('Chat')!);
     ask('What rhythm is this?');
