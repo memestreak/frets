@@ -1,8 +1,8 @@
 \title "12. Play and loop"
 \ts (4 4)
-5.3.4{txt "1. Space plays, Space stops."} 7.3.4 5.3.4 7.3.4 |
-8.2.4{txt "2. Press this 8, then Shift+Right arrow 7 times."} 7.2.4 5.2.4
+5.3.4{txt "1. **Space** plays,\n**Space** stops."} 7.3.4 5.3.4 7.3.4 |
+8.2.4{txt "2. Press this 8, then\n**Shift+Right arrow** 7 times."} 7.2.4 5.2.4
   7.2.4 |
-5.3.4{txt "3. L: loop them. Space plays."} 7.3.4 5.3.4 7.3.4 |
-0.3.1{txt "4. Space stops. L again: no loop."} |
+5.3.4{txt "3. **L**: loop them.\n**Space** plays."} 7.3.4 5.3.4 7.3.4 |
+0.3.1{txt "4. **Space** stops.\n**L** again: no loop."} |
 

@@ -1,9 +1,11 @@
 \title "2. Enter chords and name them"
 \ts (4 4)
-r.1{txt "Tab view. 1. Press N."} |
-r.1{txt "2. Type 0 1 2 2 0, a Down arrow between each."} |
-r.1{txt "3. Shift+Space: on a beat."} |
-r.1{txt "4. Type 3 2 0 1 0, an Up arrow between each."} | r.1{txt "5. Esc."} |
-r.1{txt "6. Press the 1 of the first chord, then C."} |
-r.1{txt "7. Type Am, then Enter."} | r.1{txt "8. Name the second chord C."} |
+r.1{txt "Tab view. 1. Press **N**."} |
+r.1{txt "2. Type **0 1 2 2 0**, a **Down arrow**\nbetween each: Am."} |
+r.1{txt "3. **Shift+Space**:\non a beat."} |
+r.1{txt "4. Type **3 2 0 1 0**, an **Up arrow**\nbetween each: C."} |
+r.1{txt "5. **Esc**."} |
+r.1{txt "6. Press the **1** of the first chord,\nthen **C**."} |
+r.1{txt "7. Type **Am**, then **Enter**."} |
+r.1{txt "8. Name the second chord **C**."} |
 

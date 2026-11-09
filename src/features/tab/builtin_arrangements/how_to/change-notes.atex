@@ -1,9 +1,11 @@
 \title "3. Change notes"
 \ts (4 4)
-5.3.4{txt "Tab view. 1. Press this 5, then Alt+Up arrow twice."} 7.3.4 5.3.4
-  7.3.4 |
-5.3.4 7.3.4{txt "2. Press this 7, then 6: a half note."} 5.3.4 7.3.4 |
-5.3.4{txt "3. Ctrl/⌘+Z undoes it."} 7.3.4 5.3.4 7.3.4 |
-8.2.4{txt "4. Press this 8, then Delete."} 7.2.4 5.2.4 7.2.4 |
-8.2.4 7.2.4{txt "5. Press this 7, then Ctrl/⌘+Down arrow."} 5.2.4 7.2.4 |
+5.3.4{txt "Tab view. 1. Press this 5, then **Alt+Up arrow** twice.\nIt turns 7."}
+  7.3.4 5.3.4 7.3.4 |
+5.3.4 7.3.4{txt "2. Press this 7, then **6**.\nA half note."} 5.3.4 7.3.4 |
+5.3.4{txt "3. **Ctrl/⌘+Z** undoes it."} 7.3.4 5.3.4 7.3.4 |
+8.2.4{txt "4. Press this 8, then **Delete**.\nA rest."} 7.2.4 5.2.4 7.2.4 |
+8.2.4
+  7.2.4{txt "5. Press this 7, then **Ctrl/⌘+Down arrow**.\nFret 11 on the G string."}
+  5.2.4 7.2.4 |
 
