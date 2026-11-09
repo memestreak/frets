@@ -8,6 +8,7 @@
  * counts, palm mute, strokes and rhythm, each lined up with the strings
  * character for character.
  */
+import { lyricLines } from './lyrics';
 import { chartChords, type ShapedChord } from './chordDiagrams';
 import {
   barTicks, hasNotes, isPalmMuted, isStandardTuningNames, nearestDuration, unevenMessage, slideDirections, STANDARD_TUNING, STRING_COUNT,
@@ -624,7 +625,9 @@ function columnWidth(column: Column): number {
     const { prefix, text } = noteText(n);
     return prefix.length + text.length;
   }));
-  return Math.max(own + 2, Math.round(ticks(column.duration) / (WHOLE / 32)), rhythmToken(column.duration).length + 1);
+  // A syllable under it (issue #408) needs its letters and a space before the next.
+  const sung = Math.max(0, ...(column.lyrics ?? []).map(l => l.length + 1));
+  return Math.max(own + 2, Math.round(ticks(column.duration) / (WHOLE / 32)), rhythmToken(column.duration).length + 1, sung);
 }
 
 const MAX_LINE = 80;
@@ -636,7 +639,9 @@ function writeBlock(bars: Bar[], names: string[], slides: Map<Note, 'up' | 'down
   const strokes: string[] = [];
   const pm: string[] = [];
   const endings: string[] = [];
-  const annotations = [rhythm, strokes, pm, endings];
+  // The Lyrics, a line of words under the strings for each Lyric line, as tab sites print them (issue #408).
+  const sung: string[][] = Array.from({ length: lyricLines(bars.flatMap(b => b.columns)) }, () => []);
+  const annotations = [rhythm, strokes, pm, endings, ...sung];
   const push = (onStrings: string, onOthers = ' '.repeat(onStrings.length)) => {
     for (const l of strings) l.push(...onStrings);
     for (const a of annotations) a.push(...onOthers);
@@ -655,6 +660,7 @@ function writeBlock(bars: Bar[], names: string[], slides: Map<Note, 'up' | 'down
       [...rhythmToken(column.duration)].forEach((ch, k) => { rhythm[start + k] = ch; });
       if (column.stroke) strokes[start] = column.stroke === 'down' ? 'd' : 'u';
       if (isPalmMuted(column)) for (let k = 0; k < width; k++) pm[start + k] = '-';
+      column.lyrics?.forEach((l, line) => [...l].forEach((ch, k) => { sung[line][start + k] = ch; }));
       column.notes.forEach((note, s) => {
         if (!note) return;
         const { prefix, text } = noteText(note, slides.get(note));
@@ -703,6 +709,7 @@ function writeBlock(bars: Bar[], names: string[], slides: Map<Note, 'up' | 'down
     if (/[^\s|]/.test(line)) out.push((indent + line).trimEnd());
   }
   strings.forEach((l, s) => out.push(`${names[s].padEnd(width - 1)}|${l.join('')}`));
+  for (const line of sung) if (/\S/.test(line.join(''))) out.push((indent + line.join('')).trimEnd());
   return out;
 }
 

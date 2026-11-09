@@ -764,3 +764,5 @@ body:has(.tab-rail-divider[data-dragging]) { cursor: ew-resize; user-select: non
 .tab-chat-picker-option[aria-selected="true"] { background: var(--surface-sunken); }
 .tab-chat-picker-model { font: 13px/18px var(--font-mono); color: var(--ink); overflow-wrap: anywhere; }
 .tab-chat-picker-description { font-size: 12px; line-height: 16px; color: var(--ink-muted); }
+/* The Lyrics field, under the note its syllable goes on (issue #408). */
+.tab-lyric { width: 210px; }

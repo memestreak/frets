@@ -19,7 +19,7 @@ export type ToolId =
   | 'vibrato' | 'mordent' | 'lowerMordent' | 'palmMute' | 'letRing' | 'dead' | 'ghost' | 'harmonic' | 'pinchHarmonic' | 'tap'
   | 'strokeDown' | 'strokeUp' | 'wah' | 'whammy' | 'accent' | 'heavyAccent' | 'staccato' | 'ottava'
   | 'insertBarBefore' | 'insertBar' | 'barTime' | 'barKey' | 'repeatStart' | 'repeatEnd' | 'doubleBar' | 'ending'
-  | 'chordName' | 'beatText' | 'section' | 'tempo' | 'capo';
+  | 'chordName' | 'beatText' | 'lyrics' | 'section' | 'tempo' | 'capo';
 
 export interface Tool {
   id: ToolId;
@@ -124,6 +124,7 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
     tools: [
       { id: 'chordName', label: 'Chord name over this column', key: 'C' },
       { id: 'beatText', label: 'Text over this column', key: '' },
+      { id: 'lyrics', label: 'Lyrics under this note', key: 'Shift+L' },
       { id: 'section', label: 'Section starting at this bar', key: '' },
       { id: 'tempo', label: 'Tempo from this bar on', key: '' },
       { id: 'capo', label: 'Capo', key: '' },
@@ -270,6 +271,8 @@ export function toolForKey(key: string, alt: boolean, code = ''): ToolId | null 
     '.': 'dot', ',': 'rest', '/': 'grace', t: 'tie', h: 'legato', p: 'legato', m: 'palmMute', i: 'letRing',
     x: 'dead', g: 'ghost', d: 'strokeDown', u: 'strokeUp', s: 'staccato',
     '[': 'repeatStart', ']': 'repeatEnd', e: 'ending', c: 'chordName',
+    // Shift+L opens the Lyrics field, as Dorico's does (issue #408); L alone is Loop.
+    L: 'lyrics',
   };
   return keys[key] ?? null;
 }
@@ -330,6 +333,7 @@ export function isOn(clip: Part, cursor: Target['cursor'], id: ToolId, columnOnl
     case 'ending': return !!bar?.ending;
     case 'chordName': return !!column?.chord;
     case 'beatText': return !!column?.text;
+    case 'lyrics': return !!column?.lyrics?.length;
     case 'section': return !!bar?.section;
     case 'tempo': return !!bar?.tempo;
     case 'capo': return !!clip.capo;

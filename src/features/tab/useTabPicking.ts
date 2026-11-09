@@ -20,6 +20,7 @@ import { enterOnStaff, movedPitch, moveNotes, notesToMove, noteToString, pitchAt
 import type { FieldKind } from './WordField';
 import type { EditorState, Picked } from './useEditorState';
 import type { Notice } from './notice';
+import { setLyric } from './lyrics';
 
 /** Every column of a bar, selected. */
 /**
@@ -27,7 +28,7 @@ import type { Notice } from './notice';
  * picked, and the notes a press enters in note input mode or a drag moves. Each is handed to `TabClip`
  * (or the keys); the page wires them up.
  */
-export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, setNotice, openWord, openSignature, dropLine }: {
+export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, setNotice, openWord, openLyric, openSignature, dropLine }: {
   /** The shown track as drawn, and its layout. */
   drawn: Part;
   layout: Layout;
@@ -36,6 +37,8 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
   setNotice: (notice: Notice | null) => void;
   /** Opens a word's field, as Edit does (`useHeadPanels`). */
   openWord: (kind: FieldKind | 'tempo', at: Cursor) => void;
+  /** Opens the Lyrics field on a note's syllable (`useHeadPanels`). */
+  openLyric: (at: { bar: number; column: number }, line: number) => void;
   /** Opens a bar's time or key signature panel under a press. */
   openSignature: (kind: 'time' | 'key', bar: number, at: { x: number; y: number } | null) => void;
   /** Takes the playback line away. */
@@ -96,6 +99,11 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
   const editPicked = (hit: WordHit) => {
     if (hit.kind === 'repeatStart' || hit.kind === 'doubleBar') return;
     const at = wordPlace(hit);
+    if (hit.kind === 'lyric') {
+      setPicked(null);
+      openLyric(at, hit.line);
+      return;
+    }
     commit(clip, at, null);
     if (hit.kind === 'time' || hit.kind === 'key') {
       const box = textBox(layout, hit, drawn.capo ?? null);
@@ -116,6 +124,7 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
       const at = wordPlace(hit);
       if (hit.kind === 'chord') commit(setChordName(clip, at, ''), at, null);
       if (hit.kind === 'text') commit(setBeatText(clip, at, ''), at, null);
+      if (hit.kind === 'lyric') commit(setLyric(clip, at, hit.line, ''), at, null);
       if (hit.kind === 'section') commit(setSection(clip, at.bar, ''), at, null);
       if (hit.kind === 'tempo') commit(setTempo(clip, at.bar, null), at, null);
       if (hit.kind === 'capo') commit(setCapo(clip, null), at, null);

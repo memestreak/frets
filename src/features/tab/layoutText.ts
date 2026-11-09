@@ -12,6 +12,7 @@ import { gridSize, OVER_NAME_SCALE } from './chordDiagrams';
 import { type Layout, lineAt, type PlacedBar, type PlacedColumn, type System } from './layout';
 import { textRowOf } from './rows';
 import { chordWidth } from './widths';
+import { LYRIC_LINE, lyricWidth, syllableOf } from './lyrics';
 
 /** A free text's box: its widest line, and its first and last lines' middles, down from the system's top. */
 function beatTextBox(placed: PlacedColumn, textRow: number): { x0: number; x1: number; y0: number; y1: number } {
@@ -75,11 +76,15 @@ export function capoText(capo: number): string {
  * ending; a time or key signature (step 8: the bar it is drawn at, the first line's time signature bar
  * 0's); or a bar line that can (`barLines.ts`): a repeat's start, end or count, or a double bar line.
  */
-export type WordHit = { kind: 'chord' | 'text'; index: number } | { kind: 'section' | 'tempo' | 'capo' | 'ending' | 'time' | 'key'; bar: number } | BarLineHit;
+export type WordHit = { kind: 'chord' | 'text'; index: number } | LyricHit | { kind: 'section' | 'tempo' | 'capo' | 'ending' | 'time' | 'key'; bar: number } | BarLineHit;
+
+/** A syllable of the Lyrics under a note: its column's place in the clip, and its Lyric line from 0. */
+export type LyricHit = { kind: 'lyric'; index: number; line: number };
 
 /** Whether a picked word (or none) is this one. */
 export function sameWord(picked: WordHit | null, hit: WordHit): boolean {
   if (!picked || picked.kind !== hit.kind) return false;
+  if (picked.kind === 'lyric') return hit.kind === 'lyric' && picked.index === hit.index && picked.line === hit.line;
   return 'index' in picked ? 'index' in hit && picked.index === hit.index : 'bar' in hit && picked.bar === hit.bar;
 }
 
@@ -110,6 +115,12 @@ export function textBox(layout: Layout, hit: WordHit, capo: number | null): { x:
     if (hit.kind === 'capo') {
       if (!system.first || !capo) continue;
       return box(s, rows.capo, system.lineStart, system.lineStart + capoText(capo).length * 6.5);
+    }
+    if (hit.kind === 'lyric') {
+      const placed = system.bars.flatMap(b => b.columns).find(c => c.index === hit.index);
+      if (!placed) continue;
+      const lyric = lyricBox(placed, rows, hit.line);
+      return lyric ? box(s, (lyric.y0 + lyric.y1) / 2, lyric.x0, lyric.x1, 16) : null;
     }
     if (hit.kind === 'chord' || hit.kind === 'text') {
       const placed = system.bars.flatMap(b => b.columns).find(c => c.index === hit.index);
@@ -158,6 +169,18 @@ export function diagramBox(placed: PlacedColumn, rows: System['rows']): { x0: nu
   return { x0: placed.x - half, x1: placed.x + half, y0: rows.diagrams, y1: rows.diagrams + height * OVER_NAME_SCALE };
 }
 
+/**
+ * Where a column's syllable on a Lyric line is drawn, centred on its note, in its line's units; null when
+ * it has none there or the line draws no Lyrics. At least a note's width, so a short one is easy to press.
+ */
+export function lyricBox(placed: PlacedColumn, rows: System['rows'], line: number): { x0: number; x1: number; y0: number; y1: number } | null {
+  const text = placed.column.lyrics?.[line];
+  if (!text || rows.lyrics === null) return null;
+  const half = Math.max(8, lyricWidth(syllableOf(text).shown) / 2);
+  const y = rows.lyrics + line * LYRIC_LINE;
+  return { x0: placed.x - half, x1: placed.x + half, y0: y - 7, y1: y + 7 };
+}
+
 /** How far from a time signature's centre a press is on it. */
 const TIME_REACH = 11;
 
@@ -194,6 +217,12 @@ export function textAt(layout: Layout, x: number, y: number): TextHit | null {
   if (near(rows.endings)) {
     const span = endingSpans(system).find(e => x >= e.x0 - 4 && x <= e.x1 + 4);
     if (span) return { kind: 'ending', bar: span.bar };
+  }
+  for (const placed of system.bars.flatMap(b => b.columns)) {
+    for (let line = 0; line < (placed.column.lyrics?.length ?? 0); line++) {
+      const lyric = lyricBox(placed, rows, line);
+      if (lyric && x >= lyric.x0 - 2 && x <= lyric.x1 + 2 && localY >= lyric.y0 - 2 && localY <= lyric.y1 + 2) return { kind: 'lyric', index: placed.index, line };
+    }
   }
   if (near(rows.chords)) {
     for (const placed of system.bars.flatMap(b => b.columns)) {

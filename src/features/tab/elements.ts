@@ -46,6 +46,11 @@ export function elementsOf(clip: Part, layout: Layout): Element[] {
         // A Tie chain is one stop, at its first note: a Tied note's own marks are still stops (step 5).
         for (const string of strings) if (!column.notes[string]!.tie) out.push({ kind: 'note', index, string });
         out.push(...(marks.get(index) ?? []));
+        // Its syllables, line by line, after its notes and marks (issue #408).
+        column.lyrics?.forEach((_, line) => {
+          const hit: WordHit = { kind: 'lyric', index, line };
+          if (drawn(hit)) out.push(hit);
+        });
       }
       for (const kind of BAR_ENDS) {
         const hit: WordHit = { kind, bar: bar.index };

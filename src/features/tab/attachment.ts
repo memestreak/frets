@@ -109,7 +109,7 @@ function tintOf(picked: MarkHit | WordHit, columns: Map<number, { placed: Placed
   };
   // A chord belongs to its time, not its notes (Jeremy, 2026-11-06): none is tinted.
   if (picked.kind === 'chord') return [];
-  if (picked.kind === 'text') return whole(picked.index, picked.index);
+  if (picked.kind === 'text' || picked.kind === 'lyric') return whole(picked.index, picked.index);
   if (picked.kind !== 'mark') return [];
   if (picked.string === null) return whole(picked.index, picked.to ?? picked.index);
   const own = { index: picked.index, string: picked.string };

@@ -140,7 +140,7 @@ and in its spec.
   (`PlacedBar.voices`), stems, rests and heads by Voice —
   `2026-11-04-tab-voices-drawn-edited-design.md`.
 - `rows.ts` — `rowsFor` (the rows each line uses, top to bottom: words,
-  the staff, the tab's marks, the tab), `textRowOf`, the staff's `stepY`
+  the staff, the tab's marks, the tab, and the Lyrics' row in each view), `textRowOf`, the staff's `stepY`
   and `SPACE`, and the bend constants with `bendShape` (issue #413).
 - `widths.ts` — how wide each thing on a line is drawn: `columnWidth`,
   `noteInset`, `noteLabel`, `chordWidth` and `prettyChord`, a bar's lead,
@@ -157,6 +157,9 @@ and in its spec.
   `placeSections`, which wraps a long one and moves it up if it still
   runs into the next —
   `2026-11-06-tab-section-overlap-design.md`.
+- `lyrics.ts` — the Lyrics under the notes: their size and room, which
+  notes take a syllable (`takesLyric`), `setLyric`, and where the Lyrics
+  field goes next (`lyricNote`) — `2026-11-09-tab-lyrics-design.md`.
 - `stackWords.ts` — words along a line that wrap and move up clear of each
   other, without moving the music: the Text's and the section's rule.
 - `hitTest.ts` — what a press is on (a string at a column, a staff line, a
@@ -266,7 +269,8 @@ and in its spec.
   keeps the hit testing and the layers, and draws each line's strings and notes
   with the parts below. `rangeBoxes`.
 - `ClipWords.tsx` — `SystemWords`: the words over a line (endings, the capo,
-  sections, tempos, "Free time", chord names and their diagrams, free text).
+  sections, tempos, "Free time", chord names and their diagrams, free text),
+  and the Lyrics under its notes with their hyphens.
 - `ClipMarks.tsx` — `SystemRowMarks`: the marks in their own rows over the tab
   (P.M., let ring, w/ bar, fermatas, hairpins, vibrato, mordents, strokes,
   `WahMark`, accents).
@@ -314,6 +318,7 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 - `ChordPanel.tsx` — the rail's Chords panel: the track's Chord set as diagram tiles, as many to a row as the panel's width holds and two rows to a page (folding, kept in `frets.tab.chordPanel`), each with a right-click menu (Insert, Edit, Rename, Copy to new chord, Delete when unused); + to add a chord; Insert name, notes or both at the cursor for the chord picked, its button saying where; the Hear toggle in the panel's head (`docs/specs/2026-11-05-tab-chord-panel-design.md`, issues #251 and #400).
 - `ChordEditor.tsx` — under the Chord set: Edit chord (`ChordShapesEditor`), opened by a tile's double-click or Edit or a chord name's in the tab, its name renamed apart and a shape picked applying at once; and the chord dialog (`ChordEditor`), the same for + (Add chord), Copy to new chord and Edit chord's Change chord (Save chord, or Save as new chord): a chord's name (free text, following the chord until typed), its root and type (or a name looked up), its shapes and `ShapeEditor` to draw your own.
 - `chordShapes.ts` — a chord name read into a chord, its shapes on a track's tuning, a shape both ways round, and the names and fingering of a column's notes; shared by the panel and the dialog.
+- `LyricField.tsx` — the Lyrics field Shift+L opens under a note, as Dorico's lyrics popover: Space, hyphen, Shift+Space, Up and Down set the syllable and move on (`useHeadPanels` keeps it going note to note) — `2026-11-09-tab-lyrics-design.md`.
 - `BarTimePanel.tsx` — the time signature from a bar on, its Beat groups
   field (for 5 beats or more, or a bar with groups of its own), and bar 1's
   Pickup field.
@@ -442,6 +447,10 @@ or saved. Standard tuning only.
 The principles every editing spec since step 1 follows, with Dorico,
 MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
 
+- `docs/specs/2026-11-09-tab-lyrics-design.md`: Lyrics, a syllable on a
+  note per Lyric line, read and written as alphaTex `lyrics`, drawn under
+  the staff, between staff and tab, or under the tab; typed with Shift+L as
+  in Dorico; MusicXML and ASCII carry them (issue #408)
 - `docs/specs/2026-11-08-tab-rail-width-design.md`: drag the line between
   the open Rail panel and the clip to set every panel's width, 224 to 560px,
   kept across visits (issue #431)

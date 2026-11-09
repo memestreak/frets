@@ -132,6 +132,12 @@ export interface Column {
   /** Free text written over the column, from it rightward ("let ring", "slowly"; alphaTex txt). */
   text?: string;
   /**
+   * The Lyrics sung on this column's notes, one syllable per Lyric line (index 0 is line 1); "" where a
+   * line has none, and no trailing "". A syllable ending in "-" is joined to the next by a hyphen
+   * (alphaTex `lyrics "Hel-"`, `lyrics 1 "Hi"`; `docs/specs/2026-11-09-tab-lyrics-design.md`).
+   */
+  lyrics?: string[];
+  /**
    * A grace note, drawn small and taking no time in the bar: played just before the beat, or on it,
    * taking its time from the note after it (alphaTex gr, gr ob).
    */
@@ -1099,7 +1105,7 @@ function partBars(masterBars: MasterBar[], trackBars: TrackBar[], counted: boole
  * A Voice other than Voice 1 without is absent from the bar (`docs/specs/2026-11-03-tab-voices-design.md`).
  */
 export function hasNotes(columns: readonly Column[]): boolean {
-  return columns.some(c => c.grace || c.text || c.chord || c.extra?.length || c.notes.some(n => n !== null));
+  return columns.some(c => c.grace || c.text || c.chord || c.lyrics || c.extra?.length || c.notes.some(n => n !== null));
 }
 
 /**
@@ -1306,6 +1312,11 @@ function isNote(v: unknown): v is Note {
     && optStrings(v.extra);
 }
 
+/** A column's Lyrics as stored: at least one syllable, strings only, the last not empty. */
+function isLyrics(v: unknown): v is string[] {
+  return Array.isArray(v) && v.length > 0 && v.every(l => typeof l === 'string') && v[v.length - 1] !== '';
+}
+
 function isColumn(v: unknown): v is Column {
   return isObj(v) && isDuration(v.duration)
     && Array.isArray(v.notes) && v.notes.length === STRING_COUNT
@@ -1313,6 +1324,7 @@ function isColumn(v: unknown): v is Column {
     && (v.stroke === undefined || v.stroke === 'down' || v.stroke === 'up')
     && (v.chord === undefined || typeof v.chord === 'string')
     && (v.text === undefined || typeof v.text === 'string')
+    && (v.lyrics === undefined || isLyrics(v.lyrics))
     && optOneOf(v.grace, ['before', 'on'])
     && (v.tremolo === undefined || TREMOLO_VALUES.includes(v.tremolo as TremoloValue))
     && (v.ottava === undefined || OTTAVAS.includes(v.ottava as Ottava))

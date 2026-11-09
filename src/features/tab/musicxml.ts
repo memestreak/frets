@@ -5,6 +5,7 @@
  * and capo, whatever the page shows. Pitches are spelled in the key as Frets spells them (`notation.ts`).
  * Pure: `writeMusicXml` gives the file's text, `musicXmlLosses` what the file can't hold.
  */
+import { syllableOf } from './lyrics';
 import {
   barNumber, barTicks, bendCarries, hasNotes, hasPickup, columnAccent, columnMordent, isLetRing, isPalmMuted, isRest, keyAt, partOf,
   beatGroupsAt, spanOf, startsFreeTime, STRING_COUNT, ticks, timeAt, tupletGroups, WHOLE, barsPerLine, changesKey, changesTime,
@@ -297,6 +298,31 @@ interface TrackContext {
   voice: number;
   /** In a bar where two or more Voices are written, the way this Voice's stems go: Voices 1 and 3 up, 2 and 4 down. */
   stems: Set<number>;
+  /** Each column's syllables as MusicXML has them, by Lyric line (`syllables`). */
+  lyrics: Map<Column, (Syllable | null)[]>;
+}
+
+/** A syllable as `<lyric>` writes it: where it falls in its word, and its text without the hyphen. */
+interface Syllable { syllabic: 'single' | 'begin' | 'middle' | 'end'; text: string }
+
+/**
+ * The part's Lyrics as MusicXML syllables (issue #408): a syllable joined to the next ("Hel-") begins or
+ * goes on a word, one after a joined one ends or goes on it, the rest stand alone.
+ */
+function syllables(part: Part): Map<Column, (Syllable | null)[]> {
+  const out = new Map<Column, (Syllable | null)[]>();
+  const joined: boolean[] = [];
+  for (const column of part.bars.flatMap(b => b.columns)) {
+    if (!column.lyrics) continue;
+    out.set(column, column.lyrics.map((l, line) => {
+      if (!l) return null;
+      const { shown, joined: on } = syllableOf(l);
+      const after = joined[line] ?? false;
+      joined[line] = on;
+      return { syllabic: after ? (on ? 'middle' : 'end') : on ? 'begin' : 'single', text: shown };
+    }));
+  }
+  return out;
 }
 
 /** One `note` element: a note of a column, or its rest, on staff 1 (notation) or 2 (tab). */
@@ -376,6 +402,8 @@ function noteXml(ctx: TrackContext, column: Column, s: number | null, opts: {
     text('staff', staff),
     ...(opts.first ? opts.beams : []),
     notations.length > 0 && el('notations', {}, ...notations),
+    // The Lyrics go on the staff's first note of the column.
+    ...(opts.first && staff === 1 ? (ctx.lyrics.get(column) ?? []).map((l, line) => l && el('lyric', { number: line + 1 }, text('syllabic', l.syllabic), text('text', l.text))) : []),
   );
 }
 
@@ -489,7 +517,7 @@ function partXml(clip: Clip, t: number, divisions: number): XmlNode {
   const voices = [...new Set(present.flat())].sort((a, c) => a - c).map(v => {
     const part = partOf(clip, t, v);
     const ctx: TrackContext = {
-      part, open: writtenStrings(part.tuning), joins: joinsOf(part), carries: bendCarries(part), divisionTicks: WHOLE / 4 / divisions, voice: v, stems,
+      part, open: writtenStrings(part.tuning), joins: joinsOf(part), carries: bendCarries(part), divisionTicks: WHOLE / 4 / divisions, voice: v, stems, lyrics: syllables(part),
     };
     return { voice: v, part, ctx, columns: part.bars.flatMap(bar => bar.columns), flat: 0 };
   });

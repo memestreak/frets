@@ -39,13 +39,13 @@ const NOTE_EFFECTS = new Set([
   'h', 'sl', 'ss', 'sib', 'sia', 'sod', 'sou', 'b', 'be', 'v', 'vw', 'x', 't', 'nh', 'ph', 'ah', 'pm', 'lr', 'g', 'ac', 'hac', 'st', 'umordent', 'lmordent',
 ]);
 /** Beat effects Frets draws; tu, gr and tp only in the forms `beatReads` allows. */
-const BEAT_EFFECTS = new Set(['d', 'dd', 'tu', 'sd', 'su', 'tt', 'ch', 'txt', 'gr', 'tp', 'ot', 'waho', 'wahc', 'cre', 'dec', 'fermata']);
+const BEAT_EFFECTS = new Set(['d', 'dd', 'tu', 'sd', 'su', 'tt', 'ch', 'txt', 'gr', 'tp', 'ot', 'waho', 'wahc', 'cre', 'dec', 'fermata', 'lyrics']);
 /**
  * Tags Frets reads: the title, tuning, capo, time and key signatures, tempo, sections, repeats, endings, double bars,
  * multi-bar rests, and the line breaks (`systemsLayout`, `defaultSystemsLayout`; read only when their values are
  * ones Frets offers, else kept as written).
  */
-const TAGS = new Set(['title', 'tuning', 'capo', 'ts', 'ks', 'tempo', 'section', 'ro', 'rc', 'ae', 'db', 'ft', 'multibarrest', 'voice', 'voicemode']);
+const TAGS = new Set(['title', 'tuning', 'capo', 'ts', 'ks', 'tempo', 'section', 'ro', 'rc', 'ae', 'db', 'ft', 'multibarrest', 'voice', 'voicemode', 'lyrics']);
 /** The line-break tags, read when their values are good. */
 const LAYOUT_TAGS = new Set(['systemslayout', 'defaultsystemslayout']);
 /** Header tags kept as written in the clip's header and drawn from there: the credits under the title (`credits.ts`). */
@@ -527,6 +527,13 @@ function hasTag(bar: BarNode | undefined, tag: string): boolean {
 }
 
 /** A bar's columns in one Voice: the tree's beats, one per beat alphaTab made (a beat written "*3" stands for three). */
+/** A beat's lyrics as a column keeps them: no trailing empty lines, none at all when every line is empty. */
+export function lyricsOf(lines: readonly string[] | null | undefined): string[] | undefined {
+  const kept = (lines ?? []).map(l => l ?? '');
+  while (kept.length > 0 && kept[kept.length - 1].trim() === '') kept.pop();
+  return kept.length > 0 ? kept : undefined;
+}
+
 function columnsOf(
   text: string, barNode: BarNode, atBar: AtBar | undefined, voice: number, staff: AtStaff, at: AlphaTab,
   origins: Map<Note, AtNote>, kept: Map<string, number>, warn: (w: string) => void,
@@ -547,6 +554,9 @@ function columnsOf(
     const chord = chordNameOf(node) ?? (beat.chordId ? staff.getChord(beat.chordId)?.name : undefined);
     if (chord) column.chord = chord;
     if (beat.text) column.text = beat.text;
+    // Both alphaTex forms end up here: `{lyrics "Hel-"}` on the beat, and a `\lyrics "..."` line that alphaTab hands out one syllable a note.
+    const lyrics = lyricsOf(beat.lyrics);
+    if (lyrics) column.lyrics = lyrics;
     for (const note of beat.notes) {
       const s = STRING_COUNT - note.string;
       const n = noteOf(note, at);

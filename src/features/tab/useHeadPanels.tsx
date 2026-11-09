@@ -6,7 +6,9 @@ import { BarKeyPanel } from './BarKeyPanel';
 import { BarFixPopover } from './BarFixPopover';
 import { BarTimePanel } from './BarTimePanel';
 import { CreditsPanel, type HeadField } from './CreditsPanel';
-import { barTempoSpot, barTimeSpot, PANEL_DROP, PANEL_LEAD, wordNow, wordSpot } from './fieldSpots';
+import { barTempoSpot, barTimeSpot, lyricSpot, PANEL_DROP, PANEL_LEAD, wordNow, wordSpot } from './fieldSpots';
+import { LyricField } from './LyricField';
+import { lyricAt, lyricNote, lyricValue, MAX_LYRIC_LINES, setLyric, type LyricMove } from './lyrics';
 import { SPLITS_TUPLET } from './timeline';
 import type { Layout } from './layout';
 import { TempoPanel } from './TempoPanel';
@@ -42,6 +44,8 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
   const { clip, cursor, commit, commitReBar, dispatch, editorRef, setNotice } = editor;
   /** The chord name, text, section, tempo or capo being typed, and where: the cursor's column or bar when it opened. */
   const [word, setWord] = useState<{ kind: FieldKind; bar: number; column: number } | null>(null);
+  /** The note whose syllable the Lyrics field is typing, and its Lyric line (issue #408). */
+  const [lyric, setLyricField] = useState<{ bar: number; column: number; line: number; turn?: number } | null>(null);
   /** The bar whose time signature panel is open. */
   const [timeBar, setTimeBar] = useState<number | null>(null);
   /** The bar whose key signature panel is open. */
@@ -102,6 +106,40 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
     if (w.kind === 'capo') commit(setCapo(clip, value === '' || Number(value) === 0 ? null : Math.min(MAX_CAPO, Number(value))));
   };
 
+  /**
+   * Opens the Lyrics field on the note at `at`, or the next one that takes a syllable (Shift+L, the Lyrics
+   * tool, a picked syllable's Edit); with none after it, nothing opens.
+   */
+  const openLyric = (at: { bar: number; column: number }, line = 0) => {
+    const place = lyricNote(clip, at, 0);
+    if (!place) {
+      setNotice({ tone: 'info', lines: ['Lyrics go under notes: there is no note here or after it.'] });
+      return;
+    }
+    setWord(null);
+    commit(clip, { ...cursor, ...place }, null);
+    setLyricField({ ...place, line });
+  };
+
+  /** A syllable set (Esc leaves it), then the field moves on as its key says, or closes. */
+  const finishLyric = (typed: string, move: LyricMove, byKey: boolean) => {
+    const at = lyric;
+    if (!at) return;
+    const next = move === 'cancel' ? clip : setLyric(clip, at, at.line, lyricValue(typed, move));
+    const step = move === 'next' || move === 'hyphen' ? 1 : move === 'back' ? -1 : null;
+    // Past the first or last note the field stays on this one, so what is typed next still goes into it.
+    const place = step ? lyricNote(next, at, step) ?? at : move === 'up' || move === 'down' ? at : null;
+    const line = move === 'down' ? Math.min(MAX_LYRIC_LINES - 1, at.line + 1) : move === 'up' ? Math.max(0, at.line - 1) : at.line;
+    commit(next, { ...cursor, ...(place ?? at) }, null);
+    if (place) {
+      // A new turn opens the field afresh even on the same note, with what it now has.
+      setLyricField({ ...place, line, turn: (at.turn ?? 0) + 1 });
+      return;
+    }
+    setLyricField(null);
+    if (byKey) editorRef.current?.focus();
+  };
+
   /** A bar's time or key signature panel: under a press (`at`, viewport pixels), or from the palette (null) under the bar. */
   const openSignature = (kind: 'time' | 'key', bar: number, at: { x: number; y: number } | null) => {
     setPanelAt(at);
@@ -131,6 +169,7 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
   /** Shuts whatever is open: another track is shown. */
   const closeAll = () => {
     setWord(null);
+    setLyricField(null);
     setHeadPanel(null);
     setFixBar(null);
     closeSignatures();
@@ -170,6 +209,12 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
           initial={wordNow(clip, word)} onDone={finishWord}
         />
       )}
+      {tab && lyric && drawn && (
+        <LyricField
+          key={`lyric-${lyric.bar}-${lyric.column}-${lyric.line}-${lyric.turn ?? 0}`} line={lyric.line} {...lyricSpot(layout, width, lyric, lyric.line)}
+          initial={lyricAt(clip, lyric, lyric.line)} onDone={finishLyric}
+        />
+      )}
       {tab && keyBar !== null && keyBar < clip.bars.length && drawn && (
         <BarKeyPanel
           clip={clip} bar={keyBar} {...(panelAt ?? barTimeSpot(layout, keyBar))}
@@ -206,7 +251,7 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
   );
 
   return {
-    openWord, openSignature, openFix, closeSignatures, closeAll, panels,
+    openWord, openLyric, openSignature, openFix, closeSignatures, closeAll, panels,
     /** The score head's panels, from a press on the head (or the folded title), at that spot. */
     openCredits: (x: number, y: number, field: HeadField) => setHeadPanel({ kind: 'credits', x, y, from: clip, field }),
     openTuning: (x: number, y: number) => setHeadPanel({ kind: 'tuning', x, y }),

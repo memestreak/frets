@@ -193,8 +193,8 @@ function documentExamples(): string[] {
 describe('the examples in tab-alphatex.txt', () => {
   const examples = documentExamples();
 
-  it('finds all eleven', () => {
-    expect(examples).toHaveLength(11);
+  it('finds all twelve', () => {
+    expect(examples).toHaveLength(12);
   });
 
   it.each(examples.map((e, i) => [i + 1, e]))('example %i reads without warnings and writes back the same', (_, text) => {

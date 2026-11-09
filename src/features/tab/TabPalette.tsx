@@ -403,6 +403,8 @@ export const ICONS: Record<Exclude<ToolId, 'bend' | 'vibrato' | 'tuplet' | 'wah'
   chordName: <Label y={16} size={10}>Am</Label>,
   // Words in italics, as free text is drawn over the tab.
   beatText: <text x={12} y={16} fontSize={10} fontStyle="italic" fill="currentColor" stroke="none" textAnchor="middle">abc</text>,
+  // A syllable joined to the next, as Lyrics are drawn under the notes.
+  lyrics: <text x={12} y={16} fontSize={9} fill="currentColor" stroke="none" textAnchor="middle">la-la</text>,
   section: <><rect x={3} y={7} width={18} height={11} rx={1.5} /><Label y={15.5} size={7.5}>Intro</Label></>,
   // A capo: a bar clamped across the strings.
   capo: <>{[7, 11, 15, 19].map(y => <line key={y} x1={3} y1={y} x2={21} y2={y} strokeWidth={1} />)}<rect x={10} y={4} width={4.5} height={18} rx={2} fill="currentColor" stroke="none" /></>,

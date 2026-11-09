@@ -3,6 +3,7 @@ import { type Layout } from './layout';
 import { textRowOf } from './rows';
 import type { FieldKind } from './WordField';
 import { SECTION_LINE } from './sectionText';
+import { LYRIC_LINE } from './lyrics';
 
 /*
  * Where the fields and panels that a press, a key or a picked word's menu opens go over the drawn tab.
@@ -41,6 +42,22 @@ export function wordSpot(layout: Layout, width: number, { kind, bar, column }: {
     const x = kind === 'chord' || kind === 'text' ? (placed.columns[column]?.x ?? placed.x0) : kind === 'capo' ? 0
       : kind === 'repeat' ? placed.x1 - FIELD_WIDTH / 2 : placed.x0 + FIELD_WIDTH / 2;
     return { x: Math.min(width - FIELD_WIDTH / 2, Math.max(FIELD_WIDTH / 2, x)), y: Math.max(0, y) };
+  }
+  return { x: FIELD_WIDTH / 2, y: 0 };
+}
+
+/**
+ * Where the Lyrics field goes: under the note, with its box over the syllable's place on its Lyric line;
+ * on a line with no Lyrics yet, where line 1 will be (under the staff, or the tab when only it is drawn).
+ */
+export function lyricSpot(layout: Layout, width: number, at: { bar: number; column: number }, line: number): { x: number; y: number } {
+  const FIELD_WIDTH = 210;
+  for (const { bars, rows, top } of layout.systems) {
+    const placed = bars.find(b => b.index === at.bar);
+    if (!placed) continue;
+    const first = rows.lyrics ?? (rows.score && rows.tab ? rows.score.bottom + 26 : rows.height - 6);
+    const x = placed.columns[at.column]?.x ?? placed.x0;
+    return { x: Math.min(width - FIELD_WIDTH / 2, Math.max(FIELD_WIDTH / 2, x)), y: top + first + line * LYRIC_LINE - 26 };
   }
   return { x: FIELD_WIDTH / 2, y: 0 };
 }

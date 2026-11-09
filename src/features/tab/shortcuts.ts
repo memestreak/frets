@@ -113,6 +113,18 @@ const LINE: ShortcutGroup = {
   ],
 };
 
+const LYRICS: ShortcutGroup = {
+  title: 'In the Lyrics field (Shift+L)',
+  shortcuts: [
+    { keys: ['Space'], does: 'Set the syllable and go to the next note' },
+    { keys: ['-'], does: 'Join it to the next syllable with a hyphen, and go there' },
+    { keys: ['Shift+Space'], does: 'Set it and go back a note' },
+    { keys: ['Up', 'Down'], does: 'Set it and go to the lyric line above or below' },
+    { keys: ['Enter'], does: 'Set it and close' },
+    { keys: ['Esc'], does: 'Close, leaving the note’s syllable as it was' },
+  ],
+};
+
 const CHOOSER: ShortcutGroup = {
   title: 'In Arrangements…',
   shortcuts: [
@@ -160,4 +172,4 @@ export function paletteShortcuts(): ShortcutGroup {
   return { title: 'Palette', shortcuts: [...duration.map(t => ({ keys: [t.key], does: t.label })), ...shortcuts] };
 }
 
-export const TAB_SHORTCUTS: readonly ShortcutGroup[] = [PAGE, MOVING, INPUT, NORMAL, PICKED, STAFF, paletteShortcuts(), LINE, HEAD, CHORDS, CHOOSER];
+export const TAB_SHORTCUTS: readonly ShortcutGroup[] = [PAGE, MOVING, INPUT, NORMAL, PICKED, STAFF, paletteShortcuts(), LYRICS, LINE, HEAD, CHORDS, CHOOSER];
