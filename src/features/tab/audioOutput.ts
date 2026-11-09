@@ -123,6 +123,16 @@ export class WebAudioOutput implements AlphaTabModule.synth.ISynthOutput {
   private readonly ringing = new Set<Sounding>();
   /** The block of samples handed to the speakers last: when it starts sounding, and how long it is. */
   private lastBlock: { playbackTime: number; seconds: number } | null = null;
+  /** The same block since this Play, with the frame it starts at (counted as `drained`); none before the first. */
+  private heardBlock: { playbackTime: number; startFrame: number } | null = null;
+  /**
+   * Frames handed over by the synthesizer, and drained into the speakers, since this Play: the clock
+   * MIDI out (`midiOut.ts`) times its messages by.
+   */
+  private pushed = 0;
+  private drained = 0;
+  /** Whether the synthesizer is being asked for samples right now. */
+  private asking = false;
   /** Requests made and not yet answered by `addSamples`. */
   private pending = 0;
   /** How many samples (both channels) to keep ready. */
@@ -278,10 +288,14 @@ export class WebAudioOutput implements AlphaTabModule.synth.ISynthOutput {
     this.answeredEmpty = samples.length === 0;
     const dry = this.dry.take(samples);
     if (samples.length > 0) this.samples.push(samples, dry);
+    this.pushed += samples.length / 2;
   }
   resetSamples() {
     this.samples = new SampleQueue();
     this.pending = 0;
+    this.pushed = 0;
+    this.drained = 0;
+    this.heardBlock = null;
   }
   enumerateOutputDevices() {
     return Promise.resolve([]);
@@ -298,12 +312,42 @@ export class WebAudioOutput implements AlphaTabModule.synth.ISynthOutput {
    * this thread, and with nothing once the clip has ended; then asking stops until the next fill.
    */
   private request() {
-    while (this.samples.size + this.pending * ANSWER_SIZE < this.target) {
-      this.pending++;
-      this.answeredEmpty = false;
-      this.sampleRequest.trigger();
-      if (this.answeredEmpty) return;
+    this.asking = true;
+    try {
+      while (this.samples.size + this.pending * ANSWER_SIZE < this.target) {
+        this.pending++;
+        this.answeredEmpty = false;
+        this.sampleRequest.trigger();
+        if (this.answeredEmpty) return;
+      }
+    } finally {
+      this.asking = false;
     }
+  }
+
+  /** Frames the synthesizer has handed over since this Play. */
+  handedOver(): number {
+    return this.pushed;
+  }
+
+  /** Whether the synthesizer is making sound for the speakers right now (a request under way). */
+  requesting(): boolean {
+    return this.asking;
+  }
+
+  /**
+   * When a frame handed over (counted as `handedOver` counts) reaches the speakers, in
+   * `performance.now()` time, from the block playing last; null before the first block of this Play,
+   * when it can't be known. The AudioContext's output time stamp gives the speakers' own delay.
+   */
+  soundsAt(frame: number): number | null {
+    const context = this.context;
+    if (!context || !this.heardBlock) return null;
+    const time = this.heardBlock.playbackTime + (frame - this.heardBlock.startFrame) / this.sampleRate;
+    const stamp = typeof context.getOutputTimestamp === 'function' ? context.getOutputTimestamp() : null;
+    if (stamp?.performanceTime && stamp.contextTime !== undefined) return stamp.performanceTime + (time - stamp.contextTime) * 1000;
+    const delay = context.outputLatency || context.baseLatency || 0;
+    return performance.now() + (time - context.currentTime + delay) * 1000;
   }
 
   /** Fades the last few milliseconds queued down to silence. */
@@ -340,6 +384,8 @@ export class WebAudioOutput implements AlphaTabModule.synth.ISynthOutput {
   private fill(buffer: AudioBuffer, playbackTime: number) {
     const frames = this.samples.drainInto(channelsOf(buffer));
     this.lastBlock = { playbackTime, seconds: frames / buffer.sampleRate };
+    this.heardBlock = { playbackTime, startFrame: this.drained };
+    this.drained += frames;
     this.samplesPlayed.trigger(frames);
     this.request();
   }

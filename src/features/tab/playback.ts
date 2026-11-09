@@ -20,6 +20,7 @@ import { DEFAULT_ROLLS, rollChords, sameRolls, type Rolls } from './rolls';
 import type { EffectSettings } from './effects';
 import { decodeOnMainThread, lastFont, useDecoded } from './soundDecode';
 import { SoundDecoder } from './soundDecoder';
+import { MidiTap, tapSynth, type MidiPort } from './midiOut';
 
 type AlphaTab = typeof AlphaTabModule;
 type Score = AlphaTabModule.model.Score;
@@ -867,6 +868,10 @@ export class TabPlayer {
   private reported = 0;
   /** The tick the playhead was last drawn on, and when. */
   private shown: { tick: number; at: number } | null = null;
+  /** Playback out over MIDI (`midiOut.ts`): the port, if any, and whether the built-in notes play too. */
+  private readonly midi: MidiTap;
+  private midiPort: MidiPort | null = null;
+  private builtIn = true;
 
   private constructor(
     private readonly at: AlphaTab,
@@ -874,6 +879,8 @@ export class TabPlayer {
     private readonly output: WebAudioOutput,
     private readonly onView: (view: Partial<PlayerView>) => void,
   ) {
+    this.midi = new MidiTap(output, new Set([METRONOME_CHANNEL, COUNT_IN_CHANNEL]));
+    tapSynth(synth, this.midi);
     synth.positionChanged.on(e => {
       if (!this.clip || !this.performance || this.ended) return;
       const rate = (e.modifiedTempo * QUARTER_TICKS) / 60000;
@@ -908,6 +915,8 @@ export class TabPlayer {
       }
       this.ended = true;
       this.hearing = false;
+      // What is queued (the last notes' ends) still goes; nothing new is taken.
+      this.midi.on = false;
       onView({ state: 'idle', column: null });
     });
   }
@@ -952,8 +961,42 @@ export class TabPlayer {
     this.until = until;
     this.setLoop(loop);
     this.ended = false;
+    this.startMidi();
     this.synth.play();
     this.onView({ state: 'playing', column: from });
+  }
+
+  /**
+   * Where playback goes out over MIDI: a port (none for only the built-in sound), the track's channel
+   * (1 to 16), and whether the built-in notes play too. A clip playing goes on, out of the new port.
+   */
+  setMidi(port: MidiPort | null, channel: number, builtIn: boolean, bendRange: number) {
+    const playing = !this.ended && !this.hearing;
+    if (port !== this.midiPort || this.midi.channel !== channel - 1 || this.midi.bendRange !== bendRange) this.midi.release({ centre: true });
+    this.midi.bendRange = bendRange;
+    this.midiPort = port;
+    this.builtIn = builtIn;
+    this.midi.port = port;
+    this.midi.channel = channel - 1;
+    if (playing) {
+      this.muteNotes(port !== null && !builtIn);
+      this.midi.on = port !== null;
+      this.midi.start();
+    }
+  }
+
+  /** At Play: MIDI out takes what plays, and the built-in notes go quiet unless asked to play too. */
+  private startMidi() {
+    this.muteNotes(this.midiPort !== null && !this.builtIn);
+    this.midi.on = this.midiPort !== null;
+    this.midi.start();
+  }
+
+  /** The built-in sound's notes muted, or heard; the clicks are always heard. */
+  private muteNotes(muted: boolean) {
+    for (let channel = 0; channel < 16; channel++) {
+      if (channel !== METRONOME_CHANNEL && channel !== COUNT_IN_CHANNEL) this.synth.setChannelMute(channel, muted);
+    }
   }
 
   /** Stops, keeping the clip ready for the next Play; the view hears the state go idle and the playhead go. */
@@ -961,6 +1004,7 @@ export class TabPlayer {
     this.ended = true;
     this.endRest();
     this.quietNotesHeard();
+    this.endMidi();
     this.synth.pause();
     this.onView({ state: 'idle', column: null });
   }
@@ -969,6 +1013,7 @@ export class TabPlayer {
   stop() {
     this.ended = true;
     this.endRest();
+    this.endMidi();
     if (!this.hearing) this.synth.stop();
     this.clip = null;
     this.performance = null;
@@ -1096,8 +1141,16 @@ export class TabPlayer {
     this.loopEndAt = null;
   }
 
+  /** Stop, or an edit: MIDI out takes nothing more, and every note it sent ends. */
+  private endMidi() {
+    this.midi.on = false;
+    this.midi.release({ centre: true });
+  }
+
   /** Puts the playhead on a tick, with no loop points to hold it in. */
   private moveTo(tick: number) {
+    // The sound made ahead is thrown away, so are the MIDI messages not yet sent; what sounds ends.
+    this.midi.release();
     rangeWithoutSeek(this.synth, null);
     this.synth.tickPosition = tick;
     this.heard = { tick, at: performance.now(), rate: 0, floor: tick };
@@ -1140,6 +1193,7 @@ export class TabPlayer {
    * synthesizer's own transposition, on every channel but General MIDI's drums.
    */
   setTranspose(semitones: number) {
+    this.midi.transpose = semitones;
     const pitches = new Map<number, number>();
     const unpitched = [DRUM_CHANNEL, METRONOME_CHANNEL, COUNT_IN_CHANNEL];
     if (semitones !== 0) for (let channel = 0; channel < 16; channel++) if (!unpitched.includes(channel)) pitches.set(channel, semitones);
@@ -1297,6 +1351,9 @@ export class TabPlayer {
     if (this.hearing) this.output.ringOn();
     this.synth.stop();
     this.hearing = true;
+    // Heard on its own, a note plays in the built-in sound and doesn't go out (Jeremy, 2026-11-09: playback only).
+    this.midi.on = false;
+    this.muteNotes(false);
     this.sound = sound;
     this.clip = null;
     this.performance = null;
@@ -1330,6 +1387,7 @@ export class TabPlayer {
 
   destroy() {
     this.endRest();
+    this.midi.destroy();
     this.decoder.destroy();
     this.synth.destroy();
   }

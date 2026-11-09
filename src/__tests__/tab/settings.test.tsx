@@ -49,7 +49,7 @@ describe('Settings', () => {
     // Most used first (G3).
     const tab = inDialog().getByRole('treeitem', { name: /^Tab/ });
     expect(within(tab).getAllByRole('treeitem').map(i => i.textContent))
-      .toEqual(['Playback', 'Metronome', 'Notation', 'Colours', 'ASCII Tab', 'AlphaTex', 'Editing', 'Export', 'Chat']);
+      .toEqual(['Playback', 'Metronome', 'MIDI output', 'Notation', 'Colours', 'ASCII Tab', 'AlphaTex', 'Editing', 'Export', 'Chat']);
   });
 
   it('stages changes: Apply saves and stays, Cancel drops them, and Apply is enabled only while something differs', () => {

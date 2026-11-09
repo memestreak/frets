@@ -514,6 +514,12 @@
   font-variant-ligatures: none;
 }
 .settings-after { font: 400 14px/20px var(--font-sans); color: var(--ink-muted); }
+/* MIDI output: the port list, and a channel field per track (issue #457). */
+.settings-port { width: 100%; max-width: 20rem; min-width: 0; }
+.settings-channels { border-collapse: collapse; }
+.settings-channels th, .settings-channels td { padding: 4px 12px 4px 0; text-align: left; }
+.settings-channels thead th { font-weight: 600; color: var(--ink-muted); border-bottom: 1px solid var(--line); }
+.settings-channels tbody th { font-weight: normal; font-variant-numeric: tabular-nums; }
 
 /* The Tab page's title: a press opens the Title and credits panel. */
 .tab-title-text {

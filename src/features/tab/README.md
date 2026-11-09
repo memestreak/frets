@@ -395,7 +395,13 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
   `2026-10-27-tab-instruments-design.md`,
   `2026-10-28-tab-sound-preload-design.md`.
 - `audioOutput.ts` — the Web Audio output the synthesizer plays through;
-  `ringOn`, `chokeAll`.
+  `ringOn`, `chokeAll`; `soundsAt`, when a frame is heard, MIDI out's clock.
+- `midiOut.ts` — playback out over MIDI (issue #457): Tab › MIDI output
+  (`frets.tab.midi`), `messageOf`, and `MidiTap`, which sends what the
+  synthesizer plays, timed to the built-in sound —
+  `2026-11-09-tab-midi-out-design.md`.
+- `useMidiOutput.ts` — Web MIDI access and the outputs, by name, for
+  Settings and the footer's ⚠ — `2026-11-09-tab-midi-out-design.md`.
 - `rolls.ts` — how much a Downstroke or Upstroke chord, a Strum and a Rolled
   chord roll in playback, from Tab › Playback (issue #385) —
   `2026-11-06-tab-chord-rolls-design.md`.
@@ -462,6 +468,8 @@ MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
   Rolled chords (alphaTex `bd` `bu` `ad` `au`) drawn as an arrow or a wavy
   arrow left of the chord on the staff and the tab, set by four palette
   buttons, picked and deleted like any Mark (issue #384).
+- `docs/specs/2026-11-09-tab-midi-out-design.md`: playback out over MIDI
+  to a port picked in Settings, a channel for each of Tracks 1 to 4 (issue #457)
 - `docs/specs/2026-11-09-tab-dynamics-design.md`: dynamics (alphaTex `dy`)
   drawn on the hairpins' row, entered with Shift+D or the Dynamic tool,
   picked, edited and deleted like any Mark (issue #437).
