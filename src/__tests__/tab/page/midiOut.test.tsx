@@ -58,6 +58,9 @@ describe('Settings › Tab › MIDI output', () => {
     stubMidi([]);
     renderAt();
     await openMidiSettings();
+    const table = within(dialog().getByRole('table'));
+    expect(table.getAllByRole('columnheader').map(h => h.textContent)).toEqual(['Track', 'Channel']);
+    expect(table.getAllByRole('rowheader').map(h => h.textContent)).toEqual(['1', '2', '3', '4']);
     const fields = dialog().getAllByRole('spinbutton', { name: /^Track \d channel$/ });
     expect(fields.map(f => f.getAttribute('aria-label'))).toEqual(['Track 1 channel', 'Track 2 channel', 'Track 3 channel', 'Track 4 channel']);
     expect(fields.map(f => (f as HTMLInputElement).value)).toEqual(['1', '2', '3', '4']);

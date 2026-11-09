@@ -67,8 +67,8 @@ A Tab section **MIDI output**, key `frets.tab.midi`:
   port not there now is listed as "<name> (not found)".
 - `builtIn`: "Also play the built-in sound", usable only with a port picked (boxed with it, as
   Output).
-- `channels`: Tracks 1 to 4's channels, as a list from Track 1; four number fields, labelled by
-  track number, whatever the open arrangement has. A missing or bad entry is its default; entries
+- `channels`: Tracks 1 to 4's channels, as a list from Track 1; a table of Track and Channel,
+  a row and a number field per track, whatever the open arrangement has. A missing or bad entry is its default; entries
   past the fourth are dropped.
 - The browser asks for permission to use MIDI devices the first time the section shows. Where the
   browser has no Web MIDI (Safari), the section says so and offers no port.
@@ -116,7 +116,7 @@ instrument to a MIDI port instead of its VST sound. MuseScore 4 has no MIDI outp
   its first key; at Play the range message and a centred pitch bend go out on the track's channel;
   nothing goes out while the tap is off (a note heard alone).
 - Settings: the MIDI output section lists None and the outputs, "(not found)" for a saved one that
-  is gone; "Also play the built-in sound" is disabled with no port; four channel fields, Track 1
-  to 4, and no Track 5.
+  is gone; "Also play the built-in sound" is disabled with no port; a Track and Channel table of
+  four rows, Track 1 to 4, and no Track 5.
 - Footer: the ⚠ shows only with a port picked and not found, or a track past 4 shown with a port;
   its tip names the port, or says only Tracks 1 to 4 go out.

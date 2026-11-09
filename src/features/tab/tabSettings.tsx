@@ -178,27 +178,34 @@ function MidiPortSelect({ value, set, labelId }: { value: MidiSettings; set: (ne
   );
 }
 
-/** Tracks 1 to 4's MIDI channels: a number field each, by track number. */
+/** Tracks 1 to 4's MIDI channels: a table of a row per track, its number and its channel field. */
 function channelsField(): SettingsField<MidiSettings> {
   return {
     key: 'channels', label: 'Channels',
     control: ({ value, set }) => (
-      <span className="settings-channels">
-        {Array.from({ length: MIDI_TRACKS }, (_, t) => (
-          <span key={t} className="settings-channel">
-            <span className="settings-after">Track {t + 1}</span>
-            <NumberField
-              value={channelOf(value, t) ?? MIN_CHANNEL} min={MIN_CHANNEL} max={MAX_CHANNEL} step={1}
-              label={`Track ${t + 1} channel`} upLabel="Next channel" downLabel="Previous channel"
-              onChange={n => {
-                const channels = Array.from({ length: Math.max(value.channels.length, t + 1) }, (_, i) => channelOf(value, i) ?? MIN_CHANNEL);
-                channels[t] = n;
-                set({ ...value, channels });
-              }}
-            />
-          </span>
-        ))}
-      </span>
+      <table className="settings-channels">
+        <thead>
+          <tr><th scope="col">Track</th><th scope="col">Channel</th></tr>
+        </thead>
+        <tbody>
+          {Array.from({ length: MIDI_TRACKS }, (_, t) => (
+            <tr key={t}>
+              <th scope="row">{t + 1}</th>
+              <td>
+                <NumberField
+                  value={channelOf(value, t) ?? MIN_CHANNEL} min={MIN_CHANNEL} max={MAX_CHANNEL} step={1}
+                  label={`Track ${t + 1} channel`} upLabel="Next channel" downLabel="Previous channel"
+                  onChange={n => {
+                    const channels = Array.from({ length: Math.max(value.channels.length, t + 1) }, (_, i) => channelOf(value, i) ?? MIN_CHANNEL);
+                    channels[t] = n;
+                    set({ ...value, channels });
+                  }}
+                />
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     ),
   };
 }
