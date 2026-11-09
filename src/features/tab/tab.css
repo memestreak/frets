@@ -398,9 +398,8 @@
 .tab-bar-fix { gap: 8px; }
 .tab-bar-fix-text { font-size: 13px; max-width: 280px; color: var(--ink-muted); }
 .tab-tool { width: 30px; height: 30px; padding: 0; }
-/* MOCK (issue #449): the Grid button with its setting in words, wide enough for the longest so nothing moves. */
+/* The Grid button: its glyph, then its setting in words, as wide as the longest so nothing moves (issue #449). */
 .tab-tool.tab-tool-worded { width: auto; min-width: 30px; gap: 2px; padding: 0 8px 0 3px; }
-.tab-tool-worded:not(:has(svg)) { padding: 0 8px; }
 .tab-tool-caption { display: inline-grid; font-size: 12px; font-weight: 600; white-space: nowrap; text-align: left; }
 .tab-tool-caption > span { grid-area: 1 / 1; }
 .tab-tool-caption-room { visibility: hidden; }

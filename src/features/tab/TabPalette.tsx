@@ -18,7 +18,7 @@ import { WHAMMY_SHAPE_IDS, WHAMMY_SHAPE_NAMES, type WhammyShape } from './whammy
  * and off; Bend and Tuplet open a panel of choices. Their icons show the
  * cursor's kind.
  */
-export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, onWhammy, disabled, noteInputMode = false, onNoteInputMode, groups, className, grid, gridValue, onGrid, gridShow = 'a', voices }: {
+export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, onWhammy, disabled, noteInputMode = false, onNoteInputMode, groups, className, grid, gridValue, onGrid, voices }: {
   isOn: (id: ToolId) => boolean;
   /** What the cursor has of the things the Bend, Vibrato and Tuplet icons draw. */
   kinds: ReturnType<typeof noteKinds>;
@@ -44,10 +44,8 @@ export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, on
   grid?: GridValue | null;
   /** The note value the grid steps by now, drawn on the button. */
   gridValue?: NoteValue;
-  /** A grid picked in the button's panel, or null for Note length. */
+  /** A grid picked in the button's panel, or null for Follow note length. */
   onGrid?: (grid: GridValue | null) => void;
-  /** MOCK (issue #449): how the Grid button shows its setting: a its glyph, b glyph and word, c word only. */
-  gridShow?: string;
   /**
    * The Voice row under Input (step 9, Q5): the Active voice lit (none while the tab hasn't the keys), a
    * press making a Voice active, and whether each Voice has notes at the cursor, for its tip (Q17).
@@ -75,10 +73,8 @@ export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, on
             </button>
             {grid !== undefined && gridValue && onGrid && (
               <PanelTool
-                tool={GRID_TOOL} current={grid} choices={GRID_VALUES} label={g => GRID_NAMES[g]} toggle={false} noneLabel="Note length"
-                icon={gridShow === 'c' ? undefined : <GridGlyph value={gridValue} />}
-                caption={gridShow === 'a' ? undefined : gridCaption(grid, gridShow === 'c')}
-                captions={gridShow === 'a' ? undefined : [null, ...GRID_VALUES].map(g => gridCaption(g, gridShow === 'c'))} onPick={onGrid} disabled={disabled}
+                tool={GRID_TOOL} current={grid} choices={GRID_VALUES} label={g => GRID_NAMES[g]} toggle={false} noneLabel={FOLLOW_NOTE_LENGTH}
+                icon={<GridGlyph value={gridValue} />} caption={gridCaption(grid)} captions={GRID_CAPTIONS} onPick={onGrid} disabled={disabled}
               />
             )}
           </div>
@@ -231,8 +227,7 @@ function PanelTool<T extends number | string>({ tool, current, pressed = current
   choices: readonly T[];
   /** A choice as the panel names it. */
   label: (choice: T) => string;
-  /** Drawn in the button; none for a word-only button. */
-  icon?: ReactNode;
+  icon: ReactNode;
   /** A word after the icon naming the setting (the Grid's), widening the button. */
   caption?: string;
   /** Every word the caption can be, laid over each other so the button keeps the longest's width. */
@@ -241,7 +236,7 @@ function PanelTool<T extends number | string>({ tool, current, pressed = current
   disabled: boolean;
   /** Whether the button shows the cursor has the mark (pressed); false for a setting, as the Grid's. */
   toggle?: boolean;
-  /** For a setting whose null is a choice of its own (the Grid's Note length): its name, first in the panel; else None, last. */
+  /** For a setting whose null is a choice of its own (the Grid's Follow note length): its name, first in the panel; else None, last. */
   noneLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -276,11 +271,9 @@ function PanelTool<T extends number | string>({ tool, current, pressed = current
         onMouseDown={e => e.preventDefault()}
         onClick={() => setOpen(o => !o)}
       >
-        {icon && (
-          <svg width={24} height={24} viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5}>
-            {icon}
-          </svg>
-        )}
+        <svg width={24} height={24} viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5}>
+          {icon}
+        </svg>
         {caption && (
           <span className="tab-tool-caption" aria-hidden="true">
             {[caption, ...captions.filter(c => c !== caption)].map((c, i) => <span key={c} className={i ? 'tab-tool-caption-room' : undefined}>{c}</span>)}
@@ -310,11 +303,16 @@ function PanelTool<T extends number | string>({ tool, current, pressed = current
 /** The Grid button's name, tip and keys (issue #293); not a palette tool, so not in `TOOL_GROUPS`. */
 const GRID_TOOL = { label: 'Note input grid', key: 'Alt+G, Alt+[ ]' };
 
-/** The Grid button's word for its setting: the fixed grid's note, or Note length; `named` puts "Grid" before it. */
-function gridCaption(grid: GridValue | null, named: boolean): string {
-  const word = grid === null ? 'Note length' : GRID_NAMES[grid];
-  return named ? `Grid: ${word}` : word;
+/** The Grid panel's choice for following note input mode's length, not a fixed grid (Jeremy, 2026-11-09). */
+const FOLLOW_NOTE_LENGTH = 'Follow note length';
+
+/** The Grid button's words for its setting, after its glyph (issue #449): the fixed grid's note, or Follow note length. */
+function gridCaption(grid: GridValue | null): string {
+  return grid === null ? FOLLOW_NOTE_LENGTH : GRID_NAMES[grid];
 }
+
+/** Every word the Grid button can show, so it keeps the longest's width. */
+const GRID_CAPTIONS = [null, ...GRID_VALUES].map(gridCaption);
 
 /** The grid's note over a ruler: the note value ← → step by in a rest. */
 function GridGlyph({ value }: { value: NoteValue }) {
