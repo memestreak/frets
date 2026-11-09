@@ -16,8 +16,16 @@ const LETTER = {
   r: GLYPHS.dynamicRinforzando, s: GLYPHS.dynamicSforzando, z: GLYPHS.dynamicZ,
 } as const;
 
+/** How far each letter reaches above and below its baseline, in staff spaces, from its outline in `smufl.ts`: an f's top and tail, a p's tail. */
+const REACH = {
+  p: { top: -1.1, bottom: 0.57 }, m: { top: -1.1, bottom: 0.04 }, f: { top: -1.77, bottom: 0.61 },
+  r: { top: -1.1, bottom: 0 }, s: { top: -1.09, bottom: 0.04 }, z: { top: -1.07, bottom: 0.04 },
+} as const;
+
 /** A dynamic's size: a little over the staff's own glyphs, so it reads as the books print it. */
 const SCALE = SPACE * 1.15;
+/** Where the letters' baseline sits below the row, in staff spaces, so their middle is on it. */
+const BASELINE = 0.45;
 /** Neighbouring letters overlap a little, as the glyphs' italic slant leaves room (Bravura's own kerning is tighter still). */
 const LETTER_OVERLAP = 0.12;
 /** How much closer the letter after an f sits, in staff spaces. */
@@ -33,15 +41,21 @@ export function dynamicWord(dynamic: Dynamic, x: number, y: number): { letters: 
   const advances = glyphs.map((g, i) => (g.width - LETTER_OVERLAP - (letters[i] === 'f' && letters[i + 1] && letters[i + 1] !== 'f' ? F_KERN : 0)) * SCALE);
   const width = advances.reduce((a, b) => a + b, 0) + LETTER_OVERLAP * SCALE;
   // The letters stand on their baseline, about a space tall; their middle goes on the row.
-  const base = y + 0.45 * SCALE;
+  const base = y + BASELINE * SCALE;
   let left = x - width / 2;
   const paths = glyphs.map((glyph, i) => {
     const letter = { d: glyph.d, transform: `translate(${left} ${base}) scale(${SCALE})` };
     left += advances[i];
     return letter;
   });
-  return { letters: paths, box: { x: x - width / 2, y: base - 1.1 * SCALE, width, height: 1.4 * SCALE } };
+  // The box reaches as far as its letters do: an f's top and tail, a p's tail.
+  const top = Math.min(...letters.map(l => REACH[l as keyof typeof REACH].top));
+  const bottom = Math.max(...letters.map(l => REACH[l as keyof typeof REACH].bottom));
+  return { letters: paths, box: { x: x - width / 2, y: base + top * SCALE, width, height: (bottom - top) * SCALE } };
 }
+
+/** How far any dynamic reaches above and below its row (the middle `dynamicWord` puts on `y`), so a list of them can give each the same height. */
+export const DYNAMIC_REACH = { top: (BASELINE + REACH.f.top) * SCALE, bottom: (BASELINE + REACH.f.bottom) * SCALE };
 
 /** One dynamic as drawn on a line: the column it is on (`index` in its Voice's part), and whether that is the part's own Voice. */
 export interface DrawnDynamic {

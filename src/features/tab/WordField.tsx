@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import type { WordKind } from './tools';
 import { DYNAMICS, dynamicOf, type Dynamic } from './clip';
-import { dynamicWord } from './dynamics';
+import { DYNAMIC_REACH, dynamicWord } from './dynamics';
 
 /**
  * What a field sets: a palette word, a picked ending bracket's number, or how many times a picked repeat
@@ -170,11 +170,17 @@ export function WordField({ kind, initial, x, y, onDone }: WordFieldProps) {
   );
 }
 
+/** The list's dynamics are drawn a little smaller than on the tab, to fit its rows. */
+const LIST_SCALE = 0.8;
+
 /** A dynamic in the letters it is drawn with on the tab, for its row in the list. */
 function DynamicGlyph({ dynamic }: { dynamic: Dynamic }) {
   const { letters, box } = dynamicWord(dynamic, 0, 0);
+  // Every row is as tall as an f reaches, top to tail, so no letter is cut off and the rows line up.
+  const { top, bottom } = DYNAMIC_REACH;
+  const height = bottom - top + 2;
   return (
-    <svg width={box.width + 4} height={box.height + 2} viewBox={`${box.x - 2} ${box.y - 1} ${box.width + 4} ${box.height + 2}`} aria-hidden="true" fill="currentColor">
+    <svg width={(box.width + 4) * LIST_SCALE} height={height * LIST_SCALE} viewBox={`${box.x - 2} ${top - 1} ${box.width + 4} ${height}`} aria-hidden="true" fill="currentColor">
       {letters.map((letter, i) => <path key={i} d={letter.d} transform={letter.transform} />)}
     </svg>
   );
