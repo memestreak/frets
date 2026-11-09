@@ -2,7 +2,7 @@
  * Dynamics on the page (issue #437, `docs/specs/2026-11-09-tab-dynamics-design.md`): Shift+D and the
  * Dynamic tool open the field, what isn't a dynamic gets a ⚠, a drawn dynamic is picked, edited and deleted.
  */
-import { act, fireEvent, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { partOf } from '@/features/tab/clip';
@@ -77,6 +77,27 @@ describe('entering a dynamic', { timeout: 20000 }, () => {
     type('');
     expect(screen.queryByTestId('dynamic')).toBeNull();
     expect(alphaTex()).toBe('5.3.4 5.3.4 5.3.2 |');
+  });
+});
+
+describe('what the field changes stays lit', { timeout: 20000 }, () => {
+  it('keeps the cursor\'s column lit while the field is open, and lets go of it when the field is left', async () => {
+    await openWith('5.3.4 5.3.4 5.3.2 |');
+    keys('ArrowRight', { key: 'D', shiftKey: true });
+    expect(field()).toHaveFocus();
+    expect(screen.getByTestId('tab-cursor')).toBeInTheDocument();
+    // Leaving the field for somewhere off the tab leaves the tab, as a press away does.
+    act(() => screen.getByRole('button', { name: 'Note input mode' }).focus());
+    await waitFor(() => expect(screen.queryByTestId('tab-cursor')).toBeNull());
+  });
+
+  it('after Enter the cursor is back on the tab, on the same column', async () => {
+    await openWith('5.3.4 5.3.4 5.3.2 |');
+    keys('ArrowRight', { key: 'D', shiftKey: true });
+    type('p');
+    expect(editor()).toHaveFocus();
+    expect(screen.getByTestId('tab-cursor')).toBeInTheDocument();
+    expect(alphaTex()).toBe('5.3.4 5.3.4{dy p} 5.3.2 |');
   });
 });
 
@@ -189,10 +210,11 @@ describe('a drawn dynamic', { timeout: 20000 }, () => {
     expect(alphaTex()).toBe('5.3.4 5.3.4 5.3.2 |');
   });
 
-  it('Enter on a picked dynamic opens its field, as a double-click does', async () => {
+  it('Enter on a picked dynamic opens its field, as a double-click does, and it stays picked while the field is open', async () => {
     await pressDynamic();
     keys('Enter');
     expect(field()).toHaveValue('mf');
+    expect(isLit(screen.getByTestId('dynamic'))).toBe(true);
     type('f');
     expect(alphaTex()).toBe('5.3.4 5.3.4{dy f} 5.3.2 |');
   });

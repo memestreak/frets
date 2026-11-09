@@ -393,6 +393,8 @@
   max-height: 220px; overflow-y: auto; margin: 0; padding: 4px; list-style: none;
   border: 1px solid var(--line); border-radius: 8px; background: var(--surface-raised);
 }
+/* With no room under the field, the list opens over it instead. */
+.tab-word-list-up { position: absolute; bottom: calc(100% + 4px); left: 0; right: 0; }
 .tab-word-option {
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
   padding: 2px 8px; border-radius: 6px; cursor: pointer; color: var(--ink);

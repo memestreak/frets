@@ -80,6 +80,8 @@ export function WordField({ kind, initial, x, y, onDone }: WordFieldProps) {
   const listId = useId();
   const [listOpen, setListOpen] = useState(false);
   const [active, setActive] = useState(0);
+  // Over the field when the window has no room for it under the field, so it never runs off the page.
+  const [listUp, setListUp] = useState(false);
   const choices = kind === 'dynamic' ? dynamicsFor(value) : [];
   const activeRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -90,6 +92,8 @@ export function WordField({ kind, initial, x, y, onDone }: WordFieldProps) {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
       if (!listOpen) {
+        const field = e.currentTarget.getBoundingClientRect();
+        setListUp(window.innerHeight - field.bottom < LIST_ROOM && field.top > window.innerHeight - field.bottom);
         setListOpen(true);
         setActive(0);
       } else setActive(a => Math.min(a + 1, choices.length - 1));
@@ -145,7 +149,7 @@ export function WordField({ kind, initial, x, y, onDone }: WordFieldProps) {
       {showList && (
         // A press in the list keeps the field focused (its blur would set what is typed), and picks the option pressed.
         <div
-          id={listId} role="listbox" aria-label="Dynamics" tabIndex={-1} className="tab-word-list"
+          id={listId} role="listbox" aria-label="Dynamics" tabIndex={-1} className={`tab-word-list${listUp ? ' tab-word-list-up' : ''}`}
           onMouseDown={e => e.preventDefault()}
           onKeyDown={e => { e.stopPropagation(); if (e.key === 'Escape') setListOpen(false); }}
           onClick={e => {
@@ -169,6 +173,9 @@ export function WordField({ kind, initial, x, y, onDone }: WordFieldProps) {
     </span>
   );
 }
+
+/** The room a dynamic's list takes under its field: its most height (`.tab-word-list`) and a margin. */
+const LIST_ROOM = 240;
 
 /** The list's dynamics are drawn a little smaller than on the tab, to fit its rows. */
 const LIST_SCALE = 0.8;

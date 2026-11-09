@@ -33,8 +33,12 @@ Editing follows Dorico first (`docs/tab-editing-principles.md`).
   side, the part's own first. Another Voice's dynamic is picked by making
   that Voice active.
 - **Entered.** Shift+D (Dorico's dynamics popover key) or the Dynamic
-  button (Accents group, drawn "mf") opens a small field under the
-  cursor's column on that row, holding the column's dynamic. On an empty
+  button (Accents group, drawn "mf") opens a small field holding the
+  column's dynamic, under the line and beside the column, so the
+  column stays in sight. While the field is open the column stays lit
+  (and a picked dynamic stays blue), showing what it changes (Jeremy,
+  2026-11-09); leaving the field for somewhere off the tab lets go of
+  the tab, as a press away does. On an empty
   bar it goes on the first of the rests that fill it. Type `p`,
   `mf`, `sfz`… (any case, kept lowercase) and press Enter. What isn't a
   dynamic keeps the field open with a small red ⚠, its tip listing them;
@@ -49,7 +53,8 @@ Editing follows Dorico first (`docs/tab-editing-principles.md`).
   is first. It follows the typing, starting on its first entry; ↓ and ↑
   move through it (not past either end), Enter or a press sets the one
   picked, and Esc closes the list first, then the field. The placeholder
-  says "mf, or ↓ for the list", and the ⚠'s tip points to it.
+  says "mf, or ↓ for the list", and the ⚠'s tip points to it. With no
+  room under the field in the window, the list opens over it.
 - **Picked.** A press on a dynamic picks it, blue, like any Mark. Delete
   takes it away; right-click has Edit and Delete; a double-click or Edit
   opens its field.
@@ -81,6 +86,9 @@ Editing follows Dorico first (`docs/tab-editing-principles.md`).
   nothing; Esc changes nothing; an empty field clears it. Double-click
   and Enter on a picked dynamic open its field; its menu has Edit and
   Delete.
+- While the field is open the cursor's column stays lit, and a picked
+  dynamic stays picked; the focus moving off the tab lets go of it;
+  after Enter the cursor is back on the tab.
 - The list: ↓ with nothing typed lists all 25 alphabetically, starting
   f, ff, fff; `p` lists p, pf, pp, ppp, pppp, ppppp, pppppp; `sf`
   lists sf, sffz, sfp, sfpp, sfz, sfzp, and typing SFZ narrows it to sfz,
