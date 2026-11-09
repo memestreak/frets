@@ -3,13 +3,15 @@ import { OPENROUTER_URL, MODELS_URL, PRESETS_URL } from '@/features/tab/chat/ope
 import { BUILTIN_URL } from '@/features/tab/builtins';
 import { CHAT_KEY, DEFAULT_INSTRUCTIONS } from '@/features/tab/chat/chatPrefs';
 import { setUpPage, renderAt, alphaTex, undo, BUILTIN_FILES, SLOW } from './helpers';
+import { column, paletteHeader } from '../tool';
 
 setUpPage();
 
 // `docs/specs/2026-11-08-tab-chat-design.md` (issue #424): the Chat panel.
 const TEX = `#tab=${encodeURIComponent('\\title "Four"\n:4 0.6 1.6 2.6 3.6 | 5.6 6.6 7.6 8.6 |')}`;
-const railButton = (name: string) => screen.queryByRole('button', { name });
-const chatPanel = () => screen.getByRole('complementary', { name: 'Chat' });
+const chatPanel = () => screen.getByRole('region', { name: 'Chat' });
+/** Chat's icon in its header, which shows a reply running or unread (issue #442). */
+const chatIcon = () => paletteHeader('Chat').querySelector('.tab-stack-icon')!;
 const call = (id: string, name: string, args: object) => ({ id, type: 'function', function: { name, arguments: JSON.stringify(args) } });
 
 /**
@@ -50,11 +52,11 @@ const ask = (text: string) => {
 };
 
 describe('the Chat panel', () => {
-  it('is on the rail after Chords, and in Settings, with no flag in the address', async () => {
+  it('is the last palette, after Chords, and in Settings, with no flag in the address', async () => {
     serve();
     renderAt(TEX);
     await screen.findAllByTestId('tab-system', undefined, SLOW);
-    const names = within(screen.getByRole('navigation', { name: 'Panels' })).getAllByRole('button').map(b => b.getAttribute('aria-label'));
+    const names = [...column().querySelectorAll('.tab-stack > section')].map(r => r.getAttribute('aria-label'));
     expect(names.slice(-2)).toEqual(['Chords', 'Chat']);
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
     expect(screen.getByRole('treeitem', { name: 'Chat' })).toBeInTheDocument();
@@ -64,7 +66,7 @@ describe('the Chat panel', () => {
     serve();
     renderAt(TEX);
     await screen.findAllByTestId('tab-system', undefined, SLOW);
-    fireEvent.click(railButton('Chat')!);
+    fireEvent.click(paletteHeader('Chat'));
     expect(within(chatPanel()).getByRole('textbox', { name: 'Message' })).toBeDisabled();
     fireEvent.click(within(chatPanel()).getByRole('button', { name: 'Open Settings' }));
     const key = await screen.findByLabelText('OpenRouter key');
@@ -92,7 +94,7 @@ describe('the Chat panel', () => {
     renderAt(TEX);
     await screen.findAllByTestId('tab-system', undefined, SLOW);
     const before = alphaTex();
-    fireEvent.click(railButton('Chat')!);
+    fireEvent.click(paletteHeader('Chat'));
     ask('Make both bars whole notes');
     await within(chatPanel()).findByText('Both bars are whole notes now.', undefined, SLOW);
     expect(within(chatPanel()).getByText('Changed bar 1 of track 1')).toBeInTheDocument();
@@ -122,7 +124,7 @@ describe('the Chat panel', () => {
     const sent = serve(reply({ content: 'Four quarter notes a bar.' }));
     renderAt(TEX);
     await screen.findAllByTestId('tab-system', undefined, SLOW);
-    fireEvent.click(railButton('Chat')!);
+    fireEvent.click(paletteHeader('Chat'));
     ask('What rhythm is this?');
     await within(chatPanel()).findByText('Four quarter notes a bar.');
     ask('And bar 2?');
@@ -145,7 +147,7 @@ describe('the Chat panel', () => {
     renderAt(TEX);
     await screen.findAllByTestId('tab-system', undefined, SLOW);
     const before = alphaTex();
-    fireEvent.click(railButton('Chat')!);
+    fireEvent.click(paletteHeader('Chat'));
     ask('Hi');
     await within(chatPanel()).findByText(/OpenRouter didn't accept the key in Settings › Tab › Chat: User not found\./);
     expect(alphaTex()).toBe(before);
@@ -157,7 +159,7 @@ describe('the Chat panel', () => {
     renderAt(TEX);
     await screen.findAllByTestId('tab-system', undefined, SLOW);
     const before = alphaTex();
-    fireEvent.click(railButton('Chat')!);
+    fireEvent.click(paletteHeader('Chat'));
     const box = within(chatPanel()).getByRole('textbox', { name: 'Message' });
     act(() => box.focus());
     // Delete and Ctrl+Z would change the clip if they reached the page.
@@ -171,7 +173,7 @@ describe('the Chat panel', () => {
     serve();
     renderAt(TEX);
     await screen.findAllByTestId('tab-system', undefined, SLOW);
-    fireEvent.click(railButton('Chat')!);
+    fireEvent.click(paletteHeader('Chat'));
     const field = within(chatPanel()).getByRole('combobox', { name: 'Model' });
     const offered = () => within(chatPanel()).queryAllByRole('option').map(o => o.textContent);
     // Everything is listed, though the field holds a model only one entry contains.
@@ -192,9 +194,9 @@ describe('the Chat panel', () => {
   });
 });
 
-// Issue #442: the conversation is the page's, so it outlasts the panel, and the rail shows a reply running.
+// Issue #442: the conversation is the page's, so it outlasts the palette, and Chat's icon shows a reply running.
 describe('the Chat conversation outside the panel', () => {
-  const chatButton = () => railButton('Chat')!;
+  const chatButton = () => paletteHeader('Chat');
   /** A reply held until `release` is called. */
   const held = () => {
     let release!: (answer: object) => void;
@@ -202,7 +204,7 @@ describe('the Chat conversation outside the panel', () => {
     return { answer, release };
   };
 
-  it('keeps a reply running when another panel opens, shows it on the Chat button, and marks it unread', async () => {
+  it('keeps a reply running when Chat folds, shows it on Chat’s icon, and marks it unread', async () => {
     withKey();
     const first = held();
     serve(
@@ -214,27 +216,27 @@ describe('the Chat conversation outside the panel', () => {
     fireEvent.click(chatButton());
     ask('Make bar 1 a whole note');
     await within(chatPanel()).findByText('Changed bar 1 of track 1', undefined, SLOW);
-    expect(chatButton()).toHaveAttribute('data-status', 'working');
-    expect(chatButton()).toHaveAttribute('data-tip', 'Chat: Replying…');
-    // Notes opens: the Chat panel goes, the reply goes on.
-    fireEvent.click(railButton('Notes')!);
-    expect(screen.queryByRole('complementary', { name: 'Chat' })).toBeNull();
-    expect(chatButton()).toHaveAttribute('data-status', 'working');
+    expect(chatIcon()).toHaveAttribute('data-status', 'working');
+    expect(chatIcon()).toHaveAttribute('data-tip', 'Chat: Replying…');
+    // Chat folds: its contents go, the reply goes on.
+    fireEvent.click(chatButton());
+    expect(within(chatPanel()).queryByRole('textbox', { name: 'Message' })).toBeNull();
+    expect(chatIcon()).toHaveAttribute('data-status', 'working');
     expect(screen.getAllByRole('status').some(s => s.textContent === 'Chat: Replying…')).toBe(true);
     await act(async () => first.release(reply({ content: 'Bar 1 is a whole note now.' })));
-    await waitFor(() => expect(chatButton()).toHaveAttribute('data-status', 'unread'));
-    expect(chatButton()).toHaveAttribute('data-tip', 'Chat: New reply');
+    await waitFor(() => expect(chatIcon()).toHaveAttribute('data-status', 'unread'));
+    expect(chatIcon()).toHaveAttribute('data-tip', 'Chat: New reply');
     expect(alphaTex()).toBe('12.6.1 |\n5.6.4 6.6.4 7.6.4 8.6.4 |');
     // Chat again: the ask, its notes and the reply are there, and the mark is gone.
     fireEvent.click(chatButton());
     expect(within(chatPanel()).getByText('Make bar 1 a whole note')).toBeInTheDocument();
     expect(within(chatPanel()).getByText('Changed bar 1 of track 1')).toBeInTheDocument();
     expect(within(chatPanel()).getByText('Bar 1 is a whole note now.')).toBeInTheDocument();
-    expect(chatButton()).not.toHaveAttribute('data-status');
-    expect(chatButton()).toHaveAttribute('data-tip', 'Chat');
+    expect(chatIcon()).not.toHaveAttribute('data-status');
+    expect(chatIcon()).not.toHaveAttribute('data-tip');
     // The mark doesn't come back on closing the panel.
     fireEvent.click(chatButton());
-    expect(chatButton()).not.toHaveAttribute('data-status');
+    expect(chatIcon()).not.toHaveAttribute('data-status');
   });
 
   it('keeps the conversation and the half-written message when the panel closes', async () => {
@@ -246,9 +248,9 @@ describe('the Chat conversation outside the panel', () => {
     ask('What rhythm is this?');
     await within(chatPanel()).findByText('Four quarter notes a bar.');
     // A reply ended with the panel open is read: no mark.
-    expect(chatButton()).not.toHaveAttribute('data-status');
+    expect(chatIcon()).not.toHaveAttribute('data-status');
     fireEvent.change(within(chatPanel()).getByRole('textbox', { name: 'Message' }), { target: { value: 'And bar' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Close Chat' }));
+    fireEvent.click(chatButton());
     fireEvent.click(chatButton());
     expect(within(chatPanel()).getByText('What rhythm is this?')).toBeInTheDocument();
     expect(within(chatPanel()).getByRole('textbox', { name: 'Message' })).toHaveValue('And bar');
@@ -266,12 +268,12 @@ describe('the Chat conversation outside the panel', () => {
     const before = alphaTex();
     fireEvent.click(chatButton());
     ask('Make bar 1 a whole note');
-    await waitFor(() => expect(chatButton()).toHaveAttribute('data-status', 'working'));
+    await waitFor(() => expect(chatIcon()).toHaveAttribute('data-status', 'working'));
     fireEvent.click(chatButton());
     fireEvent.click(chatButton());
     fireEvent.click(within(chatPanel()).getByRole('button', { name: 'Stop' }));
     await within(chatPanel()).findByText('Stopped.');
-    expect(chatButton()).not.toHaveAttribute('data-status');
+    expect(chatIcon()).not.toHaveAttribute('data-status');
     await act(async () => first.release(reply({ content: null, tool_calls: [call('a', 'replace_bars', { track: 1, first_bar: 1, last_bar: 1, alphatex: ':1 12.6 |' })] })));
     expect(alphaTex()).toBe(before);
   });
@@ -296,7 +298,7 @@ describe('the Chat conversation outside the panel', () => {
 const systemText = (message: { content: unknown }) => (message.content as { text: string }[])[0].text;
 describe('the Chat prompt in Settings', () => {
   const openChatSettings = async () => {
-    fireEvent.click(railButton('Chat')!);
+    fireEvent.click(paletteHeader('Chat'));
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
     fireEvent.click(await screen.findByRole('treeitem', { name: 'Chat' }));
     return screen.getByLabelText('Instructions') as HTMLTextAreaElement;
@@ -371,7 +373,7 @@ describe('the Chat prompt in Settings', () => {
     const sent = serve(reply({ content: 'Four quarter notes a bar.' }));
     renderAt(TEX);
     await screen.findAllByTestId('tab-system', undefined, SLOW);
-    fireEvent.click(railButton('Chat')!);
+    fireEvent.click(paletteHeader('Chat'));
     ask('What rhythm is this?');
     await within(chatPanel()).findByText('Four quarter notes a bar.');
     expect(systemText(sent[0].body.messages[0])).toBe(`${DEFAULT_INSTRUCTIONS}\n\nTHE GUIDE`);

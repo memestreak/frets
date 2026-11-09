@@ -14,6 +14,7 @@ import { layoutClip, type Layout } from '@/features/tab/layout';
 import { textBox, type WordHit } from '@/features/tab/layoutText';
 import { CHORD_PANEL_KEY, countBadge, parseChordPanel } from '@/features/tab/ChordPanel';
 import { setUpPage, renderAt, SLOW, editor, keys, alphaTexText } from './helpers';
+import { paletteHeader } from '../tool';
 
 setUpPage();
 
@@ -35,9 +36,9 @@ async function open(): Promise<Layout> {
 }
 
 const drawing = () => screen.getByRole('img', { name: /drawn as/ });
-const panel = () => screen.getByRole('complementary', { name: 'Chords' });
+const panel = () => screen.getByRole('region', { name: 'Chords' });
 const inPanel = () => within(panel());
-const railButton = (name: string) => within(screen.getByRole('navigation', { name: 'Panels' })).getByRole('button', { name });
+
 /** The clip as alphaTex, read from the AlphaTex view, then back on the tab with the keys there. */
 function written(): string {
   fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
@@ -90,7 +91,7 @@ describe('a Chord set tile\'s dot', () => {
 describe('the Chords panel', () => {
   it('shows the Chord set as tiles: a used one says how often on hover and in its dot, an unused one has no dot or tint; no icons, no name field or shapes', async () => {
     await open();
-    fireEvent.click(railButton('Chords'));
+    fireEvent.click(paletteHeader('Chords'));
     expect(tile('G')).toHaveAttribute('title', 'Used 1 time');
     expect(tile('G').querySelector('.chord-panel-count')).toHaveTextContent('1');
     expect(tile('C')).toHaveAttribute('title', 'Not used');
@@ -115,7 +116,7 @@ describe('the Chords panel', () => {
     ].join('\n');
     renderAt(`#tab=${encodeURIComponent(many)}`);
     await screen.findByRole('heading', { name: 'Many' }, SLOW);
-    fireEvent.click(railButton('Chords'));
+    fireEvent.click(paletteHeader('Chords'));
     const tiles = () => within(list().getByRole('group', { name: 'Chords' })).getAllByRole('button');
     expect(tiles().map(t => t.getAttribute('aria-label')!.split(',')[0])).toEqual(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'Am']);
     expect(inPanel().getByText('1 / 2')).toBeInTheDocument();
@@ -142,7 +143,7 @@ describe('the Chords panel', () => {
     try {
       renderAt(`#tab=${encodeURIComponent(many)}`);
       await screen.findByRole('heading', { name: 'Many' }, SLOW);
-      fireEvent.click(railButton('Chords'));
+      fireEvent.click(paletteHeader('Chords'));
       const grid = () => list().getByRole('group', { name: 'Chords' });
       // (532 + 4) / 60: eight to a row.
       expect(grid().style.gridTemplateColumns).toBe('repeat(8, minmax(0, 1fr))');
@@ -150,8 +151,8 @@ describe('the Chords panel', () => {
       expect(inPanel().queryByRole('button', { name: 'More chords' })).toBeNull();
       // Narrower, on a fresh open: three to a row, six a page.
       width = 200;
-      fireEvent.click(railButton('Chords'));
-      fireEvent.click(railButton('Chords'));
+      fireEvent.click(paletteHeader('Chords'));
+      fireEvent.click(paletteHeader('Chords'));
       expect(grid().style.gridTemplateColumns).toBe('repeat(3, minmax(0, 1fr))');
       expect(within(grid()).getAllByRole('button')).toHaveLength(6);
       expect(inPanel().getByText('1 / 2')).toBeInTheDocument();
@@ -163,7 +164,7 @@ describe('the Chords panel', () => {
 
   it('a right-click on a tile picks it and opens its menu: Insert, Edit, Rename, Copy to new chord, and Delete only when unused', async () => {
     await open();
-    fireEvent.click(railButton('Chords'));
+    fireEvent.click(paletteHeader('Chords'));
     expect(menuOf('C').getAllByRole('menuitem').map(i => i.textContent)).toEqual(['Insert', 'Edit', 'Rename', 'Copy to new chord', 'Delete']);
     expect(tile('C')).toHaveAttribute('aria-pressed', 'true');
     fireEvent.keyDown(screen.getByRole('menu', { name: 'C' }), { key: 'Escape' });
@@ -176,12 +177,25 @@ describe('Edit chord', () => {
     const layout = await open();
     pressWord(layout, { kind: 'chord', index: 0 }, 2);
     fireEvent.click(within(screen.getByRole('menu', { name: 'Selected' })).getByRole('menuitem', { name: 'Edit' }));
-    expect(railButton('Chords')).toHaveAttribute('aria-pressed', 'true');
+    expect(paletteHeader('Chords')).toHaveAttribute('aria-expanded', 'true');
     // Shapes are low string first, as the Chords page names them.
     expect(editorOf('Edit G').getByRole('button', { name: 'Shape 3-2-0-0-0-3' })).toHaveAttribute('aria-pressed', 'true');
     expect(tile('G')).toHaveAttribute('aria-pressed', 'true');
     // In the panel, not a modal.
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('a Chord chart chord’s Edit expands a collapsed column, Chords open and the palettes open before still open (issue #454)', async () => {
+    await open();
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse palettes' }));
+    fireEvent.doubleClick(screen.getByRole('button', { name: 'G, edit' }));
+    expect(paletteHeader('Chords')).toHaveAttribute('aria-expanded', 'true');
+    expect(paletteHeader('Notes')).toHaveAttribute('aria-expanded', 'true');
+    expect(editorOf('Edit G').getByRole('button', { name: 'Shape 3-2-0-0-0-3' })).toHaveAttribute('aria-pressed', 'true');
+    // Folding Chords drops the ask: opening it again shows the Chord set, not Edit G.
+    fireEvent.click(paletteHeader('Chords'));
+    fireEvent.click(paletteHeader('Chords'));
+    expect(screen.queryByRole('group', { name: 'Edit G' })).toBeNull();
   });
 
   it('a Chord chart chord: a press picks it, Esc lets it go; a double-click, Enter and its right-click Edit open it (Jeremy, 2026-11-07)', async () => {
@@ -194,7 +208,7 @@ describe('Edit chord', () => {
     expect(screen.queryByRole('group', { name: 'Edit G' })).toBeNull();
 
     fireEvent.doubleClick(chartChord());
-    expect(railButton('Chords')).toHaveAttribute('aria-pressed', 'true');
+    expect(paletteHeader('Chords')).toHaveAttribute('aria-expanded', 'true');
     expect(editorOf('Edit G').getByRole('button', { name: 'Shape 3-2-0-0-0-3' })).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(inPanel().getByRole('button', { name: 'Done' }));
     expect(inPanel().queryByRole('group', { name: 'Edit G' })).toBeNull();
@@ -234,7 +248,7 @@ describe('Edit chord', () => {
 
   it('picking a tile doesn’t open it; a double-click and its menu’s Edit do; + stays in the heading', async () => {
     await open();
-    fireEvent.click(railButton('Chords'));
+    fireEvent.click(paletteHeader('Chords'));
     fireEvent.click(tile('G'));
     expect(inPanel().queryByRole('group', { name: 'Edit G' })).toBeNull();
     fireEvent.doubleClick(tile('G'));
@@ -247,7 +261,7 @@ describe('Edit chord', () => {
 
   it('shows only the chord’s own shapes and Change chord: no root, type, name field or Draw your own', async () => {
     await open();
-    fireEvent.click(railButton('Chords'));
+    fireEvent.click(paletteHeader('Chords'));
     const edit = editFromMenu('G');
     expect(edit.getByText('Shapes')).toBeInTheDocument();
     expect(edit.getAllByRole('button', { name: /^Shape / }).length).toBeGreaterThan(1);
@@ -261,7 +275,7 @@ describe('Edit chord', () => {
 
   it('a shape picked is the chord’s at once, the column naming it kept; undo takes it back; Done and Esc close', async () => {
     await open();
-    fireEvent.click(railButton('Chords'));
+    fireEvent.click(paletteHeader('Chords'));
     const edit = editFromMenu('G');
     const other = edit.getAllByRole('button', { name: /^Shape / }).find(b => b.getAttribute('aria-pressed') === 'false')!;
     const key = other.getAttribute('aria-label')!.replace('Shape ', '');
@@ -283,7 +297,7 @@ describe('Edit chord', () => {
     ['F2 on its name', (edit: ReturnType<typeof editorOf>) => fireEvent.keyDown(edit.getByRole('button', { name: /double-click or F2 to rename/ }), { key: 'F2' })],
   ] as const)('%s renames it, and every column naming it; a name in the set is refused; Esc leaves it', async (_how, startRename) => {
     await open();
-    fireEvent.click(railButton('Chords'));
+    fireEvent.click(paletteHeader('Chords'));
     let edit = editFromMenu('G');
     startRename(edit);
     const field = () => editorOf('Edit G').getByRole('textbox', { name: 'Name' });
@@ -305,7 +319,7 @@ describe('Edit chord', () => {
 
   it('the menu’s Rename opens it with the name field open', async () => {
     await open();
-    fireEvent.click(railButton('Chords'));
+    fireEvent.click(paletteHeader('Chords'));
     fireEvent.click(menuOf('C').getByRole('menuitem', { name: 'Rename' }));
     const field = editorOf('Edit C').getByRole('textbox', { name: 'Name' });
     expect(field).toHaveFocus();
@@ -318,7 +332,7 @@ describe('Edit chord', () => {
 describe('Change chord: the chord dialog + opens, on the chord', () => {
   it('opens on the chord’s root and type, its name following it; another shape and Save keeps its show props, back on Edit chord', async () => {
     await open();
-    fireEvent.click(railButton('Chords'));
+    fireEvent.click(paletteHeader('Chords'));
     let edit = changeChord('G');
     expect(inPanel().getByRole('heading', { name: 'Change chord' })).toBeInTheDocument();
     expect(edit.getByRole('radio', { name: 'G' })).toHaveAttribute('aria-checked', 'true');
@@ -349,7 +363,7 @@ describe('Change chord: the chord dialog + opens, on the chord', () => {
 
   it('Cancel and Esc go back to Edit chord, changing nothing', async () => {
     await open();
-    fireEvent.click(railButton('Chords'));
+    fireEvent.click(paletteHeader('Chords'));
     let edit = changeChord('C');
     const other = edit.getAllByRole('button', { name: /^Shape / }).find(b => b.getAttribute('aria-pressed') === 'false')!;
     fireEvent.click(other);
@@ -368,7 +382,7 @@ describe('Change chord: the chord dialog + opens, on the chord', () => {
 
   it('a new name renames the chord and the columns naming it; a name in the set can’t be taken', async () => {
     await open();
-    fireEvent.click(railButton('Chords'));
+    fireEvent.click(paletteHeader('Chords'));
     const edit = changeChord('G');
     const field = edit.getByRole('textbox', { name: 'Name' });
     fireEvent.change(field, { target: { value: 'C' } });
@@ -383,7 +397,7 @@ describe('Change chord: the chord dialog + opens, on the chord', () => {
 
   it('Save as new chord adds a changed copy under a new name, picked; the chord opened and its column stay as they were', async () => {
     await open();
-    fireEvent.click(railButton('Chords'));
+    fireEvent.click(paletteHeader('Chords'));
     const edit = changeChord('G');
     const saveNew = edit.getByRole('button', { name: 'Save as new chord' });
     expect(saveNew).toBeDisabled();
@@ -413,7 +427,7 @@ describe('Change chord: the chord dialog + opens, on the chord', () => {
 
   it('a change that makes another chord names it, so it can be saved as a new chord straight away', async () => {
     await open();
-    fireEvent.click(railButton('Chords'));
+    fireEvent.click(paletteHeader('Chords'));
     const edit = changeChord('C');
     fireEvent.change(edit.getByRole('combobox', { name: 'Type' }), { target: { value: 'm' } });
     expect(edit.getByRole('textbox', { name: 'Name' })).toHaveAttribute('placeholder', 'Cm');
@@ -425,7 +439,7 @@ describe('Change chord: the chord dialog + opens, on the chord', () => {
 
   it('Copy to new chord opens the dialog on a copy named "C 2", Add chord adding it', async () => {
     await open();
-    fireEvent.click(railButton('Chords'));
+    fireEvent.click(paletteHeader('Chords'));
     fireEvent.click(menuOf('C').getByRole('menuitem', { name: 'Copy to new chord' }));
     const copy = editorOf('Copy C to a new chord');
     expect(copy.getByRole('textbox', { name: 'Name' })).toHaveValue('C 2');
@@ -435,7 +449,7 @@ describe('Change chord: the chord dialog + opens, on the chord', () => {
 
   it('Save as new chord is offered only on a chord opened, not on +', async () => {
     await open();
-    fireEvent.click(railButton('Chords'));
+    fireEvent.click(paletteHeader('Chords'));
     fireEvent.click(list().getByRole('button', { name: 'Add a chord' }));
     expect(editorOf('Add a chord').queryByRole('button', { name: 'Save as new chord' })).toBeNull();
   });
@@ -444,7 +458,7 @@ describe('Change chord: the chord dialog + opens, on the chord', () => {
 describe('Edit chord and Change chord follow the chord picked (Jeremy, 2026-11-07)', () => {
   it('a tile pressed moves Edit chord to it', async () => {
     await open();
-    fireEvent.click(railButton('Chords'));
+    fireEvent.click(paletteHeader('Chords'));
     editFromMenu('G');
     fireEvent.click(tile('C'));
     expect(inPanel().queryByRole('group', { name: 'Edit G' })).toBeNull();
@@ -454,7 +468,7 @@ describe('Edit chord and Change chord follow the chord picked (Jeremy, 2026-11-0
 
   it('following never scrolls the page: the editor takes the keys with preventScroll', async () => {
     await open();
-    fireEvent.click(railButton('Chords'));
+    fireEvent.click(paletteHeader('Chords'));
     editFromMenu('G');
     const focus = vi.spyOn(HTMLElement.prototype, 'focus');
     fireEvent.click(tile('C'));
@@ -465,7 +479,7 @@ describe('Edit chord and Change chord follow the chord picked (Jeremy, 2026-11-0
 
   it('a tile pressed moves Change chord to it, dropping what wasn’t saved', async () => {
     await open();
-    fireEvent.click(railButton('Chords'));
+    fireEvent.click(paletteHeader('Chords'));
     const change = changeChord('G');
     fireEvent.click(change.getAllByRole('button', { name: /^Shape / }).find(b => b.getAttribute('aria-pressed') === 'false')!);
     fireEvent.click(tile('C'));
@@ -476,7 +490,7 @@ describe('Edit chord and Change chord follow the chord picked (Jeremy, 2026-11-0
 
   it('a chord name picked in the tab, and a Chord chart chord pressed, move it too', async () => {
     const layout = await open();
-    fireEvent.click(railButton('Chords'));
+    fireEvent.click(paletteHeader('Chords'));
     editFromMenu('C');
     pressWord(layout, { kind: 'chord', index: 0 });
     expect(inPanel().getByRole('group', { name: 'Edit G' })).toBeInTheDocument();
@@ -487,7 +501,7 @@ describe('Edit chord and Change chord follow the chord picked (Jeremy, 2026-11-0
 
   it('a new chord’s dialog stays: + and Copy to new chord don’t follow', async () => {
     await open();
-    fireEvent.click(railButton('Chords'));
+    fireEvent.click(paletteHeader('Chords'));
     fireEvent.click(list().getByRole('button', { name: 'Add a chord' }));
     fireEvent.click(tile('C'));
     expect(inPanel().getByRole('group', { name: 'Add a chord' })).toBeInTheDocument();
@@ -498,7 +512,7 @@ describe('Add a chord (+)', () => {
   /** Opens + on the panel. */
   async function openAdd() {
     await open();
-    fireEvent.click(railButton('Chords'));
+    fireEvent.click(paletteHeader('Chords'));
     fireEvent.click(list().getByRole('button', { name: 'Add a chord' }));
     return editorOf('Add a chord');
   }
@@ -574,7 +588,7 @@ describe('Add a chord (+)', () => {
     await open();
     act(() => editor().focus());
     keys('ArrowRight');
-    fireEvent.click(railButton('Chords'));
+    fireEvent.click(paletteHeader('Chords'));
     fireEvent.click(list().getByRole('button', { name: 'Add a chord' }));
     const add = editorOf('Add a chord');
     const field = add.getByRole('textbox', { name: 'Name' });
@@ -621,7 +635,7 @@ describe('the cursor column', () => {
   it('moving the cursor changes nothing in the panel but where Insert says it writes (Jeremy, 2026-11-06 and 2026-11-07)', async () => {
     await open();
     act(() => editor().focus());
-    fireEvent.click(railButton('Chords'));
+    fireEvent.click(paletteHeader('Chords'));
     // Nothing picked yet: the cursor's G is not picked.
     expect(tile('G')).toHaveAttribute('aria-pressed', 'false');
     fireEvent.click(tile('C'));
@@ -646,7 +660,7 @@ describe('the cursor column', () => {
     await open();
     act(() => editor().focus());
     keys('ArrowRight', 'ArrowRight');
-    fireEvent.click(railButton('Chords'));
+    fireEvent.click(paletteHeader('Chords'));
     fireEvent.click(tile('C'));
     fireEvent.click(within(inPanel().getByRole('group', { name: 'Insert' })).getByRole('button', { name: what }));
     fireEvent.click(insertButton());
@@ -662,7 +676,7 @@ describe('Insert in note input mode', () => {
     await open();
     act(() => editor().focus());
     keys('ArrowRight', 'ArrowRight', 'n', { key: '$', shiftKey: true, code: 'Digit4' });
-    fireEvent.click(railButton('Chords'));
+    fireEvent.click(paletteHeader('Chords'));
     fireEvent.click(tile('C'));
   }
 
@@ -692,7 +706,7 @@ describe('Insert in note input mode', () => {
 describe('deleting a chord', () => {
   it('an unused chord’s menu has Delete, which takes it out of the set, nothing left picked', async () => {
     await open();
-    fireEvent.click(railButton('Chords'));
+    fireEvent.click(paletteHeader('Chords'));
     fireEvent.click(menuOf('C').getByRole('menuitem', { name: 'Delete' }));
     expect(definitions()).toEqual(['\\chord ("G" 3 0 0 0 2 3) {showname true}']);
     expect(queryTile('C')).toBeNull();
@@ -703,11 +717,11 @@ describe('deleting a chord', () => {
 describe('Hear', () => {
   it('is off at first, in the panel’s head; its toggle turns it on and keeps it in the Playback preferences', async () => {
     await open();
-    fireEvent.click(railButton('Chords'));
-    const toggle = within(screen.getByRole('complementary', { name: 'Chords' })).getByRole('button', { name: 'Hear chords as you pick them' });
+    fireEvent.click(paletteHeader('Chords'));
+    const toggle = within(panel()).getByRole('button', { name: 'Hear chords as you pick them' });
     expect(toggle).toHaveAttribute('aria-pressed', 'false');
-    // Right of the panel's title, not in its sections.
-    expect(toggle.closest('.tab-rail-panel-head')).not.toBeNull();
+    // Right of the palette's name in its header, not in its sections.
+    expect(toggle.closest('.tab-stack-head')).not.toBeNull();
     fireEvent.click(toggle);
     expect(toggle).toHaveAttribute('aria-pressed', 'true');
     expect(JSON.parse(localStorage.getItem('frets.tab.playback')!)).toMatchObject({ hearChords: true });
@@ -717,7 +731,7 @@ describe('Hear', () => {
 describe('folding the list', () => {
   it('folds from its heading, kept across visits', async () => {
     await open();
-    fireEvent.click(railButton('Chords'));
+    fireEvent.click(paletteHeader('Chords'));
     const heading = () => inPanel().getByRole('button', { name: 'Chord set' });
     fireEvent.click(heading());
     expect(heading()).toHaveAttribute('aria-expanded', 'false');

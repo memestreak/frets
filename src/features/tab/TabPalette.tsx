@@ -253,10 +253,17 @@ function PanelTool<T extends number | string>({ tool, current, pressed = current
   noneLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
+  /** Where the panel opens, in window pixels: under the button, left edges lined up. Fixed, so a palette that scrolls doesn't cut it off (issue #454). */
+  const [at, setAt] = useState({ left: 0, top: 0 });
   const boxRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     if (!open) return;
+    // Fixed where it opened, so it closes once the page or its palette scrolls the button away.
+    const onScroll = (e: Event) => {
+      if (!boxRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    window.addEventListener('scroll', onScroll, true);
     const onDown = (e: PointerEvent) => {
       if (!boxRef.current?.contains(e.target as Node)) setOpen(false);
     };
@@ -270,6 +277,7 @@ function PanelTool<T extends number | string>({ tool, current, pressed = current
     document.addEventListener('pointerdown', onDown);
     document.addEventListener('keydown', onKey, true);
     return () => {
+      window.removeEventListener('scroll', onScroll, true);
       document.removeEventListener('pointerdown', onDown);
       document.removeEventListener('keydown', onKey, true);
     };
@@ -282,7 +290,11 @@ function PanelTool<T extends number | string>({ tool, current, pressed = current
         aria-label={caption ? `${tool.label}: ${caption}` : tool.label} aria-pressed={toggle ? !disabled && pressed : undefined} aria-expanded={open} aria-haspopup="dialog" disabled={disabled}
         data-tip={tool.key ? `${tool.label} (${tool.key})` : tool.label}
         onMouseDown={e => e.preventDefault()}
-        onClick={() => setOpen(o => !o)}
+        onClick={e => {
+          const r = e.currentTarget.getBoundingClientRect();
+          setAt({ left: r.left, top: r.bottom + 6 });
+          setOpen(o => !o);
+        }}
       >
         <svg width={24} height={24} viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5}>
           {icon}
@@ -294,7 +306,7 @@ function PanelTool<T extends number | string>({ tool, current, pressed = current
         )}
       </button>
       {open && !disabled && (
-        <span className="tab-tool-panel card" role="dialog" aria-label={tool.label}>
+        <span className="tab-tool-panel card" role="dialog" aria-label={tool.label} style={at}>
           <span className="tab-bar-time-title">{tool.label}</span>
           <span className="seg" role="group" aria-label={`${tool.label} choices`}>
             {(noneLabel ? [null, ...choices] : [...choices, null]).map(choice => (

@@ -3,7 +3,7 @@
 /**
  * The Chat panel's conversation, held by the Tab page rather than the panel (issue #442), so it lasts the
  * whole visit (`docs/specs/2026-11-08-tab-chat-design.md`): closing the panel, or opening another, keeps the
- * conversation, the half-written message and a reply still running. The rail's Chat button shows a reply
+ * conversation, the half-written message and a reply still running. Chat's icon in its header shows a reply
  * running, and a reply that ended while the panel was closed (`status`). Leaving the page stops a reply.
  */
 import { useEffect, useRef, useState } from 'react';
@@ -24,7 +24,7 @@ export type Entry =
   | { kind: 'reply'; text: string; notes: Note[]; model: string; usage: Usage }
   | { kind: 'error'; text: string; notes: Note[] };
 
-/** What the rail's Chat button shows: nothing, a reply running, or a reply not yet seen. */
+/** What Chat's icon shows: nothing, a reply running, or a reply not yet seen. */
 export type ChatStatus = 'idle' | 'working' | 'unread';
 
 export interface ChatSessionOptions {
