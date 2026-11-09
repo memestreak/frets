@@ -106,7 +106,8 @@ _Avoid_: modify chord
 
 **Chord set**:
 The chords an Arrangement defines for a Track, shown as tiles in the Tab
-page's Chords panel, each with its diagram; an unused one is tinted.
+page's Chords panel, each with its diagram and a dot saying how many times
+it is used (none when unused).
 _Avoid_: chord list, chord library
 
 **Clip**:

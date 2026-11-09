@@ -20,7 +20,6 @@ import { ticks, timeAt, WHOLE, type Column, type Duration, type Part, type Track
 import { columnAt, emptyColumn, withColumn, type Cursor } from './editing';
 import { ChordEditor, ChordShapesEditor } from './ChordEditor';
 import { NoteSoundIcon } from './PlaybackFooter';
-
 type InsertWhat = 'name' | 'notes' | 'both';
 const INSERT_WHAT: readonly { id: InsertWhat; label: string }[] = [
   { id: 'name', label: 'Name' },
@@ -33,6 +32,12 @@ export function insertedColumn(column: Column, what: InsertWhat, name: string, f
   const named = what === 'notes' ? column : { ...column, chord: name };
   if (what === 'name' || !frets) return named;
   return { ...named, notes: frets.map(fret => (fret === null ? null : { fret })) };
+}
+
+/** A tile's badge: how many times its chord is used, 99+ past 99; none for an unused chord. */
+export function countBadge(uses: number): string | null {
+  if (uses <= 0) return null;
+  return uses > 99 ? '99+' : String(uses);
 }
 
 /** The panel's sections that fold: the track's chords (more may come). */
@@ -364,11 +369,14 @@ export function ChordPanel({ clip, track, cursor, tabFocused, at, follow, onChan
         {set.slice(shownPage * perPage, (shownPage + 1) * perPage).map(entry => (
           <button
             key={entry.name} type="button" className="chord-panel-tile" aria-pressed={entry.name === name}
-            data-unused={entry.uses === 0 || undefined} aria-label={`${entry.name}, ${usesText(entry)}`} title={usesText(entry)}
+            aria-label={`${entry.name}, ${usesText(entry)}`} title={usesText(entry)}
             {...chordProps(entry.name)}
           >
             <span className="chord-panel-tile-name">{entry.name}</span>
-            <span className="chord-panel-thumb" aria-hidden="true">{thumb(entry.name, entry.def)}</span>
+            <span className="chord-panel-thumb" aria-hidden="true">
+              {thumb(entry.name, entry.def)}
+              {countBadge(entry.uses) && <span className="chord-panel-count">{countBadge(entry.uses)}</span>}
+            </span>
           </button>
         ))}
         {/* A short last page keeps a full page's room, so the carets and Insert don't move. */}

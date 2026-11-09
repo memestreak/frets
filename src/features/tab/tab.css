@@ -699,11 +699,6 @@ body:has(.tab-rail-divider[data-dragging]) { cursor: ew-resize; user-select: non
 .chord-panel-tile[aria-pressed='true'] { background: var(--select-soft); border-color: var(--select); }
 .chord-panel-tile:focus-visible { outline: none; }
 .chord-panel-tile-name { font: 600 12px/16px var(--font-sans); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.chord-panel-tile[data-unused] { position: relative; }
-.chord-panel-tile[data-unused]::after {
-  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
-  background: color-mix(in srgb, var(--surface-sunken) 55%, transparent);
-}
 .chord-panel-pager { display: flex; align-items: center; justify-content: center; gap: 6px; font: 400 12px/16px var(--font-sans); color: var(--ink-muted); font-variant-numeric: tabular-nums; }
 .chord-panel-step:disabled { opacity: .35; cursor: default; }
 .chord-editor-title {
@@ -713,6 +708,14 @@ body:has(.tab-rail-divider[data-dragging]) { cursor: ew-resize; user-select: non
 .chord-editor-title:hover { background: var(--surface-sunken); }
 .chord-editor-title:focus-visible { outline: none; }
 .chord-panel-tile-empty { visibility: hidden; }
+/* A tile's use count: a solid dot on its diagram's bottom right corner, just over it; none for an unused chord. */
+.chord-panel-thumb { position: relative; }
+.chord-panel-count {
+  position: absolute; right: -8px; bottom: 1px; box-sizing: border-box;
+  min-width: 14px; height: 14px; padding: 0 3px; border-radius: 999px;
+  display: grid; place-items: center; background: var(--ink-muted); color: var(--surface-raised);
+  font: 600 9px/1 var(--font-sans); font-variant-numeric: tabular-nums; pointer-events: none;
+}
 
 /* The rail's Chat panel (chat/ChatPanel.tsx, issue #424): the model, the conversation, then the box to write in. */
 .tab-chat { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
