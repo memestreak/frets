@@ -32,6 +32,8 @@ import { DEFAULT_EDITING, EDITING_KEY, parseEditing, type EditingPrefs } from '.
 import { GRID_LOOK_NAMES, GRID_LOOKS, GRID_NAMES, GRID_VALUES, type GridLook, type GridValue } from './grid';
 import { CHAT_KEY, DEFAULT_CHAT, parseChatPrefs, type ChatPrefs } from './chat/chatPrefs';
 import { customField, instructionsField } from './chat/promptFields';
+import { DEFAULT_MIDI, MAX_CHANNEL, MIDI_KEY, MIN_CHANNEL, channelOf, parseMidiSettings, type MidiSettings } from './midiOut';
+import { useMidiOutputs } from './useMidiOutput';
 
 /** One section's state: read from its key once, written back on every change. */
 function usePreference<V>(key: string, parse: (raw: unknown) => V) {
@@ -51,9 +53,10 @@ export function useTabPrefs() {
   const [editing, setEditing] = usePreference(EDITING_KEY, parseEditing);
   const [exportStyle, setExportStyle] = usePreference(TAB_EXPORT_KEY, parseTabExportStyle);
   const [chat, setChat] = usePreference(CHAT_KEY, parseChatPrefs);
+  const [midi, setMidi] = usePreference(MIDI_KEY, parseMidiSettings);
   return {
     playback, setPlayback, metronome, setMetronome, notation, setNotation, colours, setColours,
-    ascii, setAscii, alphatex, setAlphaTex, editing, setEditing, exportStyle, setExportStyle, chat, setChat,
+    ascii, setAscii, alphatex, setAlphaTex, editing, setEditing, exportStyle, setExportStyle, chat, setChat, midi, setMidi,
   };
 }
 
@@ -154,10 +157,57 @@ function textField<V, K extends keyof V & string>(key: K, label: string, opts: {
 }
 
 /**
- * Settings' Tab group, on the page's state. `savePlayback` saves Playback (hiding the controls stops
- * playback).
+ * MIDI output's port: None, or one of the browser's outputs, by name. The browser is asked for them (and
+ * asks the person, the first time) once this shows. A saved port not there now stays listed, marked.
  */
-export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: PlaybackSettings) => void): SettingsGroup {
+function MidiPortSelect({ value, set, labelId }: { value: MidiSettings; set: (next: MidiSettings) => void; labelId: string }) {
+  const { state, outputs } = useMidiOutputs(true);
+  const names = outputs.map(o => o.name ?? '').filter(Boolean);
+  if (state === 'unsupported') return <span className="settings-after">This browser has no Web MIDI.</span>;
+  return (
+    <>
+      <select className="input settings-port" aria-labelledby={labelId} value={value.port} onChange={e => set({ ...value, port: e.target.value })}>
+        <option value="">None</option>
+        {value.port !== '' && !names.includes(value.port) && (
+          <option value={value.port}>{state === 'pending' ? value.port : `${value.port} (not found)`}</option>
+        )}
+        {names.map(name => <option key={name} value={name}>{name}</option>)}
+      </select>
+      {state === 'denied' && <span className="settings-after">The browser was not allowed to use MIDI devices.</span>}
+    </>
+  );
+}
+
+/** Each track's MIDI channel: a number field per track of the open arrangement, by track number. */
+function channelsField(tracks: number): SettingsField<MidiSettings> {
+  return {
+    key: 'channels', label: 'Channels',
+    control: ({ value, set }) => (
+      <span className="settings-channels">
+        {Array.from({ length: Math.max(1, tracks) }, (_, t) => (
+          <span key={t} className="settings-channel">
+            <span className="settings-after">Track {t + 1}</span>
+            <NumberField
+              value={channelOf(value, t)} min={MIN_CHANNEL} max={MAX_CHANNEL} step={1}
+              label={`Track ${t + 1} channel`} upLabel="Next channel" downLabel="Previous channel"
+              onChange={n => {
+                const channels = Array.from({ length: Math.max(value.channels.length, t + 1) }, (_, i) => channelOf(value, i));
+                channels[t] = n;
+                set({ ...value, channels });
+              }}
+            />
+          </span>
+        ))}
+      </span>
+    ),
+  };
+}
+
+/**
+ * Settings' Tab group, on the page's state. `savePlayback` saves Playback (hiding the controls stops
+ * playback). `tracks` is how many tracks the open arrangement has, for MIDI output's channels.
+ */
+export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: PlaybackSettings) => void, tracks = 1): SettingsGroup {
   return {
     id: 'tab',
     name: 'Tab',
@@ -196,6 +246,14 @@ export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: Playback
             min: 1, max: MAX_COUNT_IN_BARS, step: 1, upLabel: 'More bars', downLabel: 'Fewer bars', enabled: v => v.countIn,
           }),
           knobField('clickVolume', 'Click volume'),
+        ],
+      }),
+      section<MidiSettings>({
+        id: 'midi', name: 'MIDI output', value: prefs.midi, defaults: DEFAULT_MIDI, save: prefs.setMidi,
+        fields: [
+          { key: 'port', label: 'Port', box: 'Output', control: props => <MidiPortSelect {...props} /> },
+          { ...checkField<MidiSettings, 'builtIn'>('builtIn', 'Also play the built-in sound', { enabled: v => v.port !== '' }), box: 'Output' },
+          channelsField(tracks),
         ],
       }),
       section<NotationPrefs>({

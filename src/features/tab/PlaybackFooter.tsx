@@ -22,6 +22,7 @@ import { MAX_COUNT_IN_BARS, SOUND_FAMILIES, TabPlayer, speedRange, type HeardPos
 import { heardEffects, type FxSettings } from './effects';
 import { sameMusic } from './clipState';
 import { FxButton } from './FxButton';
+import type { MidiPort } from './midiOut';
 /**
  * Tab › Playback, saved: whether the controls show (shown at first, Jeremy 2026-10-28), the volume,
  * the transposition, Hear notes and Play's right-click options. The sound is the clip's.
@@ -177,7 +178,16 @@ const IDLE: PlayerView = { state: 'idle', column: null };
  * the selection and the playback line as they were before Play (Jeremy, 2026-10-27; it had been a pause
  * that put the line where it stopped), so Play again starts from the same place.
  */
-export function usePlayback(clip: Part, sound: Sound, volume: number, { loopPause, transpose, metronome, countIn, countInBars, clickVolume, effects, rolls = DEFAULT_ROLLS, onStopAt }: {
+/** Where playback goes out over MIDI (`midiOut.ts`): the port, the track's channel (1 to 16), and whether the built-in notes play too. */
+export interface MidiRoute {
+  port: MidiPort | null;
+  channel: number;
+  builtIn: boolean;
+}
+
+const NO_MIDI: MidiRoute = { port: null, channel: 1, builtIn: true };
+
+export function usePlayback(clip: Part, sound: Sound, volume: number, { loopPause, transpose, metronome, countIn, countInBars, clickVolume, effects, rolls = DEFAULT_ROLLS, midi = NO_MIDI, onStopAt }: {
   /** The rest between loops, in seconds; 0 loops straight round. */
   loopPause: number;
   /** Semitones everything heard is moved by. */
@@ -191,6 +201,8 @@ export function usePlayback(clip: Part, sound: Sound, volume: number, { loopPaus
   effects: FxSettings;
   /** How much each kind of chord mark rolls its chord, heard at once; alphaTab-like defaults when left out. */
   rolls?: Rolls;
+  /** Playback out over MIDI; none when left out. */
+  midi?: MidiRoute;
   /** Stop pressed (or Space) while playing, with the column the playhead was on. */
   onStopAt: (column: number) => void;
 }): Playback {
@@ -244,6 +256,13 @@ export function usePlayback(clip: Part, sound: Sound, volume: number, { loopPaus
   useEffect(() => {
     player.current?.setEffects(heardFx);
   }, [heardFx]);
+  const { port: midiPort, channel: midiChannel, builtIn } = midi;
+  // The port comes once the browser answers, maybe while the player is still being made: it takes the latest.
+  const midiNow = useRef(midi);
+  useEffect(() => {
+    midiNow.current = { port: midiPort, channel: midiChannel, builtIn };
+    player.current?.setMidi(midiPort, midiChannel, builtIn);
+  }, [midiPort, midiChannel, builtIn]);
 
   /** The player, made once; its AudioContext starts on the first Play. */
   const making = useRef<Promise<TabPlayer> | null>(null);
@@ -258,6 +277,7 @@ export function usePlayback(clip: Part, sound: Sound, volume: number, { loopPaus
       p.setClickVolume(clickVolume);
       p.setRolls(rolls);
       p.setEffects(heardFx);
+      p.setMidi(midiNow.current.port, midiNow.current.channel, midiNow.current.builtIn);
       return p;
     });
     return making.current;
@@ -405,7 +425,7 @@ export function trackLabel(name: string, index: number): string {
   return chars.length <= TRACK_LABEL_LENGTH ? full : `${chars.slice(0, TRACK_LABEL_LENGTH - 1).join('')}…`;
 }
 
-export function PlaybackFooter({ clip, playback, from, until, selection, onLoop, shown, onShow, track, sound, onSound, soundNote, volume, onVolume, hearNotes, onHearNotes, transpose, onTranspose, effects, onEffects, options, onOptions, metronome, onMetronome, countIn, onCountIn, countInBars, onCountInBars, clickVolume, onClickVolume }: {
+export function PlaybackFooter({ clip, playback, from, until, selection, onLoop, shown, onShow, track, sound, onSound, soundNote, midiNote = null, volume, onVolume, hearNotes, onHearNotes, transpose, onTranspose, effects, onEffects, options, onOptions, metronome, onMetronome, countIn, onCountIn, countInBars, onCountInBars, clickVolume, onClickVolume }: {
   clip: Part;
   playback: Playback;
   /** The track shown and played: its name ('' for none) and place, which label its Sound and FX. */
@@ -415,6 +435,8 @@ export function PlaybackFooter({ clip, playback, from, until, selection, onLoop,
   onSound: (sound: Sound) => void;
   /** Why the sound isn't the one the clip names, when Frets doesn't have that one (`substituteNote`). */
   soundNote: string | null;
+  /** Why playback can't go out of the MIDI output picked in Settings, when it can't (`useMidiPort`). */
+  midiNote?: string | null;
   /** The volume, 0 to 1, turned on the knob between Speed and Sound. */
   volume: number;
   onVolume: (volume: number) => void;
@@ -556,6 +578,7 @@ export function PlaybackFooter({ clip, playback, from, until, selection, onLoop,
                 ))}
               </select>
               {soundNote && <span className="tab-sound-note" role="img" aria-label={soundNote} data-tip={soundNote}>⚠</span>}
+              {midiNote && <span className="tab-sound-note" role="img" aria-label={midiNote} data-tip={midiNote}>⚠</span>}
               <FxButton fx={effects} onFx={onEffects} />
             </div>
             <span className="tab-caption" aria-hidden="true" data-tip={label === fullName ? undefined : fullName}>{label}</span>

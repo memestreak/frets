@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { Clip, Part } from './clip';
 import { DEFAULT_FX } from './effects';
 import { columnAt, columnCount, growSelection, indexOf, selectedRange, type Cursor, type Selection } from './editing';
-import { rollsOf, usePlayback } from './PlaybackFooter';
+import { rollsOf, usePlayback, type MidiRoute } from './PlaybackFooter';
 import type { Sound } from './playback';
 import type { TabPrefs } from './tabSettings';
 import type { EditorState } from './useEditorState';
@@ -13,7 +13,7 @@ import type { EditorState } from './useEditorState';
  * holds until the clip, the cursor or the selection changes. Play starts there, else at the selection's
  * first column, else the cursor's, else the first; Loop takes the selection.
  */
-export function usePlayRange(editor: EditorState, { whole, wholeWith, sound, settings, metronome, replace }: {
+export function usePlayRange(editor: EditorState, { whole, wholeWith, sound, settings, metronome, midi, replace }: {
   /** The whole clip, every track: the line holds only while it stays the same. */
   whole: Clip;
   /** The whole clip with an edit of the shown track in it; the same clip for no edit. */
@@ -23,6 +23,8 @@ export function usePlayRange(editor: EditorState, { whole, wholeWith, sound, set
   /** Settings' Playback and Metronome sections. */
   settings: TabPrefs['playback'];
   metronome: TabPrefs['metronome'];
+  /** Where playback goes out over MIDI (Settings' MIDI output), if anywhere. */
+  midi?: MidiRoute;
   /** Puts an edited whole clip in, as one undo step. */
   replace: (next: Clip) => void;
 }) {
@@ -37,6 +39,7 @@ export function usePlayRange(editor: EditorState, { whole, wholeWith, sound, set
     clickVolume: metronome.clickVolume,
     effects: clip.fx ?? DEFAULT_FX,
     rolls: rollsOf(settings),
+    midi,
     // With "Stop leaves the cursor where it stopped" (Jeremy, 2026-10-27), the playback line goes
     // where the playhead was, so the next Play goes on from there; else everything stays as before Play.
     // The line moving lets any selection go, as every other move of it does (Jeremy, 2026-10-28).
