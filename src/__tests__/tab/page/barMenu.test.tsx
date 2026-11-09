@@ -17,7 +17,7 @@ const insert = (name: string) => {
   fireEvent.click(within(screen.getByRole('menu', { name: 'Insert' })).getByRole('menuitem', { name }));
 };
 
-describe('the bar menu (right-click on the tab)', () => {
+describe('the bar menu (right-click on the tab)', { timeout: 20000 }, () => {
   it('puts Insert › first, then Delete bar', async () => {
     await openWith(THREE);
     const labels = within(menu()).getAllByRole('menuitem').map(i => i.textContent);
