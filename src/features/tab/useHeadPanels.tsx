@@ -12,6 +12,7 @@ import { lyricAt, lyricNote, lyricValue, MAX_LYRIC_LINES, setLyric, type LyricMo
 import { SPLITS_TUPLET } from './timeline';
 import type { Layout } from './layout';
 import type { Typing } from './ClipWords';
+import { leadWordSpot, type LeadLayout } from './leadSheet';
 import { TempoPanel } from './TempoPanel';
 import { TuningPanel } from './TuningPanel';
 import type { EditorState } from './useEditorState';
@@ -33,9 +34,11 @@ type HeadPanel =
  * and from the score's head (title and credits, tuning, tempo): which one is open, where, and what
  * closing it keeps. `panels` draws the open one; the page puts it over the drawing.
  */
-export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown }: {
+export function useHeadPanels(editor: EditorState, { layout, lead = null, width, zoom, shown }: {
   /** The drawn clip's layout, and its width in the drawing's units. */
   layout: Layout;
+  /** The lead sheet's, while it shows: a word's field opens where it draws the word (issue #295). */
+  lead?: LeadLayout | null;
   width: number;
   /** The Size, which zooms the drawing. */
   zoom: number;
@@ -243,7 +246,7 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
     <>
       {tab && word && drawn && (
         <WordField
-          key={`${word.kind}-${word.bar}-${word.column}`} kind={word.kind} {...wordSpot(layout, width, word)}
+          key={`${word.kind}-${word.bar}-${word.column}`} kind={word.kind} {...(lead ? leadWordSpot(lead, width, word) : wordSpot(layout, width, word))}
           initial={wordNow(clip, word)} onDone={finishWord}
         />
       )}

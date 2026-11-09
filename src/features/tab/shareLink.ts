@@ -9,7 +9,7 @@
  * (`docs/specs/2026-11-06-tab-show-link-design.md`).
  */
 
-import { PARTS, type Parts } from './layout';
+import { SHOWS, type Show } from './layout';
 
 /**
  * Production Frets, where every link to a clip points: Copy link on a PR preview or on localhost
@@ -29,15 +29,15 @@ export const SHOW_PARAM = 'show';
  * The link that opens `text` on the Tab page at `origin` (e.g. https://frets.eminor.net); with
  * `show`, drawn as the staff, the tab or both for that visit.
  */
-export async function shareLink(origin: string, text: string, show?: Parts): Promise<string> {
+export async function shareLink(origin: string, text: string, show?: Show): Promise<string> {
   const query = show ? `?${SHOW_PARAM}=${show}` : '';
   return `${origin}/tab${query}${COMPRESSED_HASH}${await compress(text)}`;
 }
 
 /** What a link's `?show=` asks the page to show (a URL's search part); null when it is missing or names none. */
-export function readShowParam(search: string): Parts | null {
+export function readShowParam(search: string): Show | null {
   const show = new URLSearchParams(search).get(SHOW_PARAM);
-  return PARTS.find(p => p === show) ?? null;
+  return SHOWS.find(p => p === show) ?? null;
 }
 
 /** Takes `?show=` out of the address once read, keeping the rest, so a reload shows the saved choice. */

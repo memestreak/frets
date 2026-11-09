@@ -10,7 +10,7 @@
  */
 
 import type { Part } from './clip';
-import { PARTS, type Parts } from './layout';
+import { SHOWS, type Show } from './layout';
 
 export const NOTATION_KEY = 'frets.tab.notation';
 export const COLOURS_KEY = 'frets.tab.colours';
@@ -97,7 +97,7 @@ const bool = (v: unknown, fallback: boolean) => (typeof v === 'boolean' ? v : fa
 
 /** Tab › Notation: Staff | Tab | Both (the switch over the clip), and the View options' Notation group. */
 export interface NotationPrefs {
-  show: Parts;
+  show: Show;
   barNumbers: BarNumbers;
   size: number;
   lineBreaks: boolean;
@@ -118,7 +118,7 @@ export function parseNotation(raw: unknown): NotationPrefs {
   const o = fieldsOf(raw);
   const d = DEFAULT_NOTATION;
   return {
-    show: PARTS.find(p => p === o.show) ?? d.show,
+    show: SHOWS.find(p => p === o.show) ?? d.show,
     barNumbers: BAR_NUMBERS.find(b => b === o.barNumbers) ?? d.barNumbers,
     size: isSize(o.size) ? o.size : d.size,
     lineBreaks: bool(o.lineBreaks, d.lineBreaks),
@@ -174,7 +174,7 @@ export function viewOf(notation: NotationPrefs, colours: ColourPrefs, ascii: Asc
 }
 
 /** A view changed in the View options panel, as its sections again (Staff | Tab | Both kept as it was). */
-export function sectionsOf(view: TabView, show: Parts) {
+export function sectionsOf(view: TabView, show: Show) {
   return {
     notation: { show, barNumbers: view.barNumbers, size: view.size, lineBreaks: view.lineBreaks, header: view.header, tuningDetails: view.tuningDetails, chordChart: view.chordChart, chordDiagrams: view.chordDiagrams } satisfies NotationPrefs,
     colours: { scheme: view.colours, text: view.custom.text, background: view.custom.background } satisfies ColourPrefs,

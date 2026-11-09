@@ -27,7 +27,7 @@ import {
   parseNotation, type AlphaTexPrefs, type AsciiPrefs, type ColourPrefs, type Colours, type NotationPrefs,
 } from './viewOptions';
 import { DEFAULT_TAB_EXPORT, TAB_EXPORT_KEY, TAB_EXPORT_WIDTHS, parseTabExportStyle, type TabExportStyle } from './exportTab';
-import { PARTS, type Parts } from './layout';
+import { SHOW_NAMES, SHOWS, type Show } from './layout';
 import { DEFAULT_EDITING, EDITING_KEY, parseEditing, type EditingPrefs } from './editingPrefs';
 import { GRID_LOOK_NAMES, GRID_LOOKS, GRID_NAMES, GRID_VALUES, type GridLook, type GridValue } from './grid';
 import { CHAT_KEY, DEFAULT_CHAT, parseChatPrefs, type ChatPrefs } from './chat/chatPrefs';
@@ -132,7 +132,6 @@ function colourField(key: 'text' | 'background', label: string): SettingsField<C
   };
 }
 
-const PART_NAMES: Record<Parts, string> = { staff: 'Staff', tab: 'Tab', both: 'Both' };
 
 /**
  * A line of text, as the Chat section's key and model. `secret` hides what is typed by drawing it as dots
@@ -200,7 +199,7 @@ export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: Playback
       section<NotationPrefs>({
         id: 'notation', name: 'Notation', value: prefs.notation, defaults: DEFAULT_NOTATION, save: prefs.setNotation,
         fields: [
-          choiceField<NotationPrefs, 'show', Parts>('show', 'Show', PARTS.map(p => [p, PART_NAMES[p]] as const)),
+          choiceField<NotationPrefs, 'show', Show>('show', 'Show', SHOWS.map(p => [p, SHOW_NAMES[p]] as const)),
           choiceField('barNumbers', 'Bar numbers', BAR_NUMBERS.map(b => [b, BAR_NUMBER_NAMES[b]] as const)),
           numberField('size', 'Size', {
             min: MIN_SIZE, max: MAX_SIZE, step: SIZE_STEP, unit: '%', upLabel: 'Bigger', downLabel: 'Smaller',

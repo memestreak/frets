@@ -15,13 +15,16 @@ import {
 } from './viewOptions';
 import { usePopover } from './usePopover';
 import { VIEWS, type View } from './views';
+import type { Show } from './layout';
 
-export function ViewOptions({ x, y, view, values, onChange, onClose }: {
+export function ViewOptions({ x, y, view, show = 'tab', values, onChange, onClose }: {
   /** Under its button: the panel's right edge at x, its top at y, in viewport pixels. */
   x: number;
   y: number;
   /** The view shown: only its own options are listed, after the colours. */
   view: View;
+  /** What the switch over the clip shows: the lead sheet has no use for its own line breaks or diagrams under names (issue #295). */
+  show?: Show;
   values: TabView;
   onChange: (values: TabView) => void;
   onClose: (pressedAway: boolean) => void;
@@ -65,11 +68,11 @@ export function ViewOptions({ x, y, view, values, onChange, onClose }: {
               ))}
             </div>
           </div>
-          <Toggle label="Clip's line breaks" on={values.lineBreaks} onChange={lineBreaks => onChange({ ...values, lineBreaks })} />
+          {show !== 'lead' && <Toggle label="Clip's line breaks" on={values.lineBreaks} onChange={lineBreaks => onChange({ ...values, lineBreaks })} />}
           <Toggle label="Arrangement header" on={values.header} onChange={header => onChange({ ...values, header })} />
           <Toggle label="Tuning details" on={values.tuningDetails} onChange={tuningDetails => onChange({ ...values, tuningDetails })} />
           <Toggle label="Chord chart" on={values.chordChart} onChange={chordChart => onChange({ ...values, chordChart })} />
-          <Toggle label="Chord diagrams" on={values.chordDiagrams} onChange={chordDiagrams => onChange({ ...values, chordDiagrams })} />
+          {show !== 'lead' && <Toggle label="Chord diagrams" on={values.chordDiagrams} onChange={chordDiagrams => onChange({ ...values, chordDiagrams })} />}
         </>
       )}
       {view === 'ascii' && (

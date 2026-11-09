@@ -137,6 +137,18 @@ const TEXT_FIELD: ShortcutGroup = {
   ],
 };
 
+const LEAD: ShortcutGroup = {
+  title: 'In the lead sheet',
+  shortcuts: [
+    { keys: ['Left', 'Right'], does: 'Caret to the last or next column' },
+    { keys: ['Mod+Left', 'Mod+Right'], does: 'Caret to the last or next bar' },
+    { keys: ['C'], does: 'Chord name at the caret' },
+    { keys: ['Enter'], does: 'Edit the picked chord name, text or section' },
+    { keys: ['Delete', 'Backspace'], does: 'Take the picked one away' },
+    { keys: ['Esc'], does: 'Let it go, then leave the lead sheet' },
+  ],
+};
+
 const CHOOSER: ShortcutGroup = {
   title: 'In Arrangements…',
   shortcuts: [
@@ -184,4 +196,4 @@ export function paletteShortcuts(): ShortcutGroup {
   return { title: 'Palette', shortcuts: [...duration.map(t => ({ keys: [t.key], does: t.label })), ...shortcuts] };
 }
 
-export const TAB_SHORTCUTS: readonly ShortcutGroup[] = [PAGE, MOVING, INPUT, NORMAL, PICKED, STAFF, paletteShortcuts(), LYRICS, TEXT_FIELD, LINE, HEAD, CHORDS, CHOOSER];
+export const TAB_SHORTCUTS: readonly ShortcutGroup[] = [PAGE, MOVING, INPUT, NORMAL, PICKED, STAFF, LEAD, paletteShortcuts(), LYRICS, TEXT_FIELD, LINE, HEAD, CHORDS, CHOOSER];

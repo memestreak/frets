@@ -307,6 +307,16 @@ and in its spec.
   layout, and the diagrams under the names (`drawnOnLine`) — `2026-11-06-tab-chord-diagrams-design.md`.
 - `ChordGrid.tsx` — one chord diagram in plain ink, upright or lying, for the page and the image.
 - `ChordChart.tsx` — the Chord chart under the score head, on the page and in the image; on the page each chord is picked by a press and opens Edit chord on a double-click, Enter or right-click Edit.
+- `leadSheet.ts` — the lead sheet's grid (issue #295): `layoutLeadSheet` (rows of
+  bar boxes: chord names at their time, carried into bars with no new one, a
+  slash per beat, signatures, repeats, sections, texts, the Lyrics under each
+  row), `leadAt` for presses,
+  `leadCaret`, `leadPlayX`, `leadWordSpot` and its keys (`leadKey`) —
+  `2026-11-08-tab-lead-sheet-design.md`. `Show`, the switch's four choices,
+  is in `layout.ts` beside `Parts`.
+- `LeadSheetDrawing.tsx` — draws it (`LeadSheetDrawing`, the page's and the image's),
+  takes presses on the page (`LeadSheet`) and draws the playhead over it
+  (`LeadPlayhead`).
 - `ScoreHead.tsx` — the score's head: title, artist and credits, tuning;
   `HeadPick`, `FoldedTitle` — `2026-10-28-tab-score-head-design.md`,
   `2026-11-01-tab-arrangement-header-design.md`,
@@ -455,6 +465,10 @@ or saved. Standard tuning only.
 The principles every editing spec since step 1 follows, with Dorico,
 MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
 
+- `docs/specs/2026-11-08-tab-lead-sheet-design.md`: Lead sheet, a fourth
+  choice beside Staff, Tab and Both (`?show=lead`): a bar grid with the
+  chord names at their time and a slash per beat, the Chord chart on
+  top; chord names, sections and texts edited there, notes not (issue #295)
 - `docs/specs/2026-11-09-tab-dynamics-design.md`: dynamics (alphaTex `dy`)
   drawn on the hairpins' row, entered with Shift+D or the Dynamic tool,
   picked, edited and deleted like any Mark (issue #437).

@@ -26,10 +26,12 @@ const NOTE_INPUT_KEEPERS = '[data-testid="tab-paper"], .tab-palette, .tab-rail, 
  * (`editorKeys.ts`): the grid keys, Esc and N for note input mode, L, Space, the playback line's keys, paste,
  * copy, cut, undo and redo; and what the tab does as it takes the keys and lets them go.
  */
-export function usePageKeys(editor: EditorState, { view, parts, range, showPlayback, setEditingPrefs, enterNoteInput, chooseVoice, paste, copyOrCut, undo }: {
+export function usePageKeys(editor: EditorState, { view, parts, lead, range, showPlayback, setEditingPrefs, enterNoteInput, chooseVoice, paste, copyOrCut, undo }: {
   view: View;
   /** What the Notation view shows: the staff, the tab or both. */
   parts: Parts;
+  /** Whether the lead sheet shows (issue #295): it has no note input mode and no playback line's edits. */
+  lead: boolean;
   /** Playback and where it plays (`usePlayRange`). */
   range: PlayRange;
   /** Whether the playback controls show; hidden, Space and L do nothing. */
@@ -81,6 +83,8 @@ export function usePageKeys(editor: EditorState, { view, parts, range, showPlayb
       if (!e.repeat) toggleLoop();
       return;
     }
+    // The lead sheet has no note input mode and no playback line's edits (issue #295).
+    if (lead) return;
     if (e.key === 'n' && plain && !(e.target as Element | null)?.closest?.(`${TEXT_FIELDS}, [role="dialog"], [role="menu"], .tab-editor`)) {
       e.preventDefault();
       enterNoteInput(!noteInputMode);

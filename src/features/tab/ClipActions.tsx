@@ -8,7 +8,7 @@ import { partOf, type Clip } from './clip';
 import { tabSvg, type TabExportStyle } from './exportTab';
 import { writeMusicXml } from './musicxml';
 import { writeGuitarPro } from './guitarPro';
-import type { Parts } from './layout';
+import type { Show } from './layout';
 import type { Notice } from './notice';
 import { SAVE_KINDS, saveFile, type SaveKind } from './saveFile';
 import { SITE, shareLink } from './shareLink';
@@ -24,13 +24,14 @@ const PRESSED_AWAY_MS = 500;
  * (issue #206) and save (Jeremy, 2026-10-27/28). `buttons` go in the card's bar; `popups`, their panel and menu, go
  * outside the card, so the focus moving into them counts as leaving the tab.
  */
-export function useClipActions({ clip, track, view, parts, shown, onShown, exportStyle, alphaTexText, shownText, onNotice }: {
+export function useClipActions({ clip, track, view, show, shown, onShown, exportStyle, alphaTexText, shownText, onNotice }: {
   /** The whole clip, every track: copied as a link and saved as alphaTex. */
   clip: Clip;
   /** The track the page shows: drawn in the images and written as ASCII tab. */
   track: number;
   view: View;
-  parts: Parts;
+  /** What the switch over the clip shows: the image draws the same, and View options lists its options. */
+  show: Show;
   shown: TabView;
   onShown: (next: TabView) => void;
   exportStyle: TabExportStyle;
@@ -76,7 +77,7 @@ export function useClipActions({ clip, track, view, parts, shown, onShown, expor
   };
 
   /** The picture as the Export dialog makes it, with its saved choices. */
-  const picture = () => tabSvg(part, exportStyle, clip.name, parts, shown);
+  const picture = () => tabSvg(part, exportStyle, clip.name, show, shown);
 
   /** The ASCII and alphaTex views copy their text; the Notation view copies the picture as the Export dialog's PNG. */
   const copy = async () => {
@@ -179,7 +180,7 @@ export function useClipActions({ clip, track, view, parts, shown, onShown, expor
       )}
       {viewPanelAt && (
         <ViewOptions
-          x={viewPanelAt.x} y={viewPanelAt.y} view={view} values={shown} onChange={onShown}
+          x={viewPanelAt.x} y={viewPanelAt.y} view={view} show={show} values={shown} onChange={onShown}
           onClose={pressedAway => {
             if (pressedAway) viewPanelPressedAway.current = Date.now();
             setViewPanelAt(null);

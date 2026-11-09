@@ -54,4 +54,7 @@ disagree, it wins.
   with the notation staff, put `?show=both` (staff over tab) or
   `?show=staff` (the staff alone) before the `#`, for that visit only:
   `https://frets.eminor.net/tab?show=both#tab=…`. Use it when the staff
-  matters, as for music written from sheet music.
+  matters, as for music written from sheet music. `?show=lead` opens the
+  lead sheet instead: a grid of bars with only the chord names (`ch`) at
+  their time and the `lyrics` under each row, for a song written as chords
+  to strum.
