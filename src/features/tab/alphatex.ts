@@ -16,9 +16,9 @@ import { chordDefTex } from './chordSet';
 import { fxLine } from './fxLine';
 import { keepsGuitarTuning } from './instrument';
 
-/** A string in alphaTex quotes. */
+/** A string in alphaTex quotes; a new line (a Text's, issue #445) as `\n`, so the string stays on one line. */
 export function quoted(text: string): string {
-  return `"${text.replace(/["\\]/g, '\\$&')}"`;
+  return `"${text.replace(/["\\]/g, '\\$&').replace(/\n/g, '\\n')}"`;
 }
 
 /** Where a note sits: bar, column and string (0 = high e), in one Voice. */
@@ -122,6 +122,13 @@ function beamingTex(time: TimeSignature, groups: number[]): string {
   return `\\beaming (${unit} ${groups.map(n => (n * unit) / time.value).join(' ')})`;
 }
 
+/** A column's Lyrics as alphaTex: `lyrics "Hel-"` for line 1 alone, else `lyrics 1 "Hi"` for each line that has one (numbered from 0). */
+function lyricsTex(lyrics: readonly string[] | undefined): string[] {
+  if (!lyrics?.length) return [];
+  if (lyrics.length === 1) return [`lyrics ${quoted(lyrics[0])}`];
+  return lyrics.flatMap((l, i) => (l === '' ? [] : [`lyrics ${i} ${quoted(l)}`]));
+}
+
 function beatTex(columns: Column[], bar: number, index: number, marks: Map<string, string[]>): string {
   const column = columns[index];
   // A grace note is written plain, at the length alphaTab gives it.
@@ -134,11 +141,13 @@ function beatTex(columns: Column[], bar: number, index: number, marks: Map<strin
   if (column.tremolo) effects.push(`tp ${column.tremolo}`);
   if (column.chord) effects.push(`ch ${quoted(column.chord)}`);
   if (column.text) effects.push(`txt ${quoted(column.text)}`);
+  effects.push(...lyricsTex(column.lyrics));
   if (column.stroke) effects.push(column.stroke === 'down' ? 'sd' : 'su');
   if (column.notes.some(n => n?.tap)) effects.push('tt');
   if (column.ottava) effects.push(`ot ${column.ottava}`);
   if (column.wah) effects.push(column.wah === 'open' ? 'waho' : 'wahc');
   if (column.hairpin) effects.push(column.hairpin === 'crescendo' ? 'cre' : 'dec');
+  if (column.dynamic) effects.push(`dy ${column.dynamic}`);
   if (column.fermata) effects.push(`fermata ${column.fermata}`);
   if (column.whammy) effects.push(`tb (${column.whammy.join(' ')})`);
   // A Beam override is written on the Column before, as alphaTab reads it.

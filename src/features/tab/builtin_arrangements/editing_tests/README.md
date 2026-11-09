@@ -28,11 +28,13 @@ PR, or removes the file and its row when the behaviour is gone.
 | `drag-range-handles.atex` | A selection box's left or right edge drags its start or end to another note, the other end staying | `docs/specs/2026-11-05-tab-range-handles-design.md` |
 | `delete-keeps-text.atex` | Delete on a note, a chord and cut leave rests that keep the column's text and chord name; a longer note over the rest takes them; Ctrl/⌘+Delete takes them with the time | `docs/specs/2026-11-06-tab-delete-keeps-marks-design.md`, #393 |
 | `delete-whole-bar.atex` | Delete on a bar selected whole leaves one whole rest | `docs/specs/2026-11-01-tab-rest-lengths-design.md`, #294 |
+| `dynamics-enter-pick.atex` | Shift+D enters a dynamic at the cursor; a drawn one is picked, its field refuses what isn't a dynamic with a ⚠, and Delete takes it away | `docs/specs/2026-11-09-tab-dynamics-design.md`, #437 |
 | `empty-bar-press.atex` | A press in an empty bar boxes the whole bar | #317, #318 |
 | `fret-follows-tie.atex` | A fret typed on any note of a Tie chain changes the whole chain, which stays tied | `docs/specs/2026-10-25-tab-editing-design.md`, `docs/specs/2026-11-04-tab-ties-forward-design.md` |
 | `grace-before.atex` | `/` adds a grace note before the picked note, and a second makes them sixteenths | `docs/specs/2026-11-04-tab-tuplets-grace-rest-design.md` |
 | `insert-pushes.atex` | Insert pushes the music on over the bar line, and Ctrl/⌘+Delete pulls it back | `docs/specs/2026-11-04-tab-bars-always-full-design.md` |
 | `longer-note-writes-over.atex` | A longer note, or a run made longer, writes over what follows, split and tied at the bar line | `docs/specs/2026-11-01-tab-rest-lengths-design.md`, #294, `docs/specs/2026-11-04-tab-bars-always-full-design.md` |
+| `lyrics-typing.atex` | Shift+L types Lyrics note by note (the minus key joins syllables, Space moves on, Down a second Lyric line); a press picks a syllable, Delete takes it away, a double-click edits it | `docs/specs/2026-11-09-tab-lyrics-design.md` |
 | `note-input-new-arrangement.atex` | In a new arrangement, a double-click on the staff puts the caret there with the Grid, and a paste of two eighths fills the bar with rests | `docs/specs/2026-10-30-tab-note-input-mode-design.md`, #421, #422 |
 | `notes-into-tuplet.atex` | Selected notes squeezed into a tuplet, a Gap left after it | `docs/specs/2026-11-04-tab-tuplets-grace-rest-design.md` |
 | `pick-every-mark.atex` | A chord name, accent, fermata, bend, tie and time signature picked: Attachment lines and the notes' tint, and a signature's panel opened by Enter | `docs/specs/2026-11-04-tab-pick-every-mark-design.md` |
@@ -41,6 +43,7 @@ PR, or removes the file and its row when the behaviour is gone.
 | `rest-key-in-note-input.atex` | `,` in note input mode writes a rest of the Input length and moves the cursor on | `docs/specs/2026-11-04-tab-tuplets-grace-rest-design.md` |
 | `rests-follow-the-meter.atex` | Delete leaves a Gap written by the meter: rests that show each beat | `docs/specs/2026-11-03-tab-rests-are-gaps-design.md` |
 | `shift-press-grows.atex` | A Shift+press outside the selection grows it, keeping its start; inside it, it trims the end nearer the press | `docs/specs/2026-11-05-tab-shift-press-grows-design.md`, #366 |
+| `text-markdown.atex` | `**bold**` in a Text drawn bold, Ctrl/⌘+B in the Text field on and off, Shift+Enter for a new line, a short bold Text under its chord name, other marks as typed | `docs/specs/2026-11-09-tab-text-markdown-design.md`, #446, #445 |
 | `tie-chain-is-one-note.atex` | A press on any Tied note picks the whole Tie chain, and Delete takes all of it | `docs/specs/2026-11-04-tab-ties-forward-design.md` |
 | `tie-forward.atex` | T ties a note on to the next one, in normal mode and in note input mode | `docs/specs/2026-11-04-tab-ties-forward-design.md` |
 | `tuplet-entry.atex` | Tuplet entry: a triplet typed note by note, the Tuplet button lit while it is on | `docs/specs/2026-11-04-tab-tuplets-grace-rest-design.md` |

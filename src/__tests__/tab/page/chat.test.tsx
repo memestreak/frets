@@ -12,8 +12,11 @@ const railButton = (name: string) => screen.queryByRole('button', { name });
 const chatPanel = () => screen.getByRole('complementary', { name: 'Chat' });
 const call = (id: string, name: string, args: object) => ({ id, type: 'function', function: { name, arguments: JSON.stringify(args) } });
 
-/** Serves the built-ins, the guide, the model list and OpenRouter's answers, one per request, in order. */
-function serve(...answers: object[]) {
+/**
+ * Serves the built-ins, the guide, the model list and OpenRouter's answers, one per request, in order. An answer
+ * may be a promise, to hold the reply until the test resolves it; Stop rejects it, as a real request is.
+ */
+function serve(...answers: (object | Promise<object>)[]) {
   const sent: { headers: Record<string, string>; body: { model: string; messages: { role: string; content: string | null }[] } }[] = [];
   vi.stubGlobal('fetch', vi.fn(async (url: unknown, init?: RequestInit) => {
     const at = String(url);
@@ -27,7 +30,11 @@ function serve(...answers: object[]) {
     }
     if (at === OPENROUTER_URL) {
       sent.push({ headers: init?.headers as Record<string, string>, body: JSON.parse(String(init?.body)) });
-      const answer = answers[Math.min(sent.length - 1, answers.length - 1)];
+      const signal = init?.signal;
+      const answer = await new Promise<object>((resolve, reject) => {
+        signal?.addEventListener('abort', () => reject(signal.reason));
+        void Promise.resolve(answers[Math.min(sent.length - 1, answers.length - 1)]).then(resolve);
+      });
       return new Response(JSON.stringify(answer), { status: 'status' in answer ? (answer as { status: number }).status : 200 });
     }
     throw new Error(`Not fetched in tests: ${at}`);
@@ -61,9 +68,14 @@ describe('the Chat panel', () => {
     expect(within(chatPanel()).getByRole('textbox', { name: 'Message' })).toBeDisabled();
     fireEvent.click(within(chatPanel()).getByRole('button', { name: 'Open Settings' }));
     const key = await screen.findByLabelText('OpenRouter key');
-    // Dots, but not a password field: password managers would offer to save it as a login.
-    expect(key).toHaveAttribute('type', 'text');
-    expect(key).toHaveClass('settings-secret');
+    // Shown as typed, and no autocorrect or autocapitalize "off": each stops macOS text replacement in Chrome.
+    for (const field of [key, within(screen.getByRole('dialog')).getByLabelText('Model')]) {
+      expect(field).toHaveAttribute('type', 'text');
+      expect(field).toHaveAttribute('autocomplete', 'off');
+      expect(field).toHaveAttribute('spellcheck', 'false');
+      expect(field).not.toHaveAttribute('autocorrect');
+      expect(field).not.toHaveAttribute('autocapitalize');
+    }
     fireEvent.change(key, { target: { value: '  sk-or-typed ' } });
     fireEvent.click(screen.getByRole('button', { name: 'OK' }));
     expect(JSON.parse(localStorage.getItem(CHAT_KEY)!)).toEqual({ apiKey: 'sk-or-typed', model: 'anthropic/claude-opus-5.5', instructions: null, custom: '' });
@@ -177,6 +189,105 @@ describe('the Chat panel', () => {
     expect(within(chatPanel()).queryByRole('listbox')).toBeNull();
     fireEvent.change(within(chatPanel()).getByRole('combobox', { name: 'Model' }), { target: { value: 'openai/gpt-5' } });
     expect(JSON.parse(localStorage.getItem(CHAT_KEY)!).model).toBe('openai/gpt-5');
+  });
+});
+
+// Issue #442: the conversation is the page's, so it outlasts the panel, and the rail shows a reply running.
+describe('the Chat conversation outside the panel', () => {
+  const chatButton = () => railButton('Chat')!;
+  /** A reply held until `release` is called. */
+  const held = () => {
+    let release!: (answer: object) => void;
+    const answer = new Promise<object>(resolve => { release = resolve; });
+    return { answer, release };
+  };
+
+  it('keeps a reply running when another panel opens, shows it on the Chat button, and marks it unread', async () => {
+    withKey();
+    const first = held();
+    serve(
+      reply({ content: null, tool_calls: [call('a', 'replace_bars', { track: 1, first_bar: 1, last_bar: 1, alphatex: ':1 12.6 |' })] }),
+      first.answer,
+    );
+    renderAt(TEX);
+    await screen.findAllByTestId('tab-system', undefined, SLOW);
+    fireEvent.click(chatButton());
+    ask('Make bar 1 a whole note');
+    await within(chatPanel()).findByText('Changed bar 1 of track 1', undefined, SLOW);
+    expect(chatButton()).toHaveAttribute('data-status', 'working');
+    expect(chatButton()).toHaveAttribute('data-tip', 'Chat: Replying…');
+    // Notes opens: the Chat panel goes, the reply goes on.
+    fireEvent.click(railButton('Notes')!);
+    expect(screen.queryByRole('complementary', { name: 'Chat' })).toBeNull();
+    expect(chatButton()).toHaveAttribute('data-status', 'working');
+    expect(screen.getAllByRole('status').some(s => s.textContent === 'Chat: Replying…')).toBe(true);
+    await act(async () => first.release(reply({ content: 'Bar 1 is a whole note now.' })));
+    await waitFor(() => expect(chatButton()).toHaveAttribute('data-status', 'unread'));
+    expect(chatButton()).toHaveAttribute('data-tip', 'Chat: New reply');
+    expect(alphaTex()).toBe('12.6.1 |\n5.6.4 6.6.4 7.6.4 8.6.4 |');
+    // Chat again: the ask, its notes and the reply are there, and the mark is gone.
+    fireEvent.click(chatButton());
+    expect(within(chatPanel()).getByText('Make bar 1 a whole note')).toBeInTheDocument();
+    expect(within(chatPanel()).getByText('Changed bar 1 of track 1')).toBeInTheDocument();
+    expect(within(chatPanel()).getByText('Bar 1 is a whole note now.')).toBeInTheDocument();
+    expect(chatButton()).not.toHaveAttribute('data-status');
+    expect(chatButton()).toHaveAttribute('data-tip', 'Chat');
+    // The mark doesn't come back on closing the panel.
+    fireEvent.click(chatButton());
+    expect(chatButton()).not.toHaveAttribute('data-status');
+  });
+
+  it('keeps the conversation and the half-written message when the panel closes', async () => {
+    withKey();
+    const sent = serve(reply({ content: 'Four quarter notes a bar.' }));
+    renderAt(TEX);
+    await screen.findAllByTestId('tab-system', undefined, SLOW);
+    fireEvent.click(chatButton());
+    ask('What rhythm is this?');
+    await within(chatPanel()).findByText('Four quarter notes a bar.');
+    // A reply ended with the panel open is read: no mark.
+    expect(chatButton()).not.toHaveAttribute('data-status');
+    fireEvent.change(within(chatPanel()).getByRole('textbox', { name: 'Message' }), { target: { value: 'And bar' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Close Chat' }));
+    fireEvent.click(chatButton());
+    expect(within(chatPanel()).getByText('What rhythm is this?')).toBeInTheDocument();
+    expect(within(chatPanel()).getByRole('textbox', { name: 'Message' })).toHaveValue('And bar');
+    ask('And bar 2?');
+    await waitFor(() => expect(sent).toHaveLength(2));
+    expect(sent[1].body.messages.map(m => m.role)).toEqual(['system', 'user', 'assistant', 'user']);
+  });
+
+  it('can be stopped after the panel is opened again, and nothing changes after', async () => {
+    withKey();
+    const first = held();
+    serve(first.answer);
+    renderAt(TEX);
+    await screen.findAllByTestId('tab-system', undefined, SLOW);
+    const before = alphaTex();
+    fireEvent.click(chatButton());
+    ask('Make bar 1 a whole note');
+    await waitFor(() => expect(chatButton()).toHaveAttribute('data-status', 'working'));
+    fireEvent.click(chatButton());
+    fireEvent.click(chatButton());
+    fireEvent.click(within(chatPanel()).getByRole('button', { name: 'Stop' }));
+    await within(chatPanel()).findByText('Stopped.');
+    expect(chatButton()).not.toHaveAttribute('data-status');
+    await act(async () => first.release(reply({ content: null, tool_calls: [call('a', 'replace_bars', { track: 1, first_bar: 1, last_bar: 1, alphatex: ':1 12.6 |' })] })));
+    expect(alphaTex()).toBe(before);
+  });
+
+  it('stops a running reply when the viewer leaves the page', async () => {
+    withKey();
+    const first = held();
+    const sent = serve(first.answer);
+    const page = renderAt(TEX);
+    await screen.findAllByTestId('tab-system', undefined, SLOW);
+    fireEvent.click(chatButton());
+    ask('Make bar 1 a whole note');
+    await waitFor(() => expect(sent).toHaveLength(1));
+    const signal = vi.mocked(fetch).mock.calls.find(([url]) => url === OPENROUTER_URL)![1]!.signal!;
+    page.unmount();
+    expect(signal.aborted).toBe(true);
   });
 });
 

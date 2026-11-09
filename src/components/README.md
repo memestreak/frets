@@ -21,7 +21,7 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
 - `src/components/AppShell.tsx` — `AppNav` (breadcrumbs read from the URL:
   `BrandMark` and wordmark home, then the group and the page as one
   button opening a panel of every page with the current one marked; then
-  `ThemeSwitch`, one button cycling Auto, Light, Dark; see `docs/specs/2026-10-06-breadcrumb-navigation-design.md`),
+  `ThemeSwitch`, one button cycling Auto, Light, Dark, Light by default; see `docs/specs/2026-10-06-breadcrumb-navigation-design.md`),
   `<main>` and `AppFooter` (source link, the Agents link and the build's commit hash, from
   `NEXT_PUBLIC_COMMIT_HASH` set in `next.config.ts`; unlinked `dev` when git
   was unavailable).
@@ -93,6 +93,8 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
 
 ## Specs
 
+- `docs/specs/2026-11-09-light-default-theme-design.md`: Light with nothing
+  saved, even when the system prefers dark
 - `docs/specs/2026-11-01-mock-switcher-design.md`: ?mock= options switch in
   place from a small card; mocks never merge
 - `docs/specs/2026-11-01-deselect-design.md`: Esc or a press away lets any

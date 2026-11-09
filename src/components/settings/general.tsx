@@ -5,7 +5,7 @@
  * the theme button in the header cycles through.
  */
 import { chooseTheme, useTheme } from '@/components/ThemeSwitch';
-import type { Appearance, ThemeChoice } from '@/lib/theme';
+import { DEFAULT_THEME, type Appearance, type ThemeChoice } from '@/lib/theme';
 import { choiceField } from './fields';
 import { section, type SettingsGroup } from './types';
 
@@ -19,7 +19,7 @@ export function useGeneralGroup(): SettingsGroup {
     sections: [
       section<Appearance>({
         id: 'appearance', name: 'Appearance',
-        value: { theme }, defaults: { theme: 'auto' },
+        value: { theme }, defaults: { theme: DEFAULT_THEME },
         save: v => chooseTheme(v.theme),
         fields: [choiceField<Appearance, 'theme', ThemeChoice>('theme', 'Theme', THEMES)],
       }),

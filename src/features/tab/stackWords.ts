@@ -14,8 +14,11 @@ export interface WordToStack {
 
 /** How a kind of word is measured and wrapped. */
 export interface StackRules {
-  /** About how wide a run of its text is drawn. */
-  width: (text: string) => number;
+  /**
+   * About how wide a run of a word's text is drawn: `line`, which starts `at` letters into word number
+   * `word`'s text, for words whose letters differ in look (a Text's bold, issue #446).
+   */
+  width: (line: string, at: number, word: number) => number;
   /** The room kept between one word's end and the next word's start. */
   gap: number;
   /** The least and the most room a word wraps to, however close or far the next word is. */
@@ -30,23 +33,39 @@ export interface StackedWord {
 }
 
 /**
- * A text broken at its spaces into lines no wider than `room`, each as long as fits. A word wider than
- * the room is never split: it goes on a line of its own. The words are kept as typed.
+ * A text broken at its spaces into lines no wider than `room`, each as long as fits, and at each new
+ * line in it (a Text's, issue #445). A word wider than the room is never split: it goes on a line of
+ * its own. The words are kept as typed. `width` is told where in the text each line starts.
  */
-export function wrapWords(text: string, room: number, width: (text: string) => number): string[] {
+export function wrapWords(text: string, room: number, width: (line: string, at: number) => number): string[] {
   const lines: string[] = [];
-  let line = '';
-  for (const word of text.split(' ')) {
-    const longer = line ? `${line} ${word}` : word;
-    if (line && width(longer) > room) {
-      lines.push(line);
-      line = word;
-    } else {
-      line = longer;
+  let at = 0;
+  for (const paragraph of text.split('\n')) {
+    let line = '';
+    for (const word of paragraph.split(' ')) {
+      const longer = line ? `${line} ${word}` : word;
+      if (line && width(longer, at) > room) {
+        lines.push(line);
+        at += line.length + 1;
+        line = word;
+      } else {
+        line = longer;
+      }
     }
+    lines.push(line);
+    at += line.length + 1;
   }
-  lines.push(line);
   return lines;
+}
+
+/** Where each of a text's lines (`wrapWords`) starts in it: the lines are its slices, one space or new line apart. */
+export function lineStarts(lines: string[]): number[] {
+  let at = 0;
+  return lines.map(line => {
+    const start = at;
+    at += line.length + 1;
+    return start;
+  });
 }
 
 /**
@@ -63,9 +82,12 @@ export function stackWords(words: WordToStack[], end: number, rules: StackRules)
   const wrapped = (k: number, nextStart: number) => {
     const { x0, lead, text } = words[k];
     const room = Math.min(rules.maxRoom, Math.max(rules.minRoom, nextStart - rules.gap - x0 - lead));
-    return wrapWords(text, room, rules.width);
+    return wrapWords(text, room, (line, at) => rules.width(line, at, k));
   };
-  const reach = (k: number, lines: string[]) => words[k].x0 + words[k].lead + Math.max(...lines.map(rules.width));
+  const reach = (k: number, lines: string[]) => {
+    const starts = lineStarts(lines);
+    return words[k].x0 + words[k].lead + Math.max(...lines.map((line, n) => rules.width(line, starts[n], k)));
+  };
   const lineEnd = end + rules.gap;
   // Wrapped to the room before the next word, to find which words touch.
   const first = words.map((_, k) => reach(k, wrapped(k, words[k + 1]?.x0 ?? lineEnd)));

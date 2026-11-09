@@ -3,49 +3,27 @@
 /**
  * The Tab page's Chat panel (`docs/specs/2026-11-08-tab-chat-design.md`, issue #424): ask a model about
  * the open arrangement, or ask it to change it. The page calls OpenRouter itself with the viewer's key
- * (Settings › Tab › Chat); the conversation lasts for this visit only. Each reply's changes are applied at
- * once, and one Undo takes them all back.
+ * (Settings › Tab › Chat). The conversation is the page's (`useChatSession`), so it lasts for this visit
+ * though the panel closes (issue #442). Each reply's changes are applied at once, and one Undo takes them all back.
  */
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { readAlphaTex } from '../alphatexRead';
-import type { Clip } from '../clip';
-import { arrangementNow, type PageSpot } from './arrangementTools';
 import { ModelPicker } from './ModelPicker';
 import { ReplyMarkdown } from './ReplyMarkdown';
-import { completeWithOpenRouter, fetchPresets, fetchToolModels, type ChatMessage, type Preset, type Complete, type Usage } from './openRouter';
-import { loadGuide } from './guide';
-import { askWithArrangement, runReply, systemPrompt } from './reply';
+import { fetchPresets, fetchToolModels, type Preset, type Usage } from './openRouter';
 import type { ChatPrefs } from './chatPrefs';
-
-/** A line on what a tool did, as "Changed bars 3 to 4 of track 1". */
-type Note = { text: string; failed?: boolean };
-
-/** One entry in the panel's list. */
-type Entry =
-  | { kind: 'ask'; text: string }
-  | { kind: 'reply'; text: string; notes: Note[]; model: string; usage: Usage }
-  | { kind: 'error'; text: string; notes: Note[] };
+import type { ChatSession, Entry, Note } from './useChatSession';
 
 export interface ChatPanelProps {
   prefs: ChatPrefs;
   onModel: (model: string) => void;
-  /** The whole clip now, and where the viewer is. */
-  current: () => { clip: Clip; spot: PageSpot };
-  /** A change from the model; `first` when it is the reply's first, which starts its Undo step. */
-  onClip: (clip: Clip, first: boolean) => void;
+  /** The conversation, kept by the page (`useChatSession`). */
+  session: ChatSession;
   /** Opens Settings at Tab › Chat. */
   onOpenSettings: () => void;
-  /** Tests pass their own. */
-  complete?: Complete;
-  guide?: () => Promise<string>;
 }
 
-export function ChatPanel({ prefs, onModel, current, onClip, onOpenSettings, complete = completeWithOpenRouter, guide = loadGuide }: ChatPanelProps) {
-  const [entries, setEntries] = useState<Entry[]>([]);
-  /** The conversation as the model sees it, without the system prompt. */
-  const history = useRef<ChatMessage[]>([]);
-  const [draft, setDraft] = useState('');
-  const [working, setWorking] = useState<{ notes: Note[]; stop: AbortController } | null>(null);
+export function ChatPanel({ prefs, onModel, session, onOpenSettings }: ChatPanelProps) {
+  const { entries, working, draft, setDraft, send, stop, clear } = session;
   const [models, setModels] = useState<string[]>([]);
   /** The presets listed with a key; shown only while that key is still the one saved. */
   const [listed, setListed] = useState<{ apiKey: string; presets: Preset[] }>({ apiKey: '', presets: [] });
@@ -66,45 +44,11 @@ export function ChatPanel({ prefs, onModel, current, onClip, onOpenSettings, com
     void fetchPresets(apiKey, stop.signal).then(list => { if (list) setListed({ apiKey, presets: list }); });
     return () => stop.abort();
   }, [prefs.apiKey]);
-  // The newest entry in view: the list scrolls, never the page.
+  // The newest entry in view, also on opening the panel again: the list scrolls, never the page.
   useEffect(() => {
     const list = listRef.current;
     if (list) list.scrollTop = list.scrollHeight;
   }, [entries, working]);
-
-  const send = async () => {
-    const text = draft.trim();
-    if (!text || working || !prefs.apiKey) return;
-    setDraft('');
-    setEntries(list => [...list, { kind: 'ask', text }]);
-    const stop = new AbortController();
-    const notes: Note[] = [];
-    setWorking({ notes: [], stop });
-    // The conversation keeps the ask alone; the request carries it with the arrangement as it is now,
-    // so the model needn't spend a call reading it first.
-    const asked: ChatMessage = { role: 'user', content: text };
-    let changed = false;
-    try {
-      const { clip, spot } = current();
-      const withArrangement: ChatMessage = { role: 'user', content: askWithArrangement(text, await arrangementNow(clip, spot, readAlphaTex)) };
-      const result = await runReply({
-        complete, apiKey: prefs.apiKey, model: prefs.model,
-        messages: [{ role: 'system', content: systemPrompt(await guide(), prefs) }, ...history.current, withArrangement],
-        current, read: readAlphaTex, signal: stop.signal,
-        onClip: clip => { onClip(clip, !changed); changed = true; },
-        onNote: note => { notes.push(note); setWorking({ notes: [...notes], stop }); },
-      });
-      history.current = [...history.current, asked, ...result.messages];
-      setEntries(list => [...list, { kind: 'reply', text: result.text, notes: result.notes, model: result.model, usage: result.usage }]);
-    } catch (e) {
-      const text = stop.signal.aborted ? 'Stopped.' : e instanceof Error ? e.message : 'Something went wrong.';
-      // The ask stays in the conversation, so the next one can refer to it.
-      history.current = [...history.current, asked, { role: 'assistant', content: `(No answer: ${text})` }];
-      setEntries(list => [...list, { kind: 'error', text, notes }]);
-    } finally {
-      setWorking(null);
-    }
-  };
 
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     // The page's own keys stay out of the box.
@@ -113,11 +57,6 @@ export function ChatPanel({ prefs, onModel, current, onClip, onOpenSettings, com
       e.preventDefault();
       void send();
     }
-  };
-
-  const clear = () => {
-    history.current = [];
-    setEntries([]);
   };
 
   return (
@@ -155,7 +94,7 @@ export function ChatPanel({ prefs, onModel, current, onClip, onOpenSettings, com
             <button type="button" className="btn btn-ghost" onClick={clear}>New chat</button>
           )}
           {working
-            ? <button type="button" className="btn btn-secondary" onClick={() => working.stop.abort()}>Stop</button>
+            ? <button type="button" className="btn btn-secondary" onClick={stop}>Stop</button>
             : <button type="button" className="btn btn-primary" disabled={!draft.trim() || !prefs.apiKey} onMouseDown={e => e.preventDefault()} onClick={() => void send()}>Send</button>}
         </div>
       </div>

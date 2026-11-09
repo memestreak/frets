@@ -349,6 +349,11 @@
 .tab-editor { position: relative; cursor: text; }
 .tab-palette { display: flex; flex-wrap: wrap; gap: 8px 18px; }
 .tab-palette-tools { display: flex; flex-wrap: wrap; gap: 2px; }
+/* Duration's two rows: the note values, shortest to longest, over the grid, dot and rest. */
+.tab-palette-rows { display: grid; gap: 2px; }
+/* The note values stay on one row: in a narrow rail panel (224px) the buttons narrow to fit, never wrap. */
+.tab-palette-values { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 30px); justify-content: start; }
+.tab-palette-values .tab-tool { width: 100%; }
 /* Each group's name, 6px over its buttons. */
 .tab-palette-label {
   display: block; margin-bottom: 6px;
@@ -385,6 +390,25 @@
   transform: translateX(-50%); color: var(--ink);
 }
 .tab-word-input { width: 100%; }
+/* The Text field: a line until Shift+Enter adds more (issue #445), never dragged bigger. */
+.tab-word-text { display: block; resize: none; line-height: 1.4; }
+/* The input and, for a dynamic that isn't one, its small red ⚠ beside it (issue #437). */
+.tab-word-row { display: flex; align-items: center; gap: 6px; }
+.tab-word-problem { display: inline-flex; color: var(--danger); cursor: default; }
+/* A dynamic's list under its field: each dynamic in its drawn letters, then as typed; the active one raised. */
+.tab-word-list {
+  max-height: 220px; overflow-y: auto; margin: 0; padding: 4px; list-style: none;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--surface-raised);
+}
+/* With no room under the field, the list opens over it instead. */
+.tab-word-list-up { position: absolute; bottom: calc(100% + 4px); left: 0; right: 0; }
+.tab-word-option {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 2px 8px; border-radius: 6px; cursor: pointer; color: var(--ink);
+}
+.tab-word-option[aria-selected="true"] { background: var(--surface-sunken); }
+.tab-word-option-text { font-size: 12px; color: var(--ink-muted); }
+.tab-word-none { padding: 2px 8px; font-size: 12px; color: var(--ink-muted); }
 /* A number's box: room for 7 digits, never more (Jeremy, 2026-10-27), with the field fitting round it. */
 .tab-word-number { width: calc(7ch + 23px); }
 .tab-word-fit { width: auto; white-space: nowrap; }
@@ -398,6 +422,11 @@
 .tab-bar-fix { gap: 8px; }
 .tab-bar-fix-text { font-size: 13px; max-width: 280px; color: var(--ink-muted); }
 .tab-tool { width: 30px; height: 30px; padding: 0; }
+/* The Grid button: its glyph, then its setting in words, as wide as the longest so nothing moves (issue #449). */
+.tab-tool.tab-tool-worded { width: auto; min-width: 30px; gap: 2px; padding: 0 8px 0 3px; }
+.tab-tool-caption { display: inline-grid; font-size: 12px; font-weight: 600; white-space: nowrap; text-align: left; }
+.tab-tool-caption > span { grid-area: 1 / 1; }
+.tab-tool-caption-room { visibility: hidden; }
 /* A lit tool is in the selection's denim, as what it applies to is (issue #276), not the primary red. */
 .tab-tool.btn-toggle[aria-pressed='true'] { background: var(--select-soft); box-shadow: inset 0 0 0 1.5px var(--select); }
 /* A palette button with a panel under it (Bend): the panel opens over the tab, left edges lined up. */
@@ -520,6 +549,17 @@
   content: ''; position: absolute; left: -8px; top: 8px; bottom: 8px; width: 3px; border-radius: 2px; background: var(--ink);
 }
 .tab-rail-button:focus-visible, .tab-rail-close:focus-visible { outline: none; }
+/* The Chat button while a reply runs (issue #442): three dots in the bubble pulse one after another, in the button's own muted ink. */
+.tab-rail-typing circle { animation: tab-rail-typing 1.2s ease-in-out infinite; }
+.tab-rail-typing circle:nth-child(2) { animation-delay: 0.2s; }
+.tab-rail-typing circle:nth-child(3) { animation-delay: 0.4s; }
+@keyframes tab-rail-typing { 0%, 60%, 100% { opacity: 0.25; } 30% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .tab-rail-typing circle { animation: none; } }
+/* A reply that ended while the panel was closed: a small dot on the button's corner until Chat opens. */
+.tab-rail-button[data-status='unread']::after {
+  content: ''; position: absolute; top: 7px; right: 7px; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--primary); box-shadow: 0 0 0 2px var(--surface);
+}
 /* The page fills the window over the footer, and the rail's row takes the spare height, so the open
    panel can run down to the footer without making a short clip's page scroll. */
 main:has(> .tab-page) { display: flex; flex-direction: column; }
@@ -676,11 +716,6 @@ body:has(.tab-rail-divider[data-dragging]) { cursor: ew-resize; user-select: non
 .chord-panel-tile[aria-pressed='true'] { background: var(--select-soft); border-color: var(--select); }
 .chord-panel-tile:focus-visible { outline: none; }
 .chord-panel-tile-name { font: 600 12px/16px var(--font-sans); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.chord-panel-tile[data-unused] { position: relative; }
-.chord-panel-tile[data-unused]::after {
-  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
-  background: color-mix(in srgb, var(--surface-sunken) 55%, transparent);
-}
 .chord-panel-pager { display: flex; align-items: center; justify-content: center; gap: 6px; font: 400 12px/16px var(--font-sans); color: var(--ink-muted); font-variant-numeric: tabular-nums; }
 .chord-panel-step:disabled { opacity: .35; cursor: default; }
 .chord-editor-title {
@@ -690,6 +725,14 @@ body:has(.tab-rail-divider[data-dragging]) { cursor: ew-resize; user-select: non
 .chord-editor-title:hover { background: var(--surface-sunken); }
 .chord-editor-title:focus-visible { outline: none; }
 .chord-panel-tile-empty { visibility: hidden; }
+/* A tile's use count: a solid dot on its diagram's bottom right corner, just over it; none for an unused chord. */
+.chord-panel-thumb { position: relative; }
+.chord-panel-count {
+  position: absolute; right: -8px; bottom: 1px; box-sizing: border-box;
+  min-width: 14px; height: 14px; padding: 0 3px; border-radius: 999px;
+  display: grid; place-items: center; background: var(--ink-muted); color: var(--surface-raised);
+  font: 600 9px/1 var(--font-sans); font-variant-numeric: tabular-nums; pointer-events: none;
+}
 
 /* The rail's Chat panel (chat/ChatPanel.tsx, issue #424): the model, the conversation, then the box to write in. */
 .tab-chat { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
@@ -764,3 +807,23 @@ body:has(.tab-rail-divider[data-dragging]) { cursor: ew-resize; user-select: non
 .tab-chat-picker-option[aria-selected="true"] { background: var(--surface-sunken); }
 .tab-chat-picker-model { font: 13px/18px var(--font-mono); color: var(--ink); overflow-wrap: anywhere; }
 .tab-chat-picker-description { font-size: 12px; line-height: 16px; color: var(--ink-muted); }
+/* The Lyrics field, under the note its syllable goes on (issue #408). */
+/* The Lyrics field (issue #408): small as Dorico's lyrics popover, the Lyric line's number in a tinted cell. */
+.tab-lyric {
+  position: absolute; z-index: 20; display: flex; flex-direction: row; gap: 0; align-items: stretch; width: 180px; height: 30px;
+  padding: 0; overflow: hidden; border-radius: 6px; border-color: var(--line-strong); color: var(--ink);
+}
+.tab-lyric-grip {
+  display: flex; align-items: center; justify-content: center; width: 16px; flex: none;
+  cursor: grab; touch-action: none; fill: var(--ink-muted); background: var(--surface-sunken);
+}
+.tab-lyric-grip:active { cursor: grabbing; }
+.tab-lyric-line {
+  display: flex; align-items: center; justify-content: center; width: 28px; flex: none;
+  font-size: 13px; font-weight: 600; color: var(--select); background: var(--surface-sunken);
+  border-right: 1px solid var(--line);
+}
+.tab-lyric-input {
+  flex: 1; min-width: 0; border: 0; padding: 0 8px; font: inherit; font-size: 14px;
+  background: var(--surface-raised); color: var(--ink); outline: none;
+}

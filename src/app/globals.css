@@ -28,7 +28,8 @@ button {
    the tab's Play button while playing, red with a black square (--on-stop). --select:
    what is selected or under the cursor on the Tab page, blue so red stays for problems
    (issue #276); --select-soft its fill. --playhead: the Tab page's playback line,
-   moving or stopped, a muted green so red stays for problems (issue #291). Light,
+   moving or stopped, a muted green so red stays for problems (issue #291). --typing:
+   the syllable the Tab page's Lyrics field is at, Fretwood's burnt orange (issue #408). Light,
    then dark as fretwood.css switches it (system, or data-theme). */
 :root {
   --lit: #23a03a;
@@ -39,6 +40,7 @@ button {
   --select: #2a64a8;
   --select-soft: #d6e3f3;
   --playhead: var(--success);
+  --typing: var(--degree-root);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {

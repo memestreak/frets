@@ -35,7 +35,7 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
   the ask), so the model needn't spend a call reading it first; the
   conversation keeps the ask alone, so earlier asks don't resend it.
 - **Settings › Tab › Chat (Q2, Q5).** Two fields, saved under
-  `frets.tab.chat`: **OpenRouter key** (shown as dots, but not as a password field, so password managers don't offer to save it) and **Model**
+  `frets.tab.chat`: **OpenRouter key** (a plain text field, shown as typed; autocomplete and spellcheck off and password managers told to ignore it, but autocorrect and autocapitalize left alone, because on macOS dots, a password field or either of those set "off" stop Chrome's text replacement) and **Model**
   (`anthropic/claude-opus-5.5` by default). The key stays on this device:
   never in a link, never sent anywhere but OpenRouter. Trimmed when saved.
 - **The panel (Q7).** From the top: the **Model** field (the same setting as
@@ -50,7 +50,18 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
   forget. With no key, the box is disabled and a line offers **Open
   Settings**, which opens Settings at Tab › Chat.
 - **The conversation lasts this visit (Q6).** A reload, or New chat, starts
-  again. Asks are sent with everything said before them.
+  again. Asks are sent with everything said before them. The page holds it,
+  not the panel (issue #442): closing the panel or opening another keeps the
+  conversation, the half-written message and a reply still running, whose
+  changes go on landing in the clip (one Undo away, as ever). Leaving the
+  page stops a running reply.
+- **The Chat button shows the reply (issue #442).** While a reply runs, the
+  rail's speech bubble holds three dots that pulse one after another, as a
+  messenger shows someone typing, in the button's own muted ink (still dots
+  for viewers who ask for less motion); its tip reads "Chat: Replying…". A
+  reply that ends while the panel is closed leaves a small dot on the
+  button's corner ("Chat: New reply") until Chat is opened. Screen readers
+  hear both through a status line by the rail. Stop stays in the panel.
 - **Under each reply:** a line per tool call ("Read the arrangement",
   "Changed bars 3 to 4 of track 1", "Changed bar 2 of track 1", in red with ⚠
   when it failed; the same line several times in a row is shown once, "(3
@@ -165,7 +176,7 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
   with no step before it is a step of its own; it clears redo.
 - On the page, with nothing in the address: the rail ends Chords, Chat, and
   Settings lists Tab › Chat. With no key, the box is disabled and Open Settings opens Tab › Chat, whose key
-  field shows dots and is not a password field; saving `  sk-or-typed ` keeps `sk-or-typed` and
+  and Model fields are plain text shown as typed, with autocomplete and spellcheck off and no autocorrect or autocapitalize attribute; saving `  sk-or-typed ` keeps `sk-or-typed` and
   enables the box.
 - A reply that changes bar 1, then bar 2, then answers shows both lines, the
   answer and the usage summed; the bars change; one Undo puts both back. The
@@ -178,6 +189,16 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
   and the next ask goes alone.
 - A refused key shows OpenRouter's message and changes nothing.
 - Delete and Ctrl+Z typed in the message box don't change the clip.
+- A reply running when Notes opens goes on: the Chat button's status is
+  working, tip "Chat: Replying…"; its change lands; ended, the button is
+  marked unread ("Chat: New reply"); Chat again shows the ask, its tool line
+  and the reply, and clears the mark, which doesn't come back on closing. A
+  reply ended with the panel open leaves no mark.
+- Closed and opened again, the panel keeps the conversation and the
+  half-written message, and the next ask is sent with the earlier one.
+- A reply can be stopped after the panel is closed and opened again;
+  "Stopped.", and its late answer changes nothing.
+- Leaving the page aborts a running reply's request.
 - The Model field lists the presets first (`@preset/default`, "Tab
   default"), then only the models that take tools, all of them though the
   field holds a model only one contains; typing "tab def" leaves the preset;

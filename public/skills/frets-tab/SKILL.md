@@ -38,6 +38,10 @@ disagree, it wins.
   bars, frets high e first and `x` for a string not played:
   `\chord ("Am7" 0 1 0 2 0 x)`. Each track has its own; its `ch` of that
   exact name then means that shape. The notes are still written out.
+- Words sung go under their notes, one syllable a beat: `{lyrics "Hel-"}`
+  then `{lyrics "lo"}`, a trailing `-` joining a syllable to the next.
+  A second verse is `{lyrics 1 "..."}` on the same beats (lines count
+  from 0). Never on a rest or a tied note.
 - Give the user a link that opens the tab, plus the text unless they ask
   for only one:
 

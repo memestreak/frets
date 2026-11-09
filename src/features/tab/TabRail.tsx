@@ -12,6 +12,7 @@
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from 'react';
 import { HoverTips } from '@/components/HoverTips';
 import { ICONS } from './TabPalette';
+import type { ChatStatus } from './chat/useChatSession';
 
 /** Draws the palette with only `groups`; `className` sets its look; the note input mode pencil first when `input`. */
 export type DrawPalette = (groups: readonly string[], className?: string, input?: boolean) => ReactNode;
@@ -84,6 +85,24 @@ const CHORDS_ICON = (
 const CHAT_ICON = (
   <path d="M5 5.5h14a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-8l-4 3.5v-3.5H5a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1z" strokeLinejoin="round" />
 );
+
+/**
+ * The Chat button while a reply runs (issue #442): the bubble with three dots that pulse one after another, as a
+ * messenger shows someone typing; still dots when the viewer asks for less motion.
+ */
+const CHAT_WORKING_ICON = (
+  <>
+    {CHAT_ICON}
+    <g className="tab-rail-typing" fill="currentColor" stroke="none">
+      <circle cx="8.5" cy="11" r="1.1" />
+      <circle cx="12" cy="11" r="1.1" />
+      <circle cx="15.5" cy="11" r="1.1" />
+    </g>
+  </>
+);
+
+/** The Chat button's tip for each status, also read out by screen readers. */
+const CHAT_STATUS: Record<ChatStatus, string | undefined> = { idle: undefined, working: 'Replying…', unread: 'New reply' };
 
 /** Every panel the rail opens, in order: the tools', then Chords, then Chat. */
 const RAIL: readonly { id: PanelId; name: string; icon: ReactNode }[] = [
@@ -186,11 +205,13 @@ interface TabRailProps {
   chordsHead?: ReactNode;
   /** The Chat panel's contents (issue #424). */
   chat: ReactNode;
+  /** Whether a Chat reply is running, or ended unseen, shown on the Chat button (issue #442). */
+  chatStatus?: ChatStatus;
   children: ReactNode;
 }
 
 /** The clip's card with the rail and its open panel on its left. */
-export function TabRail({ palette, open, onOpen: setOpen, chords, chordsHead, chat, children }: TabRailProps) {
+export function TabRail({ palette, open, onOpen: setOpen, chords, chordsHead, chat, chatStatus = 'idle', children }: TabRailProps) {
   const panel = RAIL.find(p => p.id === open);
   const tools = PANELS.find(p => p.id === open);
   const [width, setWidth] = usePanelWidth();
@@ -201,20 +222,26 @@ export function TabRail({ palette, open, onOpen: setOpen, chords, chordsHead, ch
     >
       <HoverTips className="tab-rail-column">
         <nav className="tab-rail" aria-label="Panels">
-          {RAIL.map(p => (
-            <button
-              key={p.id} type="button" className="tab-rail-button" aria-label={p.name} aria-pressed={open === p.id}
-              data-tip={p.name}
-              // Keep the focus, and so the cursor, on the tab.
-              onMouseDown={e => e.preventDefault()}
-              onClick={() => setOpen(open === p.id ? null : p.id)}
-            >
-              <svg width={24} height={24} viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                {p.icon}
-              </svg>
-            </button>
-          ))}
+          {RAIL.map(p => {
+            const status = p.id === 'chat' ? CHAT_STATUS[chatStatus] : undefined;
+            return (
+              <button
+                key={p.id} type="button" className="tab-rail-button" aria-label={p.name} aria-pressed={open === p.id}
+                data-tip={status ? `${p.name}: ${status}` : p.name}
+                data-status={p.id === 'chat' && chatStatus !== 'idle' ? chatStatus : undefined}
+                // Keep the focus, and so the cursor, on the tab.
+                onMouseDown={e => e.preventDefault()}
+                onClick={() => setOpen(open === p.id ? null : p.id)}
+              >
+                <svg width={24} height={24} viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                  {p.id === 'chat' && chatStatus === 'working' ? CHAT_WORKING_ICON : p.icon}
+                </svg>
+              </button>
+            );
+          })}
         </nav>
+        {/* Says a reply started or ended though the Chat panel, and its own live list, are closed. */}
+        <span className="sr-only" role="status">{open === 'chat' ? '' : CHAT_STATUS[chatStatus] && `Chat: ${CHAT_STATUS[chatStatus]}`}</span>
       </HoverTips>
       {panel && (
         <HoverTips className="tab-rail-column">

@@ -1,14 +1,17 @@
-import { useCallback, useState } from 'react';
-import { barErrors, MAX_CAPO, type Part } from './clip';
-import { columnAt, type Cursor } from './editing';
-import { setBarKey, setBarTime, setBeatGroups, setPickup, setBeatText, setCapo, setChordName, setEnding, setRepeatTimes, setSection } from './barEdits';
+import { useCallback, useMemo, useState } from 'react';
+import { barErrors, dynamicOf, MAX_CAPO, type Part } from './clip';
+import { columnAt, indexOf, withRestsInEmptyBars, type Cursor } from './editing';
+import { setBarKey, setBarTime, setBeatGroups, setPickup, setBeatText, setCapo, setChordName, setDynamic, setEnding, setRepeatTimes, setSection } from './barEdits';
 import { BarKeyPanel } from './BarKeyPanel';
 import { BarFixPopover } from './BarFixPopover';
 import { BarTimePanel } from './BarTimePanel';
 import { CreditsPanel, type HeadField } from './CreditsPanel';
-import { barTempoSpot, barTimeSpot, PANEL_DROP, PANEL_LEAD, wordNow, wordSpot } from './fieldSpots';
+import { barTempoSpot, barTimeSpot, lyricSpot, PANEL_DROP, PANEL_LEAD, wordNow, wordSpot } from './fieldSpots';
+import { LyricField, type LyricNudge } from './LyricField';
+import { lyricAt, lyricNote, lyricValue, MAX_LYRIC_LINES, setLyric, type LyricMove } from './lyrics';
 import { SPLITS_TUPLET } from './timeline';
 import type { Layout } from './layout';
+import type { Typing } from './ClipWords';
 import { TempoPanel } from './TempoPanel';
 import { TuningPanel } from './TuningPanel';
 import type { EditorState } from './useEditorState';
@@ -42,6 +45,15 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
   const { clip, cursor, commit, commitReBar, dispatch, editorRef, setNotice } = editor;
   /** The chord name, text, section, tempo or capo being typed, and where: the cursor's column or bar when it opened. */
   const [word, setWord] = useState<{ kind: FieldKind; bar: number; column: number } | null>(null);
+  /** The note whose syllable the Lyrics field is typing, and its Lyric line (issue #408). */
+  const [lyric, setLyricField] = useState<{ bar: number; column: number; line: number; turn?: number } | null>(null);
+  /** Where the Lyrics field was dragged to, kept while it goes note to note; it opens over the note again next time. */
+  const [lyricNudge, setLyricNudge] = useState<LyricNudge>({ dx: 0, dy: 0 });
+  /**
+   * The syllable drawn in the typing colour while the field is open: the one the field set last, so what was
+   * just typed shows (Dorico's last lyric, in its selection colour). The field's own note is drawn selected.
+   */
+  const [lyricLit, setLyricLit] = useState<{ bar: number; column: number; line: number } | null>(null);
   /** The bar whose time signature panel is open. */
   const [timeBar, setTimeBar] = useState<number | null>(null);
   /** The bar whose key signature panel is open. */
@@ -79,6 +91,12 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
     }
     // A chord name or text belongs to a column; an empty bar has none yet.
     if ((kind === 'chord' || kind === 'text') && !columnAt(clip, at)) return;
+    // A dynamic can go on an empty bar too: it lands on the first of the rests that fill it (P1).
+    if (kind === 'dynamic' && !columnAt(clip, at)) {
+      if (clip.bars[at.bar]?.columns.length !== 0) return;
+      setWord({ kind, bar: at.bar, column: 0 });
+      return;
+    }
     // The capo belongs to the whole clip, written over its first line.
     if (kind === 'capo') setWord({ kind, bar: 0, column: 0 });
     else setWord({ kind, bar: at.bar, column: at.column });
@@ -94,12 +112,59 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
     if (w.kind === 'chord') commit(setChordName(clip, { bar: w.bar, column: w.column, string: cursor.string }, value));
     if (w.kind === 'text') commit(setBeatText(clip, { bar: w.bar, column: w.column, string: cursor.string }, value));
     if (w.kind === 'section') commit(setSection(clip, w.bar, value));
+    // The field lets only a dynamic or nothing through; nothing takes it away.
+    if (w.kind === 'dynamic') {
+      const place = { bar: w.bar, column: w.column, string: cursor.string };
+      // An empty bar is filled with its rests first, so the dynamic has a column to go on.
+      const base = columnAt(clip, place) ? clip : withRestsInEmptyBars(clip) ?? clip;
+      const next = setDynamic(base, place, dynamicOf(value));
+      if (next !== base) commit(next, place);
+    }
     // An ending of 0, or none, takes the bracket away.
     if (w.kind === 'ending') commit(setEnding(clip, w.bar, Number(value) || null));
     // A count under 2, or none, is played twice, written without one.
     if (w.kind === 'repeat') commit(setRepeatTimes(clip, w.bar, Number(value) || 2));
     // A capo of 0 is no capo.
     if (w.kind === 'capo') commit(setCapo(clip, value === '' || Number(value) === 0 ? null : Math.min(MAX_CAPO, Number(value))));
+  };
+
+  /**
+   * Opens the Lyrics field on the note at `at`, or the next one that takes a syllable (Shift+L, the Lyrics
+   * tool, a picked syllable's Edit); with none after it, nothing opens.
+   */
+  const openLyric = (at: { bar: number; column: number }, line = 0) => {
+    const place = lyricNote(clip, at, 0);
+    if (!place) {
+      setNotice({ tone: 'info', lines: ['Lyrics go under notes: there is no note here or after it.'] });
+      return;
+    }
+    setWord(null);
+    commit(clip, { ...cursor, ...place }, null);
+    if (!lyric) setLyricNudge({ dx: 0, dy: 0 });
+    setLyricLit(null);
+    setLyricField({ ...place, line });
+  };
+
+  /** A syllable set (Esc leaves it), then the field moves on as its key says, or closes. */
+  const finishLyric = (typed: string, move: LyricMove, byKey: boolean) => {
+    const at = lyric;
+    if (!at) return;
+    const next = move === 'cancel' ? clip : setLyric(clip, at, at.line, lyricValue(typed, move));
+    const step = move === 'next' || move === 'hyphen' ? 1 : move === 'back' ? -1 : null;
+    // Past the first or last note the field stays on this one, so what is typed next still goes into it.
+    const place = step ? lyricNote(next, at, step) ?? at : move === 'up' || move === 'down' ? at : null;
+    const line = move === 'down' ? Math.min(MAX_LYRIC_LINES - 1, at.line + 1) : move === 'up' ? Math.max(0, at.line - 1) : at.line;
+    commit(next, { ...cursor, ...(place ?? at) }, null);
+    if (place) {
+      // A new turn opens the field afresh even on the same note, with what it now has.
+      setLyricField({ ...place, line, turn: (at.turn ?? 0) + 1 });
+      // What this key set, else (cleared, or Esc) nothing.
+      setLyricLit(move !== 'cancel' && lyricAt(next, at, at.line) ? { bar: at.bar, column: at.column, line: at.line } : null);
+      return;
+    }
+    setLyricField(null);
+    setLyricLit(null);
+    if (byKey) editorRef.current?.focus();
   };
 
   /** A bar's time or key signature panel: under a press (`at`, viewport pixels), or from the palette (null) under the bar. */
@@ -131,6 +196,8 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
   /** Shuts whatever is open: another track is shown. */
   const closeAll = () => {
     setWord(null);
+    setLyricField(null);
+    setLyricLit(null);
     setHeadPanel(null);
     setFixBar(null);
     closeSignatures();
@@ -159,6 +226,16 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
     else dispatch({ type: 'previewPart', part: from });
   };
 
+  // One object while nothing in it changes, so the drawing (memoised) isn't drawn again for nothing.
+  const typing = useMemo((): Typing | null => {
+    if (!lyric || lyric.bar >= clip.bars.length) return null;
+    const lit = lyricLit && lyricLit.bar < clip.bars.length ? lyricLit : null;
+    return {
+      note: indexOf(clip, lyric.bar, lyric.column),
+      hit: lit ? { kind: 'lyric', index: indexOf(clip, lit.bar, lit.column), line: lit.line } : null,
+    };
+  }, [lyric, lyricLit, clip]);
+
   const { tab, drawn } = shown;
   // Only while a popover is open: what its bar's ⚠ says.
   const fixText = fixBar ? barErrors(clip).get(fixBar.bar) : undefined;
@@ -168,6 +245,13 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
         <WordField
           key={`${word.kind}-${word.bar}-${word.column}`} kind={word.kind} {...wordSpot(layout, width, word)}
           initial={wordNow(clip, word)} onDone={finishWord}
+        />
+      )}
+      {tab && lyric && drawn && (
+        <LyricField
+          key={`lyric-${lyric.bar}-${lyric.column}-${lyric.line}-${lyric.turn ?? 0}`} line={lyric.line} {...lyricSpot(layout, width, lyric)}
+          nudge={lyricNudge} onNudge={setLyricNudge} zoom={zoom}
+          initial={lyricAt(clip, lyric, lyric.line)} onDone={finishLyric}
         />
       )}
       {tab && keyBar !== null && keyBar < clip.bars.length && drawn && (
@@ -206,7 +290,9 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
   );
 
   return {
-    openWord, openSignature, openFix, closeSignatures, closeAll, panels,
+    openWord, openLyric, openSignature, openFix, closeSignatures, closeAll, panels,
+    /** While the Lyrics field is open: its note, tinted, and the syllable drawn in the typing colour. */
+    typing,
     /** The score head's panels, from a press on the head (or the folded title), at that spot. */
     openCredits: (x: number, y: number, field: HeadField) => setHeadPanel({ kind: 'credits', x, y, from: clip, field }),
     openTuning: (x: number, y: number) => setHeadPanel({ kind: 'tuning', x, y }),

@@ -17,9 +17,9 @@ export type ToolId =
   | 'legato' | 'slide' | 'shiftSlide' | 'slideBelow' | 'slideAbove' | 'slideOutDown' | 'slideOutUp'
   | 'bend' | 'release' | 'preBend'
   | 'vibrato' | 'mordent' | 'lowerMordent' | 'palmMute' | 'letRing' | 'dead' | 'ghost' | 'harmonic' | 'pinchHarmonic' | 'tap'
-  | 'strokeDown' | 'strokeUp' | 'wah' | 'whammy' | 'accent' | 'heavyAccent' | 'staccato' | 'ottava'
+  | 'strokeDown' | 'strokeUp' | 'wah' | 'whammy' | 'accent' | 'heavyAccent' | 'staccato' | 'ottava' | 'dynamic'
   | 'insertBarBefore' | 'insertBar' | 'barTime' | 'barKey' | 'repeatStart' | 'repeatEnd' | 'doubleBar' | 'ending'
-  | 'chordName' | 'beatText' | 'section' | 'tempo' | 'capo';
+  | 'chordName' | 'beatText' | 'lyrics' | 'section' | 'tempo' | 'capo';
 
 export interface Tool {
   id: ToolId;
@@ -33,14 +33,15 @@ export interface Tool {
 export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
   {
     label: 'Duration',
+    // Shortest to longest, as their own row in the palette (TabPalette.tsx); then the dot and the rest.
     tools: [
-      { id: 'whole', label: 'Whole note', key: '7, or Shift+7 on a tab note; = − or W Q to step' },
-      { id: 'half', label: 'Half note', key: '6, or Shift+6 on a tab note; = − or W Q to step' },
-      { id: 'quarter', label: 'Quarter note', key: '5, or Shift+5 on a tab note; = − or W Q to step' },
-      { id: 'eighth', label: 'Eighth note', key: '4, or Shift+4 on a tab note; = − or W Q to step' },
-      { id: 'sixteenth', label: 'Sixteenth note', key: '3, or Shift+3 on a tab note; = − or W Q to step' },
-      { id: 'thirtySecond', label: 'Thirty-second note', key: '2, or Shift+2 on a tab note; = − or W Q to step' },
       { id: 'sixtyFourth', label: 'Sixty-fourth note', key: '1, or Shift+1 on a tab note; = − or W Q to step' },
+      { id: 'thirtySecond', label: 'Thirty-second note', key: '2, or Shift+2 on a tab note; = − or W Q to step' },
+      { id: 'sixteenth', label: 'Sixteenth note', key: '3, or Shift+3 on a tab note; = − or W Q to step' },
+      { id: 'eighth', label: 'Eighth note', key: '4, or Shift+4 on a tab note; = − or W Q to step' },
+      { id: 'quarter', label: 'Quarter note', key: '5, or Shift+5 on a tab note; = − or W Q to step' },
+      { id: 'half', label: 'Half note', key: '6, or Shift+6 on a tab note; = − or W Q to step' },
+      { id: 'whole', label: 'Whole note', key: '7, or Shift+7 on a tab note; = − or W Q to step' },
       { id: 'dot', label: 'Dotted, then double dotted', key: '.' },
       { id: 'rest', label: 'Rest', key: ',' },
     ],
@@ -104,6 +105,7 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
       { id: 'heavyAccent', label: 'Heavy accent', key: 'A' },
       { id: 'staccato', label: 'Staccato', key: 'S' },
       { id: 'ottava', label: 'Octave line over the staff (8va, 8vb, 15ma, 15mb)', key: '' },
+      { id: 'dynamic', label: 'Dynamic from this column on (p, mf, ff…)', key: 'Shift+D' },
     ],
   },
   {
@@ -124,6 +126,7 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
     tools: [
       { id: 'chordName', label: 'Chord name over this column', key: 'C' },
       { id: 'beatText', label: 'Text over this column', key: '' },
+      { id: 'lyrics', label: 'Lyrics under this note', key: 'Shift+L' },
       { id: 'section', label: 'Section starting at this bar', key: '' },
       { id: 'tempo', label: 'Tempo from this bar on', key: '' },
       { id: 'capo', label: 'Capo', key: '' },
@@ -195,12 +198,12 @@ function chainColumns(clip: Part, target: Target): Target {
 }
 
 /** Tools that open a field over the tab for words (`TabPage` handles them); they don't change the clip themselves. */
-export const WORD_TOOLS = { chordName: 'chord', beatText: 'text', section: 'section', tempo: 'tempo', capo: 'capo' } as const;
+export const WORD_TOOLS = { chordName: 'chord', beatText: 'text', section: 'section', tempo: 'tempo', capo: 'capo', dynamic: 'dynamic' } as const;
 export type WordKind = (typeof WORD_TOOLS)[keyof typeof WORD_TOOLS];
 
 /** The palette tool that sets each kind of word: `WORD_TOOLS` the other way round. */
 export const WORD_TOOL: Record<WordKind, keyof typeof WORD_TOOLS> = {
-  chord: 'chordName', text: 'beatText', section: 'section', tempo: 'tempo', capo: 'capo',
+  chord: 'chordName', text: 'beatText', section: 'section', tempo: 'tempo', capo: 'capo', dynamic: 'dynamic',
 };
 
 /** The clip after a palette press. */
@@ -270,6 +273,10 @@ export function toolForKey(key: string, alt: boolean, code = ''): ToolId | null 
     '.': 'dot', ',': 'rest', '/': 'grace', t: 'tie', h: 'legato', p: 'legato', m: 'palmMute', i: 'letRing',
     x: 'dead', g: 'ghost', d: 'strokeDown', u: 'strokeUp', s: 'staccato',
     '[': 'repeatStart', ']': 'repeatEnd', e: 'ending', c: 'chordName',
+    // Shift+L opens the Lyrics field, as Dorico's does (issue #408); L alone is Loop.
+    L: 'lyrics',
+    // Shift+D opens the dynamic's field, as Dorico's Shift+D opens its dynamics popover.
+    D: 'dynamic',
   };
   return keys[key] ?? null;
 }
@@ -330,6 +337,8 @@ export function isOn(clip: Part, cursor: Target['cursor'], id: ToolId, columnOnl
     case 'ending': return !!bar?.ending;
     case 'chordName': return !!column?.chord;
     case 'beatText': return !!column?.text;
+    case 'lyrics': return !!column?.lyrics?.length;
+    case 'dynamic': return !!column?.dynamic;
     case 'section': return !!bar?.section;
     case 'tempo': return !!bar?.tempo;
     case 'capo': return !!clip.capo;

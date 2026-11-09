@@ -171,7 +171,7 @@ function tiedInto(items: Item[], index: number): Set<number> {
  * Column now sounding at that time takes them. Marks that last the whole Column, and kept alphaTex,
  * stay with the Column they were written for.
  */
-const MOVED = ['chord', 'text', 'fermata', 'wah'] as const;
+const MOVED = ['chord', 'text', 'fermata', 'wah', 'dynamic'] as const;
 
 /** Joins a moved text to the one already there, unless it is the same text. */
 const TEXT_JOIN = ' / ';
@@ -179,7 +179,7 @@ const TEXT_JOIN = ' / ';
 /**
  * `placed` (the items written from `at`) with the time marks of `covered` (the items they replace,
  * the first starting at `coveredAt`) moved onto the placed Column sounding at each one's start: a
- * text joins the one there, a chord name, fermata or wah already there stays.
+ * text joins the one there, a chord name, fermata, wah or dynamic already there stays.
  */
 function keepCoveredMarks(covered: Item[], coveredAt: number, placed: Item[], at: number): Item[] {
   const moving: { t: number; column: Column }[] = [];

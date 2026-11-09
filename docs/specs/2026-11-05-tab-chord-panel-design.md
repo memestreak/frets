@@ -26,8 +26,11 @@ and the Penpot page "Tab Chords panel (issue 400)".
   spacing four apart (Jeremy, 2026-11-08, issue #431;
   `2026-11-08-tab-rail-width-design.md`). Under them ‹ "1 / 2" › page through them, shown only with
   more than one page; a short last page keeps a full page's room, so
-  nothing below moves. A chord no column uses is tinted; hovering a tile
-  says "Used 3 times" or "Not used". No icons on the tiles: a press picks
+  nothing below moves. A small solid dot on the bottom right corner of
+  each tile's diagram, just over it, says how many times the chord is used
+  ("99+" past 99); a chord no column uses has none, and nothing else marks
+  it (Jeremy, 2026-11-09: it was tinted; dot b of four mocks). Hovering a
+  tile says "Used 3 times" or "Not used". No icons on the tiles: a press picks
   a chord for Insert (and sounds it, with Hear on) and nothing more; a
   double-click opens Edit chord; a right-click (or a long press, or
   Shift+F10) opens its menu: **Insert** (at the cursor, as the button),
@@ -219,9 +222,10 @@ Settled while building (my calls, open to change):
 
 ## Tests
 
+- The dot's count: none for 0, "1", "99", "99+" for 100.
 - Following a picked chord focuses the editor with `preventScroll`.
-- The Chord set is tiles: a used one's title "Used 1 time", an unused one
-  tinted with "Not used"; each has a diagram; no Edit or Delete icons, no
+- The Chord set is tiles: a used one's title "Used 1 time" and its dot
+  "1"; an unused one "Not used", with no dot and no tint; each has a diagram; no Edit or Delete icons, no
   name field, no shapes; + in the heading; no pager for two chords.
 - Ten chords: page 1 has the first eight, "1 / 2", Previous grey; More
   shows Bm and Em, "2 / 2", More grey, six empty tiles keeping the room.

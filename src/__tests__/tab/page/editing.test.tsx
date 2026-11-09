@@ -181,6 +181,44 @@ describe('TabPage editing', () => {
     expect(screen.queryByTestId('beat-text')).toBeNull();
   });
 
+  it('takes new lines with Shift+Enter and bold with Ctrl/⌘+B in the Text field, and draws them (issues #445, #446)', async () => {
+    await openWith('5.1.1 |');
+    fireEvent.click(tool('Text over this column'));
+    const field = screen.getByRole('textbox', { name: 'Text over the column' }) as HTMLTextAreaElement;
+    expect(field.tagName).toBe('TEXTAREA');
+    fireEvent.change(field, { target: { value: 'press Esc' } });
+    // Shift+Enter is the field's own new line: it doesn't set the Text.
+    fireEvent.keyDown(field, { key: 'Enter', shiftKey: true });
+    expect(screen.getByRole('textbox', { name: 'Text over the column' })).toBe(field);
+    fireEvent.change(field, { target: { value: 'press Esc\nthen Delete' } });
+    expect(field.rows).toBe(2);
+    field.setSelectionRange(6, 9);
+    fireEvent.keyDown(field, { key: 'b', ctrlKey: true });
+    expect(field).toHaveValue('press **Esc**\nthen Delete');
+    expect([field.selectionStart, field.selectionEnd]).toEqual([8, 11]);
+    fireEvent.keyDown(field, { key: 'b', metaKey: true });
+    expect(field).toHaveValue('press Esc\nthen Delete');
+    fireEvent.keyDown(field, { key: 'b', metaKey: true });
+    fireEvent.keyDown(field, { key: 'Enter' });
+    expect(alphaTex()).toBe('5.1.1{txt "press **Esc**\\nthen Delete"} |');
+    const drawn = screen.getByTestId('beat-text');
+    expect([...drawn.children].map(line => line.textContent)).toEqual(['press Esc', 'then Delete']);
+    expect(drawn.querySelector('tspan[font-weight="700"]')).toHaveTextContent(/^Esc$/);
+  });
+
+  it('keeps Ctrl/⌘+B and new lines out of other words’ fields', async () => {
+    await openWith('5.1.1 |');
+    keys('c');
+    const field = screen.getByRole('textbox', { name: 'Chord name' });
+    expect(field.tagName).toBe('INPUT');
+    fireEvent.change(field, { target: { value: 'Am7' } });
+    (field as HTMLInputElement).setSelectionRange(0, 3);
+    fireEvent.keyDown(field, { key: 'b', ctrlKey: true });
+    expect(field).toHaveValue('Am7');
+    fireEvent.keyDown(field, { key: 'Enter', shiftKey: true });
+    expect(screen.queryByRole('textbox', { name: 'Chord name' })).toBeNull();
+  });
+
   it('names a chord from C and a field over the tab, and sets the capo from the palette', async () => {
     await openWith('5.1.1 |');
     keys('c');

@@ -44,6 +44,16 @@ describe('writeAlphaTex then reading it back', () => {
   });
 });
 
+describe('a Text with a new line or bold (issues #445, #446)', () => {
+  it('writes a new line as \\n, keeps the bold marks as typed, and reads both back exactly', () => {
+    const tex = '0.6.4{txt "1. Press **this**\\n2. Then \\\\* \\"Delete\\""} r.4 r.2 |';
+    const read = readAlphaTexWith(alphaTab, tex);
+    if (!read.ok) throw new Error(read.errors.join('\n'));
+    expect(read.clip.tracks[0].bars[0].voices[0][0].text).toBe('1. Press **this**\n2. Then \\* "Delete"');
+    expect(writeAlphaTex(read.clip)).toBe(`\\ts (4 4)\n${tex}\n`);
+  });
+});
+
 describe('readAlphaTex', () => {
   it('reads durations, chords, rests and the header', () => {
     const clip = clipOf('\\title "Riff"\n\\ts (3 4)\n:8 5.5 7.5 (0.1 0.2).4 r.4');
@@ -193,8 +203,8 @@ function documentExamples(): string[] {
 describe('the examples in tab-alphatex.txt', () => {
   const examples = documentExamples();
 
-  it('finds all eleven', () => {
-    expect(examples).toHaveLength(11);
+  it('finds all twelve', () => {
+    expect(examples).toHaveLength(12);
   });
 
   it.each(examples.map((e, i) => [i + 1, e]))('example %i reads without warnings and writes back the same', (_, text) => {

@@ -250,6 +250,11 @@ then "." and its duration:
     cre  dec   getting louder / softer from this beat: neighbouring beats
                that have it draw one hairpin, under the staff and over the
                tab: 7.3.16{cre} 9.3.16{cre}. Playback ignores it.
+    dy mf      a dynamic from this beat on, until the next: ppp pp p mp mf
+               f ff fff (and pppp to pppppp, ffff to ffffff, sf sfp sfpp
+               fp rf rfz sfz sffz fz pf sfzp). Drawn in italic letters on
+               the hairpins' row; playback plays it: 5.3.4{dy p}. Write it
+               only where the level changes; without one, music plays f.
     fermata medium  a fermata over the beat (fermata short, fermata long
                for the other shapes): 0.6.1{fermata medium}. Over the
                staff, over the tab without one. Playback ignores it.
@@ -280,7 +285,28 @@ then "." and its duration:
                ("let ring", "P.M.") is drawn under the names and their
                diagrams, a longer one over them. Write words
                printed over the tab that aren't a chord name, section or
-               tempo ("rit.", "harm.", "fade out") this way.
+               tempo ("rit.", "harm.", "fade out") this way. **Two
+               stars** round words draw them bold (__two underscores__
+               too), the stars not drawn and not counted; \\* in the
+               string is a star drawn as typed. Every other mark
+               (*one star*, `code`, links) is drawn as typed. \n starts
+               a new line: {txt "1. Press **this**\n2. Then Delete"};
+               a text with one is always drawn over the chord names.
+    lyrics "Hel-"  the syllable sung on this beat, drawn under it: under
+               the staff, between the staff and the tab when both are
+               drawn, under the tab alone. Put one on each sung note,
+               never on a rest or a tied note: 0.6.4{lyrics "Hel-"}
+               2.5.4{lyrics "lo"} 3.5.4{lyrics "world"}. End a syllable
+               with "-" when the word goes on at the next one ("Hel-"
+               "lo"): Frets draws the hyphen between them. One word, or
+               one syllable, per beat; a space only for two words sung
+               on one note (lyrics "a ver").
+    lyrics 1 "Hi"  the same on another lyric line, counted from 0, for a
+               second verse or a chorus under the first: lyrics 0 "Hel-"
+               lyrics 1 "Good-" on one beat gives two lines.
+               \lyrics "Hel-lo world" before the first bar is also read
+               (one syllable a note, from bar 1, rests skipped; \lyrics 2
+               "..." from bar 3) and written back as lyrics on each beat.
 
 
 Beams. Frets beams eighths and shorter by itself: in 4/4 by the beat,
@@ -395,6 +421,13 @@ Each reads in Frets with no warnings and writes back exactly as shown.
       (0.1 1.2 2.3 2.4 0.5).2{ch "Am" sd} |
     \section ("A" "Chorus") (1.1 1.2 2.3 3.4 3.5 1.6).2{ch "F" sd}
       (3.1 0.2 0.3 0.4 2.5 3.6).2{ch "G" sd} |
+
+    \title "Sung"
+    \ts (4 4)
+    0.3.4{lyrics 0 "Hap-" lyrics 1 "Mer-"} 0.3.8{lyrics 0 "py" lyrics 1 "ry"}
+      2.3.8{lyrics 0 "birth-" lyrics 1 "Christ-"}
+      0.3.4{lyrics 0 "day" lyrics 1 "mas"} r.4 |
+    5.3.2{lyrics "to"} 4.3.2{lyrics "you"} |
 
     \title "Fast"
     \ts (3 4)
@@ -573,7 +606,9 @@ the text: ASCII tab has runs of dashes, alphaTex never does.
    \section, and a letter in a box to its rehearsal mark; "♩ = 90" over a
    bar to \tempo 90 (a word before it, "Slowly ♩ = 60", to
    \tempo (60 "Slowly")); other words over the tab ("rit.", "harm.")
-   to txt "..." on the beat they start over. Marks from section 6 are written as shown
+   to txt "..." on the beat they start over; words sung, printed under
+   the staff or the tab, to lyrics "..." on the note each syllable is
+   under ("Hel-" "lo"), a second line of them to lyrics 1 "...". Marks from section 6 are written as shown
    there.
 5. A thick final bar line is just the last "|"; a bar ending in two thin
    lines starts with \db.

@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { BEND_QUARTERS, OTTAVAS, TUPLETS, tupletLabel, type BendQuarters, type Ottava } from './clip';
 import { mordentSign } from './marks';
-import { TOOL_GROUPS, type noteKinds, type Tool, type ToolId } from './tools';
+import { dynamicWord } from './dynamics';
+import { TOOL_GROUPS, toolValue, type noteKinds, type Tool, type ToolId } from './tools';
 import { GRID_NAMES, GRID_VALUES, type GridValue } from './grid';
 import type { NoteValue } from './clip';
 import { WHAMMY_SHAPE_IDS, WHAMMY_SHAPE_NAMES, type WhammyShape } from './whammy';
@@ -40,11 +41,11 @@ export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, on
   /** Only these groups, by label (a rail panel's, TabRail.tsx); all when left out. */
   groups?: readonly string[];
   className?: string;
-  /** Note input mode's fixed grid (issue #293), or null while it follows note input mode's length; first in the Duration group. */
+  /** Note input mode's fixed grid (issue #293), or null while it follows note input mode's length; beside the pencil (issue #449). */
   grid?: GridValue | null;
   /** The note value the grid steps by now, drawn on the button. */
   gridValue?: NoteValue;
-  /** A grid picked in the button's panel, or null for Note length. */
+  /** A grid picked in the button's panel, or null for Follow note length. */
   onGrid?: (grid: GridValue | null) => void;
   /**
    * The Voice row under Input (step 9, Q5): the Active voice lit (none while the tab hasn't the keys), a
@@ -52,6 +53,44 @@ export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, on
    */
   voices?: { active: number | null; onVoice: (voice: number) => void; present: (voice: number) => boolean };
 }) {
+  /** One tool's button, or its button with a panel. */
+  const toolButton = (tool: Tool) => tool.id === 'bend' ? (
+    <PanelTool
+      key={tool.id} tool={tool} current={kinds.bend} choices={BEND_QUARTERS} label={q => BEND_AMOUNTS[q]}
+      icon={<BendGlyph amount={kinds.bend ? BEND_AMOUNTS[kinds.bend] : ''} />} onPick={onBend} disabled={disabled}
+    />
+  ) : tool.id === 'tuplet' ? (
+    <PanelTool
+      key={tool.id} tool={tool}
+      // A tuplet of an unusual span (3:4) is in no choice, so none is lit; the icon still names it.
+      current={kinds.tuplet && !kinds.tuplet.tupletSpan ? kinds.tuplet.tuplet! : null} choices={TUPLETS} label={String}
+      icon={<TupletGlyph n={kinds.tuplet ? tupletLabel(kinds.tuplet) : ''} />} onPick={onTuplet} disabled={disabled}
+    />
+  ) : tool.id === 'ottava' ? (
+    <PanelTool
+      key={tool.id} tool={tool} current={kinds.ottava} choices={OTTAVAS} label={String}
+      icon={<OttavaGlyph label={kinds.ottava ?? '8va'} />} onPick={onOttava} disabled={disabled}
+    />
+  ) : tool.id === 'whammy' ? (
+    <PanelTool
+      key={tool.id} tool={tool} pressed={kinds.whammy !== null}
+      current={kinds.whammy === 'other' ? null : kinds.whammy} choices={WHAMMY_SHAPE_IDS} label={s => WHAMMY_SHAPE_NAMES[s]}
+      icon={<WhammyGlyph />} onPick={onWhammy} disabled={disabled}
+    />
+  ) : (
+    <button
+      key={tool.id} type="button" className="btn btn-secondary btn-toggle tab-tool"
+      aria-label={tool.label} aria-pressed={!disabled && isOn(tool.id)} disabled={disabled}
+      data-tip={tool.key ? `${tool.label} (${tool.key})` : tool.label}
+      // Keep the focus, and so the cursor, on the tab.
+      onMouseDown={e => e.preventDefault()}
+      onClick={() => onTool(tool.id)}
+    >
+      <svg width={24} height={24} viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5}>
+        {tool.id === 'vibrato' ? <VibratoGlyph wide={kinds.vibrato === 'wide'} /> : tool.id === 'wah' ? <WahGlyph open={kinds.wah === 'open'} /> : ICONS[tool.id]}
+      </svg>
+    </button>
+  );
   const shown = groups ? TOOL_GROUPS.filter(group => groups.includes(group.label)) : TOOL_GROUPS;
   return (
     <div className={className ? `tab-palette ${className}` : 'tab-palette'} role="toolbar" aria-label="Symbols">
@@ -71,6 +110,12 @@ export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, on
                 <path d="M5 19l1-4L16 5l3 3L9 18l-4 1zM14 7l3 3" strokeLinejoin="round" />
               </svg>
             </button>
+            {grid !== undefined && gridValue && onGrid && (
+              <PanelTool
+                tool={GRID_TOOL} current={grid} choices={GRID_VALUES} label={g => GRID_NAMES[g]} toggle={false} noneLabel={FOLLOW_NOTE_LENGTH}
+                icon={<GridGlyph value={gridValue} />} caption={gridCaption(grid)} captions={GRID_CAPTIONS} onPick={onGrid} disabled={disabled}
+              />
+            )}
           </div>
         </div>
       )}
@@ -93,56 +138,24 @@ export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, on
           </div>
         </div>
       )}
-      {shown.map(group => (
-        <div key={group.label} className="tab-palette-group" role="group" aria-label={group.label}>
-          <span className="tab-palette-label" aria-hidden="true">{group.label}</span>
-          <div className="tab-palette-tools">
-            {group.label === 'Duration' && grid !== undefined && gridValue && onGrid && (
-              <PanelTool
-                tool={GRID_TOOL} current={grid} choices={GRID_VALUES} label={g => GRID_NAMES[g]} toggle={false} noneLabel="Note length"
-                icon={<GridGlyph value={gridValue} />} onPick={onGrid} disabled={disabled}
-              />
-            )}
-            {group.tools.map(tool => tool.id === 'bend' ? (
-              <PanelTool
-                key={tool.id} tool={tool} current={kinds.bend} choices={BEND_QUARTERS} label={q => BEND_AMOUNTS[q]}
-                icon={<BendGlyph amount={kinds.bend ? BEND_AMOUNTS[kinds.bend] : ''} />} onPick={onBend} disabled={disabled}
-              />
-            ) : tool.id === 'tuplet' ? (
-              <PanelTool
-                key={tool.id} tool={tool}
-                // A tuplet of an unusual span (3:4) is in no choice, so none is lit; the icon still names it.
-                current={kinds.tuplet && !kinds.tuplet.tupletSpan ? kinds.tuplet.tuplet! : null} choices={TUPLETS} label={String}
-                icon={<TupletGlyph n={kinds.tuplet ? tupletLabel(kinds.tuplet) : ''} />} onPick={onTuplet} disabled={disabled}
-              />
-            ) : tool.id === 'ottava' ? (
-              <PanelTool
-                key={tool.id} tool={tool} current={kinds.ottava} choices={OTTAVAS} label={String}
-                icon={<OttavaGlyph label={kinds.ottava ?? '8va'} />} onPick={onOttava} disabled={disabled}
-              />
-            ) : tool.id === 'whammy' ? (
-              <PanelTool
-                key={tool.id} tool={tool} pressed={kinds.whammy !== null}
-                current={kinds.whammy === 'other' ? null : kinds.whammy} choices={WHAMMY_SHAPE_IDS} label={s => WHAMMY_SHAPE_NAMES[s]}
-                icon={<WhammyGlyph />} onPick={onWhammy} disabled={disabled}
-              />
+      {shown.map(group => {
+        // The note values (Duration's) get a row of their own, shortest to longest; the group's other tools go under them.
+        const values = group.tools.filter(tool => toolValue(tool.id) !== undefined);
+        const others = group.tools.filter(tool => toolValue(tool.id) === undefined);
+        return (
+          <div key={group.label} className="tab-palette-group" role="group" aria-label={group.label}>
+            <span className="tab-palette-label" aria-hidden="true">{group.label}</span>
+            {values.length > 0 ? (
+              <div className="tab-palette-rows">
+                <div className="tab-palette-tools tab-palette-values">{values.map(toolButton)}</div>
+                <div className="tab-palette-tools">{others.map(toolButton)}</div>
+              </div>
             ) : (
-              <button
-                key={tool.id} type="button" className="btn btn-secondary btn-toggle tab-tool"
-                aria-label={tool.label} aria-pressed={!disabled && isOn(tool.id)} disabled={disabled}
-                data-tip={tool.key ? `${tool.label} (${tool.key})` : tool.label}
-                // Keep the focus, and so the cursor, on the tab.
-                onMouseDown={e => e.preventDefault()}
-                onClick={() => onTool(tool.id)}
-              >
-                <svg width={24} height={24} viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                  {tool.id === 'vibrato' ? <VibratoGlyph wide={kinds.vibrato === 'wide'} /> : tool.id === 'wah' ? <WahGlyph open={kinds.wah === 'open'} /> : ICONS[tool.id]}
-                </svg>
-              </button>
-            ))}
+              <div className="tab-palette-tools">{others.map(toolButton)}</div>
+            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -218,7 +231,7 @@ function VibratoGlyph({ wide }: { wide: boolean }) {
  * choice, and the panel lights it; picking one sets it, None takes it away. A press outside, or Esc,
  * closes the panel; focus never leaves the tab.
  */
-function PanelTool<T extends number | string>({ tool, current, pressed = current !== null, choices, label, icon, onPick, disabled, toggle = true, noneLabel }: {
+function PanelTool<T extends number | string>({ tool, current, pressed = current !== null, choices, label, icon, caption, captions = [], onPick, disabled, toggle = true, noneLabel }: {
   tool: Pick<Tool, 'label' | 'key'>;
   /** The cursor's choice, or null for none (or for one the panel doesn't offer). */
   current: T | null;
@@ -228,11 +241,15 @@ function PanelTool<T extends number | string>({ tool, current, pressed = current
   /** A choice as the panel names it. */
   label: (choice: T) => string;
   icon: ReactNode;
+  /** A word after the icon naming the setting (the Grid's), widening the button. */
+  caption?: string;
+  /** Every word the caption can be, laid over each other so the button keeps the longest's width. */
+  captions?: readonly string[];
   onPick: (choice: T | null) => void;
   disabled: boolean;
   /** Whether the button shows the cursor has the mark (pressed); false for a setting, as the Grid's. */
   toggle?: boolean;
-  /** For a setting whose null is a choice of its own (the Grid's Note length): its name, first in the panel; else None, last. */
+  /** For a setting whose null is a choice of its own (the Grid's Follow note length): its name, first in the panel; else None, last. */
   noneLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -261,8 +278,8 @@ function PanelTool<T extends number | string>({ tool, current, pressed = current
   return (
     <span ref={boxRef} className="tab-tool-box">
       <button
-        type="button" className="btn btn-secondary btn-toggle tab-tool"
-        aria-label={tool.label} aria-pressed={toggle ? !disabled && pressed : undefined} aria-expanded={open} aria-haspopup="dialog" disabled={disabled}
+        type="button" className={caption ? 'btn btn-secondary btn-toggle tab-tool tab-tool-worded' : 'btn btn-secondary btn-toggle tab-tool'}
+        aria-label={caption ? `${tool.label}: ${caption}` : tool.label} aria-pressed={toggle ? !disabled && pressed : undefined} aria-expanded={open} aria-haspopup="dialog" disabled={disabled}
         data-tip={tool.key ? `${tool.label} (${tool.key})` : tool.label}
         onMouseDown={e => e.preventDefault()}
         onClick={() => setOpen(o => !o)}
@@ -270,6 +287,11 @@ function PanelTool<T extends number | string>({ tool, current, pressed = current
         <svg width={24} height={24} viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5}>
           {icon}
         </svg>
+        {caption && (
+          <span className="tab-tool-caption" aria-hidden="true">
+            {[caption, ...captions.filter(c => c !== caption)].map((c, i) => <span key={c} className={i ? 'tab-tool-caption-room' : undefined}>{c}</span>)}
+          </span>
+        )}
       </button>
       {open && !disabled && (
         <span className="tab-tool-panel card" role="dialog" aria-label={tool.label}>
@@ -293,6 +315,17 @@ function PanelTool<T extends number | string>({ tool, current, pressed = current
 
 /** The Grid button's name, tip and keys (issue #293); not a palette tool, so not in `TOOL_GROUPS`. */
 const GRID_TOOL = { label: 'Note input grid', key: 'Alt+G, Alt+[ ]' };
+
+/** The Grid panel's choice for following note input mode's length, not a fixed grid (Jeremy, 2026-11-09). */
+const FOLLOW_NOTE_LENGTH = 'Follow note length';
+
+/** The Grid button's words for its setting, after its glyph (issue #449): the fixed grid's note, or Follow note length. */
+function gridCaption(grid: GridValue | null): string {
+  return grid === null ? FOLLOW_NOTE_LENGTH : GRID_NAMES[grid];
+}
+
+/** Every word the Grid button can show, so it keeps the longest's width. */
+const GRID_CAPTIONS = [null, ...GRID_VALUES].map(gridCaption);
 
 /** The grid's note over a ruler: the note value ← → step by in a rest. */
 function GridGlyph({ value }: { value: NoteValue }) {
@@ -386,6 +419,12 @@ export const ICONS: Record<Exclude<ToolId, 'bend' | 'vibrato' | 'tuplet' | 'wah'
   // A staccato dot over a note, so it can't pass for the duration dot.
   // Drawn by its panel's button (OttavaGlyph).
   ottava: null,
+  // "mf" in the dynamics' own letters, shrunk to fit the button.
+  dynamic: (
+    <g transform="translate(12 12) scale(0.68)" fill="currentColor" stroke="none">
+      {dynamicWord('mf', 0, 0).letters.map((letter, i) => <path key={i} d={letter.d} transform={letter.transform} />)}
+    </g>
+  ),
   // The mordent's own sign over a note, as the staff and tab draw it.
   mordent: <MordentIcon kind="upper" />,
   lowerMordent: <MordentIcon kind="lower" />,
@@ -403,6 +442,8 @@ export const ICONS: Record<Exclude<ToolId, 'bend' | 'vibrato' | 'tuplet' | 'wah'
   chordName: <Label y={16} size={10}>Am</Label>,
   // Words in italics, as free text is drawn over the tab.
   beatText: <text x={12} y={16} fontSize={10} fontStyle="italic" fill="currentColor" stroke="none" textAnchor="middle">abc</text>,
+  // A syllable joined to the next, as Lyrics are drawn under the notes.
+  lyrics: <text x={12} y={16} fontSize={9} fill="currentColor" stroke="none" textAnchor="middle">la-la</text>,
   section: <><rect x={3} y={7} width={18} height={11} rx={1.5} /><Label y={15.5} size={7.5}>Intro</Label></>,
   // A capo: a bar clamped across the strings.
   capo: <>{[7, 11, 15, 19].map(y => <line key={y} x1={3} y1={y} x2={21} y2={y} strokeWidth={1} />)}<rect x={10} y={4} width={4.5} height={18} rx={2} fill="currentColor" stroke="none" /></>,
