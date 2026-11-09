@@ -1,0 +1,7 @@
+\title "13. Copy and paste"
+\ts (4 4)
+5.3.8 7.3.8 5.3.8 7.3.8
+  r.2{txt "Tab view. 1. Press the first 5 in bar 1, then the Shift+Right arrow key three times: the four notes are selected. 2. Press Ctrl/⌘+C."} |
+r.1 |
+r.1{txt "3. Press anywhere in bar 2: the bar is boxed. 4. Press Ctrl/⌘+V: the four notes are pasted there, rests after them."} |
+

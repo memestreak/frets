@@ -1,0 +1,6 @@
+\title "2. Type chords and name them"
+\ts (4 4)
+r.1{txt "Tab view. 1. Press N. 2. Type 0, Down arrow key, 1, Down arrow, 2, Down arrow, 2, Down arrow, 0: an A minor chord, a string at a time, in one column. 3. Press Shift+Space: the caret moves on a beat, still on the A string. 4. Type 3, Up arrow key, 2, Up arrow, 0, Up arrow, 1, Up arrow, 0: a C chord, typed from the bottom up. 5. Press Esc."} |
+r.1 |
+r.1{txt "6. Press the 1 of the first chord, then C: the Chord name field opens. 7. Type Am, then Enter: Am shows over the chord. 8. Name the second chord C the same way."} |
+

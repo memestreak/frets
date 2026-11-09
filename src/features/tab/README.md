@@ -533,6 +533,8 @@ MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
   lines in a Text; Ctrl/⌘+B and Shift+Enter in its field
 - `docs/specs/2026-11-03-tab-test-arrangements-design.md`: test
   arrangements, the `editing_tests/` folder and its skill
+- `docs/specs/2026-11-09-tab-how-to-lessons-design.md`: the How to
+  lessons, one built-in arrangement per feature, `how_to/`
 - `docs/specs/2026-11-01-tab-note-input-grid-design.md`: note input mode's grid,
   following note input mode's length or fixed, and ← → / Shift+Space by it
 - `docs/specs/2026-11-01-tab-view-options-per-view-design.md`: View options
