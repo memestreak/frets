@@ -58,7 +58,7 @@ import { chartChords, type ChartChord } from './chordDiagrams';
 import { laidOut, paletteOf, sectionsOf, shownColours, viewOf, type ColourPair, type TabView } from './viewOptions';
 import { TAB_SETTINGS_START, tabSettingsGroup, useTabPrefs } from './tabSettings';
 import { useMidiPort } from './useMidiOutput';
-import { channelOf } from './midiOut';
+import { MIDI_TRACKS, channelOf } from './midiOut';
 import { VIEWS, type View } from './views';
 import { PinnedPlayback } from './PinnedPlayback';
 import { LoopHandles, PlaybackFooter, Playhead, type PlaybackSettings } from './PlaybackFooter';
@@ -275,12 +275,17 @@ export default function TabPage() {
   // The clip's own instrument, or the nearest of Frets' sounds to it (`instrument.ts`).
   const sound = soundFor(clip.instrument?.program);
   // Playback, the playback line, and where Play starts and stops.
-  // Settings' MIDI output: the port, found by name, and the shown track's channel.
+  // Settings' MIDI output: the port, found by name, and the shown track's channel. Only Tracks 1 to 4
+  // go out; a later track plays the built-in sound, with a ⚠ saying so.
   const midiOut = useMidiPort(prefs.midi.port);
+  const midiChannel = channelOf(prefs.midi, track);
   const midi = useMemo(
-    () => ({ port: midiOut.port, channel: channelOf(prefs.midi, track), builtIn: prefs.midi.builtIn }),
-    [midiOut.port, prefs.midi, track],
+    () => ({ port: midiChannel === null ? null : midiOut.port, channel: midiChannel ?? 1, builtIn: prefs.midi.builtIn }),
+    [midiOut.port, midiChannel, prefs.midi.builtIn],
   );
+  const midiNote = midiOut.missing ?? (midiOut.port && midiChannel === null
+    ? `Only Tracks 1 to ${MIDI_TRACKS} go out over MIDI. Track ${track + 1} plays the built-in sound.`
+    : null);
   const range = usePlayRange(editor, {
     whole, wholeWith, sound, settings: playbackSettings, metronome, midi, replace: next => dispatchClip({ type: 'replace', clip: next }),
   });
@@ -420,7 +425,7 @@ export default function TabPage() {
     if (!next.shown) playback.stop();
     setPlaybackSettings(next);
   };
-  const settingsGroups = [useGeneralGroup(), tabSettingsGroup(prefs, savePlayback, whole.tracks.length)];
+  const settingsGroups = [useGeneralGroup(), tabSettingsGroup(prefs, savePlayback)];
   /** Note input mode on or off; going in, the keys come to the tab. */
   /** The rest last picked on the staff, so going into note input mode from it starts the caret there. */
   const restOnStaff = useRef<{ bar: number; column: number } | null>(null);
@@ -1036,7 +1041,7 @@ export default function TabPage() {
             clip={clip} playback={playback} from={playFrom} until={playUntil} selection={selectedColumns} onLoop={toggleLoop}
             shown={showPlayback} onShow={showPlaybackControls}
             track={{ name: whole.tracks[track].name, index: track }}
-            sound={sound} soundNote={substituteNote(clip.instrument?.program)} midiNote={midiOut.missing}
+            sound={sound} soundNote={substituteNote(clip.instrument?.program)} midiNote={midiNote}
             onSound={next => commit({ ...clip, instrument: { program: next, tag: instrumentTag(next) } })}
             volume={playbackSettings.volume} onVolume={volume => setPlaybackSettings(s => ({ ...s, volume }))}
             hearNotes={playbackSettings.hearNotes} onHearNotes={hearNotes => setPlaybackSettings(s => ({ ...s, hearNotes }))}

@@ -516,8 +516,9 @@
 .settings-after { font: 400 14px/20px var(--font-sans); color: var(--ink-muted); }
 /* MIDI output: the port list, and a channel field per track (issue #457). */
 .settings-port { width: 100%; max-width: 20rem; min-width: 0; }
-.settings-channels { display: flex; flex-wrap: wrap; gap: 8px 16px; }
-.settings-channel { display: inline-flex; align-items: center; gap: 8px; }
+.settings-channels { display: grid; grid-template-columns: repeat(2, max-content max-content); align-items: center; gap: 8px; column-gap: 8px; }
+.settings-channel { display: contents; }
+.settings-channel:nth-child(even) > :first-child { margin-left: 16px; }
 
 /* The Tab page's title: a press opens the Title and credits panel. */
 .tab-title-text {

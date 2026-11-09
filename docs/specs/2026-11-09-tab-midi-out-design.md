@@ -28,9 +28,11 @@ the Q numbers below are its.
 
 ## Channels (Q2)
 
-- Each **track** has its own channel, 1 to 16, Track N on channel N by default (Track 16 and later
-  on 16). Tab plays the track shown (`2026-10-30-tab-tracks-design.md`), so that track's channel is
-  the one used.
+- **Tracks 1 to 4** go out over MIDI (Jeremy, 2026-11-09: "a limit of four tracks that we support
+  for output"). Each has its own channel, 1 to 16, Track N on channel N by default. Tab plays the
+  track shown (`2026-10-30-tab-tracks-design.md`), so that track's channel is the one used.
+- Track 5 and later play the built-in sound, as with no port, and the footer's ⚠ says "Only Tracks
+  1 to 4 go out over MIDI. Track N plays the built-in sound."
 - Both of the channels alphaTab plays a track on (the second for notes with a bend, slide or
   vibrato) go out on the track's one channel. So a bend in a chord bends every note of the chord in
   the receiver; a single line bends as written.
@@ -65,8 +67,9 @@ A Tab section **MIDI output**, key `frets.tab.midi`:
   port not there now is listed as "<name> (not found)".
 - `builtIn`: "Also play the built-in sound", usable only with a port picked (boxed with it, as
   Output).
-- `channels`: a channel per track, as a list from Track 1; a number field per track of the open
-  arrangement, labelled by track number. A missing or bad entry is its default.
+- `channels`: Tracks 1 to 4's channels, as a list from Track 1; four number fields, labelled by
+  track number, whatever the open arrangement has. A missing or bad entry is its default; entries
+  past the fourth are dropped.
 - The browser asks for permission to use MIDI devices the first time the section shows. Where the
   browser has no Web MIDI (Safari), the section says so and offers no port.
 
@@ -100,8 +103,8 @@ instrument to a MIDI port instead of its VST sound. MuseScore 4 has no MIDI outp
 ## Tests
 
 - `parseMidiSettings`: defaults `{ port: '', builtIn: false, channels: [] }`; a bad port, flag or
-  channel (0, 17, 1.5, a string) takes its default; channel for track 1 is 1, track 3 is 3, track 20
-  is 16 when unset; a saved channel wins.
+  channel (0, 17, 1.5, a string) takes its default; channel for track 1 is 1, track 4 is 4 when
+  unset; a saved channel wins; track 5 has none, and a fifth saved entry is dropped.
 - `messageOf`: a note on (alphaTab's type 128) on channel 0 key 60 velocity 100 to channel 3 is
   `[0x92, 60, 100]`; a note off (144) is `[0x82, …]`; the second alphaTab channel goes to the same
   channel; a pitch bend of 8192 + 4096 is `[0xE2, 0, 96]`; CC 7 goes out; program changes and CC 0
@@ -113,5 +116,7 @@ instrument to a MIDI port instead of its VST sound. MuseScore 4 has no MIDI outp
   its first key; at Play the range message and a centred pitch bend go out on the track's channel;
   nothing goes out while the tap is off (a note heard alone).
 - Settings: the MIDI output section lists None and the outputs, "(not found)" for a saved one that
-  is gone; "Also play the built-in sound" is disabled with no port; one channel field per track.
-- Footer: the ⚠ shows only with a port picked and not found; its tip names the port.
+  is gone; "Also play the built-in sound" is disabled with no port; four channel fields, Track 1
+  to 4, and no Track 5.
+- Footer: the ⚠ shows only with a port picked and not found, or a track past 4 shown with a port;
+  its tip names the port, or says only Tracks 1 to 4 go out.

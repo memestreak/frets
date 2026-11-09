@@ -24,8 +24,12 @@ describe('the MIDI output section', () => {
     expect(settings).toEqual(DEFAULT_MIDI);
     expect(settings).toEqual({ port: '', builtIn: false, channels: [] });
     expect(channelOf(settings, 0)).toBe(1);
-    expect(channelOf(settings, 2)).toBe(3);
-    expect(channelOf(settings, 19)).toBe(16);
+    expect(channelOf(settings, 3)).toBe(4);
+  });
+
+  it('sends only Tracks 1 to 4: a later track has no channel', () => {
+    expect(channelOf(DEFAULT_MIDI, 4)).toBeNull();
+    expect(channelOf({ ...DEFAULT_MIDI, channels: [1, 2, 3, 4, 5] }, 4)).toBeNull();
   });
 
   it('takes its default for a bad port, flag or channel, and keeps a good one', () => {
@@ -33,10 +37,10 @@ describe('the MIDI output section', () => {
     const settings = parseMidiSettings({ port: 'IAC Driver Bus 1', builtIn: true, channels: [5, 0, 17, 1.5, '4', 9] });
     expect(settings.port).toBe('IAC Driver Bus 1');
     expect(settings.builtIn).toBe(true);
-    // Each bad one is its own track's default, so the tracks after it keep their place.
-    expect(settings.channels).toEqual([5, 2, 3, 4, 5, 9]);
+    // Each bad one is its own track's default, so the tracks after it keep their place; past Track 4 is dropped.
+    expect(settings.channels).toEqual([5, 2, 3, 4]);
     expect(channelOf(settings, 0)).toBe(5);
-    expect(channelOf(settings, 5)).toBe(9);
+    expect(parseMidiSettings({ channels: [1, 2, 3, 9] }).channels).toEqual([1, 2, 3, 9]);
   });
 });
 

@@ -469,7 +469,7 @@ MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
   arrow left of the chord on the staff and the tab, set by four palette
   buttons, picked and deleted like any Mark (issue #384).
 - `docs/specs/2026-11-09-tab-midi-out-design.md`: playback out over MIDI
-  to a port picked in Settings, a channel per track (issue #457)
+  to a port picked in Settings, a channel for each of Tracks 1 to 4 (issue #457)
 - `docs/specs/2026-11-09-tab-dynamics-design.md`: dynamics (alphaTex `dy`)
   drawn on the hairpins' row, entered with Shift+D or the Dynamic tool,
   picked, edited and deleted like any Mark (issue #437).

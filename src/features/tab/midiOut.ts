@@ -13,7 +13,7 @@ export interface MidiSettings {
   port: string;
   /** "Also play the built-in sound": its notes keep playing while MIDI goes out. */
   builtIn: boolean;
-  /** Each track's channel, 1 to 16, from Track 1; a track past the list's end takes its default. */
+  /** Tracks 1 to 4's channels, 1 to 16; a track past the list's end takes its default. */
   channels: number[];
 }
 
@@ -22,13 +22,17 @@ export const DEFAULT_MIDI: MidiSettings = { port: '', builtIn: false, channels: 
 export const MIN_CHANNEL = 1;
 export const MAX_CHANNEL = 16;
 
+/** How many tracks go out over MIDI: Tracks 1 to 4. A later track plays the built-in sound. */
+export const MIDI_TRACKS = 4;
+
 const isChannel = (v: unknown): v is number => Number.isInteger(v) && (v as number) >= MIN_CHANNEL && (v as number) <= MAX_CHANNEL;
 
-/** A track's default channel: Track N on N, the 16th and later on 16. `track` counts from 0. */
-export const defaultChannel = (track: number) => Math.min(MAX_CHANNEL, track + 1);
+/** A track's default channel: Track N on N. `track` counts from 0. */
+export const defaultChannel = (track: number) => track + 1;
 
-/** The channel a track (from 0) goes out on, 1 to 16. */
-export function channelOf(settings: MidiSettings, track: number): number {
+/** The channel a track (from 0) goes out on, 1 to 16; null for a track past `MIDI_TRACKS`. */
+export function channelOf(settings: MidiSettings, track: number): number | null {
+  if (track >= MIDI_TRACKS) return null;
   const saved = settings.channels[track];
   return isChannel(saved) ? saved : defaultChannel(track);
 }
@@ -39,7 +43,9 @@ export function parseMidiSettings(raw: unknown): MidiSettings {
     port: typeof fields.port === 'string' ? fields.port : DEFAULT_MIDI.port,
     builtIn: fields.builtIn === true,
     // A bad entry is its track's default, so the tracks after it keep their place.
-    channels: Array.isArray(fields.channels) ? fields.channels.map((c, t) => (isChannel(c) ? c : defaultChannel(t))) : [],
+    channels: Array.isArray(fields.channels)
+      ? fields.channels.slice(0, MIDI_TRACKS).map((c, t) => (isChannel(c) ? c : defaultChannel(t)))
+      : [],
   };
 }
 

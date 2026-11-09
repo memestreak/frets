@@ -54,17 +54,15 @@ describe('Settings › Tab › MIDI output', () => {
     expect(portList().value).toBe('IAC Driver Bus 1');
   });
 
-  it('has a channel field per track, Track N on channel N', async () => {
+  it('has a channel field for each of Tracks 1 to 4, Track N on channel N, whatever the arrangement', async () => {
     stubMidi([]);
-    const TWO = '\\title "Two"\n\\track "Gtr I"\n\\ts (4 4)\n5.3.1 |\n\\track "Gtr II"\n0.6.1 2.6.1 |\n';
-    renderAt(`#tab=${encodeURIComponent(TWO)}`);
-    await screen.findByRole('heading', { name: 'Two' }, SLOW);
+    renderAt();
     await openMidiSettings();
-    const first = dialog().getByRole('spinbutton', { name: 'Track 1 channel' });
-    const second = dialog().getByRole('spinbutton', { name: 'Track 2 channel' });
-    expect(first).toHaveValue('1');
-    expect(second).toHaveValue('2');
-    fireEvent.keyDown(second, { key: 'ArrowUp' });
+    const fields = dialog().getAllByRole('spinbutton', { name: /^Track \d channel$/ });
+    expect(fields.map(f => f.getAttribute('aria-label'))).toEqual(['Track 1 channel', 'Track 2 channel', 'Track 3 channel', 'Track 4 channel']);
+    expect(fields.map(f => (f as HTMLInputElement).value)).toEqual(['1', '2', '3', '4']);
+    expect(dialog().queryByRole('spinbutton', { name: 'Track 5 channel' })).toBeNull();
+    fireEvent.keyDown(fields[1], { key: 'ArrowUp' });
     fireEvent.click(dialog().getByRole('button', { name: 'OK' }));
     expect(JSON.parse(localStorage.getItem(MIDI_KEY)!).channels).toEqual([1, 3]);
   });
@@ -100,5 +98,18 @@ describe('the footer\'s MIDI ⚠', () => {
     renderAt();
     await act(async () => { await Promise.resolve(); });
     expect(warning()).toHaveAttribute('data-tip', expect.stringMatching(/“IAC Driver Bus 1”.*isn’t connected.*built-in sound plays instead/));
+  });
+
+  it('shows on a track past Track 4, saying it plays the built-in sound', async () => {
+    stubMidi(['IAC Driver Bus 1']);
+    localStorage.setItem(MIDI_KEY, JSON.stringify({ port: 'IAC Driver Bus 1' }));
+    const FIVE = '\\title "Five"\n\\ts (4 4)\n' + [1, 2, 3, 4, 5].map(n => `\\track "T${n}"\n0.6.1 |\n`).join('');
+    renderAt(`#tab=${encodeURIComponent(FIVE)}`);
+    await screen.findByRole('heading', { name: 'Five' }, SLOW);
+    await act(async () => { await Promise.resolve(); });
+    const overMidi = () => screen.queryByRole('img', { name: /over MIDI/ });
+    expect(overMidi()).toBeNull();
+    fireEvent.change(screen.getByRole('combobox', { name: 'Track' }), { target: { value: '4' } });
+    expect(overMidi()).toHaveAttribute('data-tip', 'Only Tracks 1 to 4 go out over MIDI. Track 5 plays the built-in sound.');
   });
 });

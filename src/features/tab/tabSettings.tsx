@@ -32,7 +32,7 @@ import { DEFAULT_EDITING, EDITING_KEY, parseEditing, type EditingPrefs } from '.
 import { GRID_LOOK_NAMES, GRID_LOOKS, GRID_NAMES, GRID_VALUES, type GridLook, type GridValue } from './grid';
 import { CHAT_KEY, DEFAULT_CHAT, parseChatPrefs, type ChatPrefs } from './chat/chatPrefs';
 import { customField, instructionsField } from './chat/promptFields';
-import { DEFAULT_MIDI, MAX_CHANNEL, MIDI_KEY, MIN_CHANNEL, channelOf, parseMidiSettings, type MidiSettings } from './midiOut';
+import { DEFAULT_MIDI, MAX_CHANNEL, MIDI_KEY, MIDI_TRACKS, MIN_CHANNEL, channelOf, parseMidiSettings, type MidiSettings } from './midiOut';
 import { useMidiOutputs } from './useMidiOutput';
 
 /** One section's state: read from its key once, written back on every change. */
@@ -178,20 +178,20 @@ function MidiPortSelect({ value, set, labelId }: { value: MidiSettings; set: (ne
   );
 }
 
-/** Each track's MIDI channel: a number field per track of the open arrangement, by track number. */
-function channelsField(tracks: number): SettingsField<MidiSettings> {
+/** Tracks 1 to 4's MIDI channels: a number field each, by track number. */
+function channelsField(): SettingsField<MidiSettings> {
   return {
     key: 'channels', label: 'Channels',
     control: ({ value, set }) => (
       <span className="settings-channels">
-        {Array.from({ length: Math.max(1, tracks) }, (_, t) => (
+        {Array.from({ length: MIDI_TRACKS }, (_, t) => (
           <span key={t} className="settings-channel">
             <span className="settings-after">Track {t + 1}</span>
             <NumberField
-              value={channelOf(value, t)} min={MIN_CHANNEL} max={MAX_CHANNEL} step={1}
+              value={channelOf(value, t) ?? MIN_CHANNEL} min={MIN_CHANNEL} max={MAX_CHANNEL} step={1}
               label={`Track ${t + 1} channel`} upLabel="Next channel" downLabel="Previous channel"
               onChange={n => {
-                const channels = Array.from({ length: Math.max(value.channels.length, t + 1) }, (_, i) => channelOf(value, i));
+                const channels = Array.from({ length: Math.max(value.channels.length, t + 1) }, (_, i) => channelOf(value, i) ?? MIN_CHANNEL);
                 channels[t] = n;
                 set({ ...value, channels });
               }}
@@ -205,9 +205,9 @@ function channelsField(tracks: number): SettingsField<MidiSettings> {
 
 /**
  * Settings' Tab group, on the page's state. `savePlayback` saves Playback (hiding the controls stops
- * playback). `tracks` is how many tracks the open arrangement has, for MIDI output's channels.
+ * playback).
  */
-export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: PlaybackSettings) => void, tracks = 1): SettingsGroup {
+export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: PlaybackSettings) => void): SettingsGroup {
   return {
     id: 'tab',
     name: 'Tab',
@@ -253,7 +253,7 @@ export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: Playback
         fields: [
           { key: 'port', label: 'Port', box: 'Output', control: props => <MidiPortSelect {...props} /> },
           { ...checkField<MidiSettings, 'builtIn'>('builtIn', 'Also play the built-in sound', { enabled: v => v.port !== '' }), box: 'Output' },
-          channelsField(tracks),
+          channelsField(),
         ],
       }),
       section<NotationPrefs>({
