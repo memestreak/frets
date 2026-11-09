@@ -42,7 +42,7 @@ describe('Settings › Tab › MIDI output', () => {
     fireEvent.change(portList(), { target: { value: 'IAC Driver Bus 1' } });
     expect(builtIn()).toBeEnabled();
     fireEvent.click(dialog().getByRole('button', { name: 'OK' }));
-    expect(JSON.parse(localStorage.getItem(MIDI_KEY)!)).toEqual({ port: 'IAC Driver Bus 1', builtIn: false, channels: [] });
+    expect(JSON.parse(localStorage.getItem(MIDI_KEY)!)).toEqual({ port: 'IAC Driver Bus 1', builtIn: false, channels: [], bendRange: 2 });
   });
 
   it('keeps a saved port that is gone, marked not found', async () => {

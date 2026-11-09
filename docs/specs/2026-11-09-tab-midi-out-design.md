@@ -15,9 +15,13 @@ the Q numbers below are its.
 - **Playback only** (Q8): Play, loops, the count-in's bars and Tap all send. A note heard as it is
   entered, or a chord picked in the Chords panel, plays in the built-in sound only.
 - **Notes, pitch bends and controllers**, as alphaTab plays them. Bends, slides and vibrato go out
-  as pitch bend (Q4). At each Play, every channel used first gets the pitch bend range alphaTab
-  writes them for, **16 semitones**, as the standard message (RPN 0: CC 101 0, CC 100 0, CC 6 16,
-  CC 38 0), and its pitch bend centred. A receiver that ignores RPN 0 hears bends at its own range.
+  as pitch bend (Q4). alphaTab writes bends for a 16-semitone range; Frets scales each to the
+  receiver's **Pitch bend range** (Settings, 1 to 24 semitones, default 2, MIDI's own default that
+  most synths keep), so a whole step bends a whole step; a bend past that range stops at its end.
+  At each Play, every channel used first gets that range as the standard message (RPN 0: CC 101 0,
+  CC 100 0, CC 6 <range>, CC 38 0, then RPN null), and its pitch bend centred. alphaTab's own RPN
+  and data entry (CC 100, 101, 6, 38) are not sent. Jeremy, 2026-11-09: fmlab barely bent at 16,
+  so a receiver that ignores RPN 0 must be matched by the setting.
 - **No program or bank changes** (Q9): the footer's Sound picks the built-in sound only; the
   synth's patch is set in the synth.
 - **The clicks stay in Tab** (Q3): the metronome's and the count-in's channels never go out.
@@ -67,6 +71,7 @@ A Tab section **MIDI output**, key `frets.tab.midi`:
   port not there now is listed as "<name> (not found)".
 - `builtIn`: "Also play the built-in sound", usable only with a port picked (boxed with it, as
   Output).
+- `bendRange`: "Pitch bend range", 1 to 24 semitones, default 2.
 - `channels`: Tracks 1 to 4's channels, as a list from Track 1; a table of Track and Channel,
   a row and a number field per track, whatever the open arrangement has. A missing or bad entry is its default; entries
   past the fourth are dropped.
@@ -107,7 +112,9 @@ instrument to a MIDI port instead of its VST sound. MuseScore 4 has no MIDI outp
   unset; a saved channel wins; track 5 has none, and a fifth saved entry is dropped.
 - `messageOf`: a note on (alphaTab's type 128) on channel 0 key 60 velocity 100 to channel 3 is
   `[0x92, 60, 100]`; a note off (144) is `[0x82, …]`; the second alphaTab channel goes to the same
-  channel; a pitch bend of 8192 + 4096 is `[0xE2, 0, 96]`; CC 7 goes out; program changes and CC 0
+  channel; a pitch bend of 8192 + 4096 at range 16 is `[0xE2, 0, 96]`; a half step (8192 + 512) is
+  `[0xE2, 0, 96]` at range 2 and `[0xE2, 43, 69]` at 12; a bend past the range stops at 0 or 16383;
+  CC 100, 101, 6 and 38 aren't sent; a bad `bendRange` (0, 25, 1.5) is 2; CC 7 goes out; program changes and CC 0
   and 32 (bank select) don't; the metronome and count-in channels don't; transposed +2, key 60 is
   62; a key pushed past 127 or under 0 is not sent.
 - `MidiTap`: nothing is sent before the speakers' first block; an event rendered 4410 samples after

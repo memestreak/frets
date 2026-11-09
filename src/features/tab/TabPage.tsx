@@ -280,8 +280,8 @@ export default function TabPage() {
   const midiOut = useMidiPort(prefs.midi.port);
   const midiChannel = channelOf(prefs.midi, track);
   const midi = useMemo(
-    () => ({ port: midiChannel === null ? null : midiOut.port, channel: midiChannel ?? 1, builtIn: prefs.midi.builtIn }),
-    [midiOut.port, midiChannel, prefs.midi.builtIn],
+    () => ({ port: midiChannel === null ? null : midiOut.port, channel: midiChannel ?? 1, builtIn: prefs.midi.builtIn, bendRange: prefs.midi.bendRange }),
+    [midiOut.port, midiChannel, prefs.midi.builtIn, prefs.midi.bendRange],
   );
   const midiNote = midiOut.missing ?? (midiOut.port && midiChannel === null
     ? `Only Tracks 1 to ${MIDI_TRACKS} go out over MIDI. Track ${track + 1} plays the built-in sound.`

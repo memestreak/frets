@@ -16,13 +16,13 @@ const CONTROL_CHANGE = 176;
 const PROGRAM_CHANGE = 192;
 const PITCH_BEND = 224;
 const LOCAL = new Set([10, 11]);
-const routing = (channel = 2, transpose = 0) => ({ channel, transpose, local: LOCAL });
+const routing = (channel = 2, transpose = 0, bendRange = BEND_RANGE) => ({ channel, transpose, local: LOCAL, bendRange });
 
 describe('the MIDI output section', () => {
   it('defaults to no port, the built-in sound quiet, and Track N on channel N', () => {
     const settings = parseMidiSettings(undefined);
     expect(settings).toEqual(DEFAULT_MIDI);
-    expect(settings).toEqual({ port: '', builtIn: false, channels: [] });
+    expect(settings).toEqual({ port: '', builtIn: false, channels: [], bendRange: 2 });
     expect(channelOf(settings, 0)).toBe(1);
     expect(channelOf(settings, 3)).toBe(4);
   });
@@ -33,7 +33,10 @@ describe('the MIDI output section', () => {
   });
 
   it('takes its default for a bad port, flag or channel, and keeps a good one', () => {
-    expect(parseMidiSettings({ port: 3, builtIn: 'yes', channels: 'x' })).toEqual(DEFAULT_MIDI);
+    expect(parseMidiSettings({ port: 3, builtIn: 'yes', channels: 'x', bendRange: 0 })).toEqual(DEFAULT_MIDI);
+    expect(parseMidiSettings({ bendRange: 25 }).bendRange).toBe(2);
+    expect(parseMidiSettings({ bendRange: 1.5 }).bendRange).toBe(2);
+    expect(parseMidiSettings({ bendRange: 12 }).bendRange).toBe(12);
     const settings = parseMidiSettings({ port: 'IAC Driver Bus 1', builtIn: true, channels: [5, 0, 17, 1.5, '4', 9] });
     expect(settings.port).toBe('IAC Driver Bus 1');
     expect(settings.builtIn).toBe(true);
@@ -59,6 +62,22 @@ describe('an event as the bytes sent', () => {
     expect(messageOf({ type: CONTROL_CHANGE, channel: 0, controller: 32, value: 1 }, routing())).toBeNull();
   });
 
+  it('sends none of alphaTab\'s own RPN: Frets sends the receiver\'s bend range', () => {
+    for (const controller of [100, 101, 6, 38]) {
+      expect(messageOf({ type: CONTROL_CHANGE, channel: 0, controller, value: 16 }, routing())).toBeNull();
+    }
+  });
+
+  it('scales a bend to the receiver\'s range, so it bends as far, and stops at the range\'s end', () => {
+    // A whole step up, as alphaTab writes it for 16 semitones: 8192 + 1024.
+    expect(messageOf({ type: PITCH_BEND, channel: 1, value: 8192 + 1024 }, routing(2, 0, 2))).toEqual([0xe2, 0x7f, 0x7f]);
+    // A half step: half way up at 2 semitones, a twelfth of the way at 12.
+    expect(messageOf({ type: PITCH_BEND, channel: 1, value: 8192 + 512 }, routing(2, 0, 2))).toEqual([0xe2, 0, 96]);
+    expect(messageOf({ type: PITCH_BEND, channel: 1, value: 8192 + 512 }, routing(2, 0, 12))).toEqual([0xe2, 0x2b, 0x45]);
+    expect(messageOf({ type: PITCH_BEND, channel: 1, value: 8192 + 2048 }, routing(2, 0, 2))).toEqual([0xe2, 0x7f, 0x7f]);
+    expect(messageOf({ type: PITCH_BEND, channel: 1, value: 8192 - 2048 }, routing(2, 0, 2))).toEqual([0xe2, 0, 0]);
+  });
+
   it('keeps the metronome and count-in clicks in Tab', () => {
     expect(messageOf({ type: NOTE_ON, channel: 10, noteKey: 76, noteVelocity: 110 }, routing())).toBeNull();
     expect(messageOf({ type: NOTE_ON, channel: 11, noteKey: 77, noteVelocity: 80 }, routing())).toBeNull();
@@ -70,9 +89,9 @@ describe('an event as the bytes sent', () => {
     expect(messageOf({ type: NOTE_ON, channel: 0, noteKey: 1, noteVelocity: 100 }, routing(2, -2))).toBeNull();
   });
 
-  it('sets the pitch bend range alphaTab writes for, and centres the bend', () => {
-    expect(setupMessages(3)).toEqual([
-      [0xb3, 101, 0], [0xb3, 100, 0], [0xb3, 6, BEND_RANGE], [0xb3, 38, 0], [0xb3, 101, 127], [0xb3, 100, 127], [0xe3, 0, 64],
+  it('sets the receiver\'s pitch bend range, and centres the bend', () => {
+    expect(setupMessages(3, 2)).toEqual([
+      [0xb3, 101, 0], [0xb3, 100, 0], [0xb3, 6, 2], [0xb3, 38, 0], [0xb3, 101, 127], [0xb3, 100, 127], [0xe3, 0, 64],
     ]);
     expect(BEND_RANGE).toBe(16);
   });
@@ -150,8 +169,9 @@ describe('the tap', () => {
   it('starts by setting the channel\'s bend range and centring it', () => {
     const h = harness();
     h.tap.channel = 4;
+    h.tap.bendRange = 12;
     h.tap.start();
-    expect(h.sent.map(s => s.bytes)).toEqual(setupMessages(4));
+    expect(h.sent.map(s => s.bytes)).toEqual(setupMessages(4, 12));
     h.tap.destroy();
   });
 

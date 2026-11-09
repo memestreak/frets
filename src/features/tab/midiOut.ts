@@ -15,9 +15,16 @@ export interface MidiSettings {
   builtIn: boolean;
   /** Tracks 1 to 4's channels, 1 to 16; a track past the list's end takes its default. */
   channels: number[];
+  /** The receiver's pitch bend range, in semitones: bends are scaled to it and it is sent as RPN 0. */
+  bendRange: number;
 }
 
-export const DEFAULT_MIDI: MidiSettings = { port: '', builtIn: false, channels: [] };
+/** MIDI's own default pitch bend range, which most synths keep. */
+export const DEFAULT_BEND_RANGE = 2;
+export const MIN_BEND_RANGE = 1;
+export const MAX_BEND_RANGE = 24;
+
+export const DEFAULT_MIDI: MidiSettings = { port: '', builtIn: false, channels: [], bendRange: DEFAULT_BEND_RANGE };
 
 export const MIN_CHANNEL = 1;
 export const MAX_CHANNEL = 16;
@@ -46,6 +53,9 @@ export function parseMidiSettings(raw: unknown): MidiSettings {
     channels: Array.isArray(fields.channels)
       ? fields.channels.slice(0, MIDI_TRACKS).map((c, t) => (isChannel(c) ? c : defaultChannel(t)))
       : [],
+    bendRange: Number.isInteger(fields.bendRange) && (fields.bendRange as number) >= MIN_BEND_RANGE && (fields.bendRange as number) <= MAX_BEND_RANGE
+      ? (fields.bendRange as number)
+      : DEFAULT_BEND_RANGE,
   };
 }
 
@@ -57,8 +67,12 @@ const NOTE_OFF = 144;
 const CONTROL_CHANGE = 176;
 const PITCH_BEND = 224;
 
-/** Bank select, coarse and fine: never sent, with program changes (the synth's patch is its own). */
-const BANK_SELECT = new Set([0, 32]);
+/**
+ * Controllers never sent: bank select, coarse and fine (the synth's patch is its own, as with program
+ * changes), and RPN select and data entry: alphaTab sets its own pitch bend range with them, and Frets
+ * sends the receiver's (`setupMessages`).
+ */
+const NOT_SENT = new Set([0, 32, 6, 38, 100, 101]);
 
 /** An alphaTab MIDI event, as far as sending it needs. */
 export interface PlayedEvent {
@@ -76,14 +90,17 @@ export interface Routing {
   transpose: number;
   /** alphaTab's channels that stay in Tab (the clicks). */
   local: ReadonlySet<number>;
+  /** The receiver's pitch bend range, in semitones. */
+  bendRange: number;
 }
 
 /**
  * The bytes to send for an event alphaTab played, or null for one that isn't sent: anything but a
- * note, a controller or a pitch bend; a bank select; anything on a local channel; a note pushed out
- * of MIDI's range. Every other channel goes out on `channel`.
+ * note, a controller or a pitch bend; a bank select or RPN; anything on a local channel; a note pushed
+ * out of MIDI's range. Every other channel goes out on `channel`. A pitch bend, written by alphaTab for
+ * `BEND_RANGE`, is scaled to the receiver's `bendRange`, so it bends as far; past that range it stops there.
  */
-export function messageOf(event: PlayedEvent, { channel, transpose, local }: Routing): number[] | null {
+export function messageOf(event: PlayedEvent, { channel, transpose, local, bendRange }: Routing): number[] | null {
   if (event.channel === undefined || local.has(event.channel)) return null;
   switch (event.type) {
     case NOTE_ON:
@@ -94,11 +111,12 @@ export function messageOf(event: PlayedEvent, { channel, transpose, local }: Rou
     }
     case CONTROL_CHANGE: {
       const controller = event.controller ?? 0;
-      if (BANK_SELECT.has(controller)) return null;
+      if (NOT_SENT.has(controller)) return null;
       return [0xb0 | channel, controller & 0x7f, (event.value ?? 0) & 0x7f];
     }
     case PITCH_BEND: {
-      const value = Math.max(0, Math.min(16383, Math.round(event.value ?? 8192)));
+      const scaled = 8192 + ((event.value ?? 8192) - 8192) * (BEND_RANGE / bendRange);
+      const value = Math.max(0, Math.min(16383, Math.round(scaled)));
       return [0xe0 | channel, value & 0x7f, (value >> 7) & 0x7f];
     }
     default:
@@ -109,10 +127,10 @@ export function messageOf(event: PlayedEvent, { channel, transpose, local }: Rou
 /** The pitch bend range alphaTab writes its bends for, in semitones (its `MidiFileGenerator`). */
 export const BEND_RANGE = 16;
 
-/** Sets a channel's pitch bend range (RPN 0) to `BEND_RANGE` and centres its pitch bend. */
-export function setupMessages(channel: number): number[][] {
+/** Sets a channel's pitch bend range (RPN 0) to `bendRange` semitones and centres its pitch bend. */
+export function setupMessages(channel: number, bendRange: number): number[][] {
   const cc = (controller: number, value: number) => [0xb0 | channel, controller, value];
-  return [cc(101, 0), cc(100, 0), cc(6, BEND_RANGE), cc(38, 0), cc(101, 127), cc(100, 127), centreBend(channel)];
+  return [cc(101, 0), cc(100, 0), cc(6, bendRange), cc(38, 0), cc(101, 127), cc(100, 127), centreBend(channel)];
 }
 
 const centreBend = (channel: number) => [0xe0 | channel, 0, 64];
@@ -158,6 +176,8 @@ export class MidiTap {
   /** The output channel, 0 to 15. */
   channel = 0;
   transpose = 0;
+  /** The receiver's pitch bend range, in semitones. */
+  bendRange = DEFAULT_BEND_RANGE;
   /** Whether rendered events are taken: during Play, not for a note heard on its own. */
   on = false;
   private queue: Queued[] = [];
@@ -214,7 +234,7 @@ export class MidiTap {
   /** At Play: the channel's pitch bend range and a centred bend, at once. */
   start() {
     if (!this.port) return;
-    for (const bytes of setupMessages(this.channel)) this.send(bytes, this.now());
+    for (const bytes of setupMessages(this.channel, this.bendRange)) this.send(bytes, this.now());
   }
 
   /** Stop, a seek, an edit: nothing waiting goes, and every note sounding ends at once. */
@@ -252,7 +272,7 @@ export class MidiTap {
    * isn't sent for a note never sent on, or one a release already ended (a seek, the MIDI swapped mid-play).
    */
   private bytesOf(event: PlayedEvent): number[] | null {
-    const routing = { channel: this.channel, transpose: this.transpose, local: this.local };
+    const routing = { channel: this.channel, transpose: this.transpose, local: this.local, bendRange: this.bendRange };
     if (event.type !== NOTE_ON && event.type !== NOTE_OFF) return messageOf(event, routing);
     const name = `${event.channel}:${event.noteKey}`;
     if (event.type === NOTE_ON) {

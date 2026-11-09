@@ -32,7 +32,7 @@ import { DEFAULT_EDITING, EDITING_KEY, parseEditing, type EditingPrefs } from '.
 import { GRID_LOOK_NAMES, GRID_LOOKS, GRID_NAMES, GRID_VALUES, type GridLook, type GridValue } from './grid';
 import { CHAT_KEY, DEFAULT_CHAT, parseChatPrefs, type ChatPrefs } from './chat/chatPrefs';
 import { customField, instructionsField } from './chat/promptFields';
-import { DEFAULT_MIDI, MAX_CHANNEL, MIDI_KEY, MIDI_TRACKS, MIN_CHANNEL, channelOf, parseMidiSettings, type MidiSettings } from './midiOut';
+import { DEFAULT_MIDI, MAX_CHANNEL, MAX_BEND_RANGE, MIDI_KEY, MIDI_TRACKS, MIN_BEND_RANGE, MIN_CHANNEL, channelOf, parseMidiSettings, type MidiSettings } from './midiOut';
 import { useMidiOutputs } from './useMidiOutput';
 
 /** One section's state: read from its key once, written back on every change. */
@@ -260,6 +260,9 @@ export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: Playback
         fields: [
           { key: 'port', label: 'Port', box: 'Output', control: props => <MidiPortSelect {...props} /> },
           { ...checkField<MidiSettings, 'builtIn'>('builtIn', 'Also play the built-in sound', { enabled: v => v.port !== '' }), box: 'Output' },
+          numberField('bendRange', 'Pitch bend range', {
+            min: MIN_BEND_RANGE, max: MAX_BEND_RANGE, step: 1, after: 'semitones', upLabel: 'Wider bend range', downLabel: 'Narrower bend range',
+          }),
           channelsField(),
         ],
       }),

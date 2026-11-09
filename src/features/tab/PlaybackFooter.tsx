@@ -183,9 +183,11 @@ export interface MidiRoute {
   port: MidiPort | null;
   channel: number;
   builtIn: boolean;
+  /** The receiver's pitch bend range, in semitones. */
+  bendRange: number;
 }
 
-const NO_MIDI: MidiRoute = { port: null, channel: 1, builtIn: true };
+const NO_MIDI: MidiRoute = { port: null, channel: 1, builtIn: true, bendRange: 2 };
 
 export function usePlayback(clip: Part, sound: Sound, volume: number, { loopPause, transpose, metronome, countIn, countInBars, clickVolume, effects, rolls = DEFAULT_ROLLS, midi = NO_MIDI, onStopAt }: {
   /** The rest between loops, in seconds; 0 loops straight round. */
@@ -256,13 +258,13 @@ export function usePlayback(clip: Part, sound: Sound, volume: number, { loopPaus
   useEffect(() => {
     player.current?.setEffects(heardFx);
   }, [heardFx]);
-  const { port: midiPort, channel: midiChannel, builtIn } = midi;
+  const { port: midiPort, channel: midiChannel, builtIn, bendRange } = midi;
   // The port comes once the browser answers, maybe while the player is still being made: it takes the latest.
   const midiNow = useRef(midi);
   useEffect(() => {
-    midiNow.current = { port: midiPort, channel: midiChannel, builtIn };
-    player.current?.setMidi(midiPort, midiChannel, builtIn);
-  }, [midiPort, midiChannel, builtIn]);
+    midiNow.current = { port: midiPort, channel: midiChannel, builtIn, bendRange };
+    player.current?.setMidi(midiPort, midiChannel, builtIn, bendRange);
+  }, [midiPort, midiChannel, builtIn, bendRange]);
 
   /** The player, made once; its AudioContext starts on the first Play. */
   const making = useRef<Promise<TabPlayer> | null>(null);
@@ -277,7 +279,8 @@ export function usePlayback(clip: Part, sound: Sound, volume: number, { loopPaus
       p.setClickVolume(clickVolume);
       p.setRolls(rolls);
       p.setEffects(heardFx);
-      p.setMidi(midiNow.current.port, midiNow.current.channel, midiNow.current.builtIn);
+      const m = midiNow.current;
+      p.setMidi(m.port, m.channel, m.builtIn, m.bendRange);
       return p;
     });
     return making.current;

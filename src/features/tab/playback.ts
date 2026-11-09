@@ -970,9 +970,10 @@ export class TabPlayer {
    * Where playback goes out over MIDI: a port (none for only the built-in sound), the track's channel
    * (1 to 16), and whether the built-in notes play too. A clip playing goes on, out of the new port.
    */
-  setMidi(port: MidiPort | null, channel: number, builtIn: boolean) {
+  setMidi(port: MidiPort | null, channel: number, builtIn: boolean, bendRange: number) {
     const playing = !this.ended && !this.hearing;
-    if (port !== this.midiPort || this.midi.channel !== channel - 1) this.midi.release({ centre: true });
+    if (port !== this.midiPort || this.midi.channel !== channel - 1 || this.midi.bendRange !== bendRange) this.midi.release({ centre: true });
+    this.midi.bendRange = bendRange;
     this.midiPort = port;
     this.builtIn = builtIn;
     this.midi.port = port;
