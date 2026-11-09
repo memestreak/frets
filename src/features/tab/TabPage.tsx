@@ -30,7 +30,8 @@ import { writtenStrings } from './notation';
 import { dropShowParam, readShowParam } from './shareLink';
 import type { Notice } from './notice';
 import { pitchAtStep, type TypedAccidental } from './staffEntry';
-import { markBox, markTool } from './marks';
+import { markBox, markTool, type MarkHit } from './marks';
+import { addedSpan } from './spans';
 import { litTiedNotes, tieOnInput } from './ties';
 import { useClipActions } from './ClipActions';
 import { SizeField } from './ViewOptions';
@@ -506,6 +507,19 @@ export default function TabPage() {
     commit(next.clip, next.cursor, null);
   };
 
+  /** Whether a palette tool puts on a Span that is picked once added (let ring, P.M.). */
+  const spanTool = (id: ToolId): id is 'letRing' | 'palmMute' => !noteInputMode && (id === 'letRing' || id === 'palmMute');
+  /**
+   * A let ring or P.M. line just added is picked, as a press on it picks it (`onPickMark`): drawn blue,
+   * its notes no longer lit, so it can be dragged straight to the length wanted (Jeremy, 2026-11-09).
+   */
+  const pickAdded = (next: Part, hit: MarkHit) => {
+    setSelection(hit.to !== undefined && hit.to !== hit.index ? { anchor: hit.index, focus: hit.to } : null);
+    setCursor({ ...cursor, ...placeOf(next, hit.index) });
+    setColumnOnly(true);
+    setPicked(hit);
+  };
+
   /**
    * A palette button or panel choice. Off the tab (after Esc or a press elsewhere) nothing is under the
    * cursor, so the palette acts on nothing, as it lights nothing (Jeremy, 2026-10-30).
@@ -537,10 +551,19 @@ export default function TabPage() {
     // A dead note goes on one string; with none picked there is nothing to mark.
     else if (!(columnOnly && id === 'dead')) {
       // On a selection, a Mark goes on every Voice's notes in its time (Q19).
-      if (!picked && !ACTIVE_VOICE_ONLY.has(id) && everyVoice((part, run) => applyTool(part, { ...target, selection: run }, id))) return;
-      commitKeepingMark(applyTool(clip, target, id));
+      const next = applyTool(clip, target, id);
+      const added = spanTool(id) ? addedSpan(clip, next, id, target) : null;
+      if (!picked && !ACTIVE_VOICE_ONLY.has(id) && everyVoice((part, run) => applyTool(part, { ...target, selection: run }, id))) {
+        if (added) pickAdded(next, added);
+        return;
+      }
+      if (added) {
+        commit(next);
+        pickAdded(next, added);
+      } else commitKeepingMark(next);
     }
   };
+
 
   /** A palette change; a picked mark changed by it (vibrato to wide, a bend's amount) stays picked while it is there. */
   const commitKeepingMark = (next: Part) => {
