@@ -246,3 +246,59 @@ describe('the ? overlay', () => {
     expect(listed.find(s => s.keys.includes('Alt+Shift+Right'))?.does).toMatch(/line’s end/);
   });
 });
+
+describe('a let ring or P.M. line just added is picked (Jeremy, 2026-11-09)', () => {
+  const cases = [['let ring', 'i', 'let-ring', 'lr'], ['P.M.', 'm', 'palm-mute', 'pm']] as const;
+
+  it.each(cases)('%s on the note at the cursor: the line is picked, no note lit; Delete takes the line away', async (_, key, testId, prop) => {
+    await open('\\ts (4 4)\n0.3.4 2.3.4 3.3.4 5.3.4 |');
+    act(() => editor().focus());
+    keys('ArrowRight', key);
+    expect(isLit(screen.getByTestId(testId))).toBe(true);
+    expect(litNumbers()).toHaveLength(0);
+    expect(screen.getAllByTestId('span-handle')).toHaveLength(2);
+    // Delete takes the picked line away, not the note.
+    keys('Delete');
+    expect(screen.queryByTestId(testId)).toBeNull();
+    expect(alphaTex()).toBe('0.3.4 2.3.4 3.3.4 5.3.4 |');
+    undo();
+    expect(alphaTex()).toBe(`0.3.4 2.3{${prop}}.4 3.3.4 5.3.4 |`);
+  });
+
+  it.each(cases)('%s on a selection: the whole line is picked, so Alt+Shift+→ makes it longer', async (_, key, testId, prop) => {
+    await open('\\ts (4 4)\n0.3.4 2.3.4 3.3.4 5.3.4 |');
+    act(() => editor().focus());
+    keys({ key: 'ArrowRight', shiftKey: true }, key);
+    expect(isLit(screen.getByTestId(testId))).toBe(true);
+    expect(litNumbers()).toHaveLength(0);
+    keys({ key: 'ArrowRight', altKey: true, shiftKey: true });
+    expect(alphaTex()).toBe(`0.3{${prop}}.4 2.3{${prop}}.4 3.3{${prop}}.4 5.3.4 |`);
+    expect(isLit(screen.getByTestId(testId))).toBe(true);
+  });
+
+  it('the key again on the picked line takes it all away, and nothing is picked', async () => {
+    await open('\\ts (4 4)\n0.3.4 2.3.4 3.3.4 5.3.4 |');
+    act(() => editor().focus());
+    keys({ key: 'ArrowRight', shiftKey: true }, 'i', 'i');
+    expect(alphaTex()).toBe('0.3.4 2.3.4 3.3.4 5.3.4 |');
+    expect(screen.queryByTestId('let-ring')).toBeNull();
+  });
+
+  it('in note input mode I puts let ring on and picks nothing: the caret stays', async () => {
+    await open('\\ts (4 4)\n0.3.4 2.3.4 3.3.4 5.3.4 |');
+    act(() => editor().focus());
+    keys('n', 'i');
+    expect(screen.queryAllByTestId('span-handle')).toHaveLength(0);
+    expect(isLit(screen.getByTestId('let-ring'))).toBe(false);
+  });
+
+  it('taking let ring off a note picks nothing', async () => {
+    await open('\\ts (4 4)\n0.3{lr}.4 2.3.4 3.3.4 5.3.4 |');
+    act(() => editor().focus());
+    keys('i');
+    expect(alphaTex()).toBe('0.3.4 2.3.4 3.3.4 5.3.4 |');
+    expect(screen.queryByTestId('let-ring')).toBeNull();
+    keys('Delete');
+    expect(alphaTex()).toBe('r.4 2.3.4 3.3.4 5.3.4 |');
+  });
+});

@@ -38,6 +38,12 @@ Delete, Backspace and its menu's Delete take P.M. or let ring off every
 note of the Span and leave the notes. Esc lets it go. Its own tool
 (Palm mute or Let ring) lights, and nothing else.
 
+Putting P.M. or let ring on (its key or its tool, in normal mode) picks
+the new line as a press would, so its notes no longer show selected and
+its Handles are there to drag it to the length wanted (Jeremy,
+2026-11-09). Taking it off picks nothing. In note input mode the caret
+stays where it is.
+
 ## Time and key signatures (Q3)
 
 A press on a time or key signature picks it, blue, as a chord name is
@@ -211,6 +217,11 @@ to other notes by dragging its body.
   column is selected, Let ring lights and no other tool does; Delete
   takes `lr` off every note of the run and the notes stay; Esc lets it
   go. The same for P.M.
+- I on the note at the cursor puts let ring on and picks the new line:
+  no note lit, two Handles, Delete takes the line away and leaves the
+  note; in note input mode I picks nothing. I on a two-column selection picks the whole line, so
+  Alt+Shift+→ makes it three columns. I again on the picked line takes
+  it all away and picks nothing. The same for P.M. with M.
 - A press on a time signature picks it and opens no panel; Enter, a
   double-click and the menu's Edit open the panel; Delete on a later
   change removes it; Delete on bar 1's does nothing and its menu has no
