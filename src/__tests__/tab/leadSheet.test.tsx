@@ -7,7 +7,7 @@ import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { partOf, type Part } from '@/features/tab/clip';
 import { tabSvg } from '@/features/tab/exportTab';
 import { DEFAULT_TAB_EXPORT } from '@/features/tab/exportTab';
-import { boxOf, boxX, layoutLeadSheet, leadAt, leadBeats, leadCaret, leadKey, leadPlayX, MIN_BOX, type LeadBox } from '@/features/tab/leadSheet';
+import { boxOf, boxX, layoutLeadSheet, leadAt, lyricBaseline, leadBeats, leadCaret, leadKey, leadPlayX, MIN_BOX, type LeadBox } from '@/features/tab/leadSheet';
 import { readShowParam, shareLink } from '@/features/tab/shareLink';
 
 function read(text: string): Part {
@@ -122,6 +122,44 @@ describe('signatures, repeats and endings', () => {
       [false, null, null, false, true],
     ]);
     expect(lead(part).rows[0].endingY).not.toBeNull();
+  });
+});
+
+describe('lyrics under the rows (issue #408)', () => {
+  const E = '3.6';
+  it('each syllable from its note’s time, under the boxes; a joined one has its hyphen between', () => {
+    const part = read(`${E}.4{lyrics "Hel-"} ${E}.4{lyrics "lo"} ${E}.2{lyrics "world"} | ${E}.1 |`);
+    const layout = lead(part);
+    const row = layout.rows[0];
+    const b0 = row.boxes[0];
+    expect(row.lyrics.map(l => l.text)).toEqual(['Hel', 'lo', 'world']);
+    expect(row.lyrics[0].x).toBeCloseTo(boxX(b0, 0));
+    expect(row.lyrics[2].x).toBeCloseTo(boxX(b0, b0.span / 2));
+    expect(row.lyrics[0].hyphenX).toBeGreaterThan(row.lyrics[0].x);
+    expect(row.lyrics[0].hyphenX).toBeLessThan(row.lyrics[1].x);
+    expect(row.lyrics[1].hyphenX).toBeNull();
+    expect(lyricBaseline(row, 0)).toBeGreaterThan(row.boxBottom);
+    // Clear of the next row: the row's gap grows a little for its words.
+    const next = lead(read(`${E}.4{lyrics "Hel-"} ${E}.4{lyrics "lo"} ${E}.2{lyrics "world"} | ${E}.1 | ${E}.1 | ${E}.1 | \\section "Next" ${E}.1 |`)).rows[1];
+    expect(next.top - lyricBaseline(row, 0)).toBeGreaterThanOrEqual(12);
+    expect(layout.height).toBeGreaterThan(lead(read(`${E}.1 | ${E}.1 |`)).height);
+  });
+
+  it('a second Lyric line goes under the first, and the row grows for it', () => {
+    const part = read(`${E}.2{lyrics 0 "one" lyrics 1 "two"} ${E}.2 |`);
+    const layout = lead(part);
+    const row = layout.rows[0];
+    expect(row.lyrics.map(l => [l.text, l.line])).toEqual([['one', 0], ['two', 1]]);
+    expect(lyricBaseline(row, 1) - lyricBaseline(row, 0)).toBe(15);
+    expect(layout.height).toBeGreaterThan(lead(read(`${E}.2{lyrics "one"} ${E}.2 |`)).height);
+  });
+
+  it('syllables never touch: a long one pushes the next on, and a crowded row draws them smaller, inside the page', () => {
+    const word = (w: string) => `${E}.16{lyrics "${w}"}`;
+    const part = read(`${Array.from({ length: 16 }, (_, i) => word(`syllable${i}`)).join(' ')} |`);
+    const row = lead(part, 400).rows[0];
+    for (let i = 1; i < row.lyrics.length; i++) expect(row.lyrics[i].x).toBeGreaterThan(row.lyrics[i - 1].x + 9 * 6.2 * (row.lyricSize / 11));
+    expect(row.lyricSize).toBeLessThan(11);
   });
 });
 

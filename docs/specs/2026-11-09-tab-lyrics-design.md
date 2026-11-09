@@ -113,8 +113,6 @@ glossary yet; the PR says so.
 
 ## Not yet
 
-- The Lead sheet (PR #409) draws them under each row of boxes when it
-  merges: its rows already leave the room.
 - Syllables on an empty bar's beats (a chord sheet with words and no
   melody), as their own FR if wanted.
 - Extender lines (repeated Space and underscore), and a literal hyphen

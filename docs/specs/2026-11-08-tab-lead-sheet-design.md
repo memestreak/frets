@@ -5,7 +5,8 @@ shapes once at the top and then writes the song by chord name only. On
 2026-11-05 it became a view of the same arrangement first; the look and
 its details were settled on 2026-11-08 in the design doc
 (https://claude.ai/artifact/2S7AMm8K72BGVHZ1pKeQhV, mocks in the project
-files under `tab-editor/lead-sheet/`). Lyrics are issue #408, after this.
+files under `tab-editor/lead-sheet/`). Lyrics (issue #408,
+`2026-11-09-tab-lyrics-design.md`) landed first; the grid draws them.
 
 ## What
 
@@ -49,8 +50,15 @@ files under `tab-editor/lead-sheet/`). Lyrics are issue #408, after this.
 - **No diagrams under the names.** The Chord chart at the top shows every
   shape once; View options' Chord diagrams is not listed while the lead
   sheet shows, nor is "Clip's line breaks".
-- **Room for lyrics.** Each row keeps a gap under its boxes, where #408
-  will draw a lyric line.
+- **Lyrics** (issue #408) under each row of boxes, as decided on
+  2026-11-08: each syllable starts at its note's time in its bar, in the
+  Lyrics' own size, each Lyric line under the one before; a joined
+  syllable's hyphen sits halfway to the next. A syllable that would touch
+  the one before is pushed on; when that would take one out of its bar or
+  off the row, the row's Lyrics are drawn smaller (down to about 8 px).
+  Another Voice's are drawn muted. A row with none keeps a small gap. They
+  are drawn, not edited, here: Shift+L and a press on one do nothing, as
+  for the notes they belong to.
 
 ### Editing
 
@@ -90,7 +98,8 @@ files under `tab-editor/lead-sheet/`). Lyrics are issue #408, after this.
 
 ## Not now
 
-- Lyrics (#408), and chord-sheet import and export (#295's follow-ups).
+- Typing Lyrics in the lead sheet, and chord-sheet import and export
+  (#295's follow-ups).
 - A strummed chord-per-beat playback (#364).
 - Key signatures and tempo changes in the grid (the head shows the first
   tempo).
@@ -120,6 +129,10 @@ files under `tab-editor/lead-sheet/`). Lyrics are issue #408, after this.
 - A press on a section picks it and a double-click opens its field.
 - The playhead line is drawn in the box of the column heard.
 - The exported SVG with the lead sheet shown draws the grid, not a tab.
+- Lyrics: each syllable from its note's time under the boxes, a joined
+  one's hyphen between it and the next; a second Lyric line 15 under the
+  first, the row taller for it; syllables never touch, and a crowded row
+  draws them smaller, each starting in its own bar.
 
 ## How
 

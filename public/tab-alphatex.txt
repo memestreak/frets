@@ -474,8 +474,8 @@ changes). If the text can't be read, Frets says why, with the line and column.
 The page shows tab alone unless the person picked Staff, Both or Lead sheet
 before. To open it with the notation staff, add ?show= before the "#": staff
 (the staff alone), tab or both (the staff over the tab); lead opens the lead
-sheet, a grid of bars with only the chord names, for a song written to be
-strummed. It holds for that visit only; the person's own choice is not
+sheet, a grid of bars with only the chord names (and the Lyrics under each
+row), for a song written to be strummed. It holds for that visit only; the person's own choice is not
 changed. Add it when the staff matters, as for music written from sheet
 music:
 

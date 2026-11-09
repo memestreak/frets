@@ -145,6 +145,14 @@ describe('editing in the lead sheet', () => {
     expect(screen.getByRole('textbox', { name: /^Lead sheet/ })).toBeInTheDocument();
   });
 
+  it('Shift+L opens no Lyrics field: the lead sheet draws Lyrics, it does not type them', async () => {
+    await open();
+    pressBeat(1, 0.1);
+    act(() => editor().focus());
+    fireEvent.keyDown(editor(), { key: 'L', shiftKey: true });
+    expect(screen.queryByRole('dialog', { name: 'Lyrics' })).toBeNull();
+  });
+
   it('a press on a section picks it, and a double-click opens its field', async () => {
     await open();
     const { at: lead } = layout();

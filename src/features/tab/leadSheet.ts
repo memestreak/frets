@@ -9,6 +9,7 @@ import {
 } from './clip';
 import { BEAT_TEXT_LINE, BEAT_TEXT_SIZE, beatTextWidth, placeBeatTexts } from './beatText';
 import { indexOf, placeOf, type Cursor } from './editing';
+import { HYPHEN_ROOM, LYRIC_GAP, LYRIC_LINE, LYRIC_SIZE, lyricWidth, syllableOf } from './lyrics';
 import { prettyChord } from './widths';
 import type { WordHit } from './layoutText';
 import { showsBarNumber, type BarNumbers } from './viewOptions';
@@ -40,8 +41,12 @@ export const SECTION_ROW = 22;
 export const TEXT_SIZE = BEAT_TEXT_SIZE;
 export const TEXT_LINE = BEAT_TEXT_LINE;
 export const ENDING_ROW = 14;
-/** The room under each row's boxes: where lyrics will go (issue #408). */
+/** The room under each row's boxes, where its Lyrics go (issue #408): a row with none keeps it, as the gap to the next. */
 export const LYRIC_ROOM = 24;
+/** The first Lyric line's baseline under the boxes. */
+const LYRIC_DROP = 16;
+/** The smallest the Lyrics are drawn to fit a crowded row. */
+const MIN_LYRIC_SIZE = 8;
 /** Room over the first row. */
 const TOP = 6;
 /** Where a slash is drawn from its beat's start, and half its width. */
@@ -103,6 +108,20 @@ export interface LeadBox {
   last: boolean;
 }
 
+/**
+ * A syllable under a row's boxes (issue #408): from its note's time, and pushed on past the one before so
+ * none touch. `hyphenX` is where the hyphen of a joined one is drawn, null for none.
+ */
+export interface LeadLyric {
+  text: string;
+  line: number;
+  /** Its left edge, as drawn. */
+  x: number;
+  hyphenX: number | null;
+  /** 0 for Voice 1; another Voice's are drawn muted, as on the staff and the tab. */
+  voice: number;
+}
+
 export interface LeadRow {
   /** The row's top, and where its rows over the boxes and the boxes are, all from the drawing's top. */
   top: number;
@@ -111,8 +130,11 @@ export interface LeadRow {
   endingY: number | null;
   boxTop: number;
   boxBottom: number;
-  /** Where lyrics will go: the gap under the boxes. */
+  /** The gap under the boxes, where the Lyrics go. */
   lyricsY: number;
+  lyrics: LeadLyric[];
+  /** The Lyrics' size: smaller than `LYRIC_SIZE` where a row's would not fit. */
+  lyricSize: number;
   section: { bar: number; section: Section } | null;
   boxes: LeadBox[];
 }
@@ -295,11 +317,68 @@ export function layoutLeadSheet(clip: Part, width: number, barNumbers: BarNumber
     y += BOX_HEIGHT;
     const boxBottom = y;
     const lyricsY = y;
-    y += LYRIC_ROOM;
-    rows.push({ top, sectionY, textY, endingY, boxTop, boxBottom, lyricsY, section, boxes });
+    const { lyrics, size: lyricSize, lines } = rowLyrics(clip, boxes, width - LEAD_RIGHT);
+    y += lines > 0 ? Math.max(LYRIC_ROOM, LYRIC_DROP + (lines - 1) * LYRIC_LINE + 12) : LYRIC_ROOM;
+    rows.push({ top, sectionY, textY, endingY, boxTop, boxBottom, lyricsY, lyrics, lyricSize, section, boxes });
   }
   return { width, height: y, rows };
 }
+
+/**
+ * A row's Lyrics (issue #408): each syllable from its note's time in its box, each Lyric line flowed so a
+ * syllable starts past the one before (and its hyphen), all drawn smaller when one would be pushed out of its
+ * bar or off the row.
+ */
+function rowLyrics(clip: Part, boxes: readonly LeadBox[], right: number): { lyrics: LeadLyric[]; size: number; lines: number } {
+  const sung: { at: number; last: number; shown: string; joined: boolean; line: number; voice: number }[] = [];
+  for (const box of boxes) {
+    const b = clip.bars[box.bar];
+    [b.columns, ...(b.otherVoices ?? []).map(o => o.columns)].forEach((columns, voice) => {
+      const starts = columnStarts(columns);
+      columns.forEach((c, i) => (c.lyrics ?? []).forEach((text, line) => {
+        if (text) sung.push({ at: boxX(box, starts[i]), last: box.to, ...syllableOf(text), line, voice });
+      }));
+    });
+  }
+  const lines = Math.max(0, ...sung.map(s => s.line + 1));
+  const byLine = Array.from({ length: lines }, (_, line) => sung.filter(s => s.line === line).sort((a, b) => a.at - b.at || a.voice - b.voice));
+  /** Each syllable's left edge at `size`, and whether the row holds them all. */
+  const flow = (size: number) => {
+    const k = size / LYRIC_SIZE;
+    let fits = true;
+    const xs = byLine.map(line => {
+      let end = -Infinity;
+      return line.map((s, i) => {
+        const gap = (line[i - 1]?.joined ? HYPHEN_ROOM + LYRIC_GAP / 2 : LYRIC_GAP) * k;
+        const x = Math.max(s.at, end + gap);
+        end = x + lyricWidth(s.shown) * k;
+        // Each starts in its own bar, and none runs off the row.
+        if (x > s.last || end > right) fits = false;
+        return x;
+      });
+    });
+    return { xs, fits, k };
+  };
+  let size = LYRIC_SIZE;
+  let placed = flow(size);
+  while (!placed.fits && size > MIN_LYRIC_SIZE) {
+    size = Math.max(MIN_LYRIC_SIZE, size - 0.5);
+    placed = flow(size);
+  }
+  const { xs, k } = placed;
+  const lyrics = byLine.flatMap((line, l) => line.map((s, i): LeadLyric => {
+    const end = xs[l][i] + lyricWidth(s.shown) * k;
+    const next = xs[l][i + 1];
+    return {
+      text: s.shown, line: s.line, x: xs[l][i], voice: s.voice,
+      hyphenX: !s.joined ? null : next !== undefined ? (end + next) / 2 : end + (HYPHEN_ROOM / 2) * k,
+    };
+  }));
+  return { lyrics, size, lines };
+}
+
+/** A Lyric line's baseline under a row's boxes. */
+export const lyricBaseline = (row: LeadRow, line: number) => row.lyricsY + LYRIC_DROP + line * LYRIC_LINE;
 
 /** A box and its row, by bar. */
 export function boxOf(layout: LeadLayout, bar: number): { row: LeadRow; box: LeadBox } | null {

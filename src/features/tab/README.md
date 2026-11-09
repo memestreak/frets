@@ -309,7 +309,8 @@ and in its spec.
 - `ChordChart.tsx` — the Chord chart under the score head, on the page and in the image; on the page each chord is picked by a press and opens Edit chord on a double-click, Enter or right-click Edit.
 - `leadSheet.ts` — the lead sheet's grid (issue #295): `layoutLeadSheet` (rows of
   bar boxes: chord names at their time, carried into bars with no new one, a
-  slash per beat, signatures, repeats, sections, texts), `leadAt` for presses,
+  slash per beat, signatures, repeats, sections, texts, the Lyrics under each
+  row), `leadAt` for presses,
   `leadCaret`, `leadPlayX`, `leadWordSpot` and its keys (`leadKey`) —
   `2026-11-08-tab-lead-sheet-design.md`. `Show`, the switch's four choices,
   is in `layout.ts` beside `Parts`.

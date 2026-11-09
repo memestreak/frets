@@ -11,7 +11,7 @@ import type { Part } from './clip';
 import { prettyChord } from './widths';
 import { sameWord, type WordHit } from './layoutText';
 import {
-  ENDING_ROW, LEAD_TIME_SIZE, leadAt, leadCaret, leadPlayX, nameBaseline, SECTION_ROW, SLASH_HALF, SLASH_IN,
+  ENDING_ROW, LEAD_TIME_SIZE, leadAt, leadCaret, leadPlayX, lyricBaseline, nameBaseline, SECTION_ROW, SLASH_HALF, SLASH_IN,
   textBaseline, TEXT_SIZE, type LeadBox, type LeadHit, type LeadLayout, type LeadRow,
 } from './leadSheet';
 import { useHeardPosition, type Playback } from './PlaybackFooter';
@@ -105,6 +105,12 @@ export const LeadSheetDrawing = memo(function LeadSheetDrawing({ layout, look = 
                     stroke={look.line} strokeWidth={2} strokeLinecap="round" data-testid="lead-slash"
                   />
                 ))}
+              </g>
+            ))}
+            {row.lyrics.map((l, i) => (
+              <g key={`lyric-${i}`} fontSize={row.lyricSize} fill={look.ink} opacity={l.voice > 0 ? 0.6 : undefined}>
+                <text x={l.x} y={lyricBaseline(row, l.line)} data-testid="lead-lyric">{l.text}</text>
+                {l.hyphenX !== null && <text x={l.hyphenX} y={lyricBaseline(row, l.line)} textAnchor="middle" data-testid="lead-lyric-hyphen">-</text>}
               </g>
             ))}
           </g>
