@@ -2,6 +2,7 @@
  * How wide each thing on a line is drawn, in SVG units: a bar's lead, a column's notes, a chord name, a
  * key signature, a note head and the accidentals left of it. `layout.ts` adds them up along the line.
  */
+import { lyricRoom } from './lyrics';
 import { ticks, WHOLE, type Bar, type Column, type Note } from './clip';
 import { accidentalLanes, type Head } from './notation';
 import { SPACE } from './rows';
@@ -68,7 +69,8 @@ const STAFF_LEAST = 20;
 /** The least room a column's widest note needs. */
 export function minColumnWidth(column: Column): number {
   const widest = Math.max(1, ...column.notes.map(n => (n ? noteLabel(n).length : 0)));
-  return Math.max(widest * charWidth(column) + 6, column.chord ? chordWidth(column.chord) + 6 : 0);
+  // A syllable under the note needs its room too, so neighbouring Lyrics never run together (issue #408).
+  return Math.max(widest * charWidth(column) + 6, column.chord ? chordWidth(column.chord) + 6 : 0, lyricRoom(column));
 }
 
 /** A grace note's numbers are drawn smaller than the rest. */

@@ -65,6 +65,32 @@ export function wordSpot(layout: Layout, width: number, { kind, bar, column }: {
   return { x: FIELD_WIDTH / 2, y: 0 };
 }
 
+/** The Lyrics field's size (`.tab-lyric`): small, as Dorico's lyrics popover. */
+export const LYRIC_FIELD = { width: 180, height: 30 };
+/** From the field's left edge to where its text starts: the grip and the line's number. */
+const LYRIC_TEXT_LEAD = 44;
+/** Room over the staff's top line for an up stem on a note in the staff. */
+const STEM_CLEAR = 36;
+
+/**
+ * Where the Lyrics field's top left goes: from its note, just above the system's top line (the staff, or the tab
+ * when only it is drawn), so the syllables already typed under the notes stay in sight. It can be dragged
+ * away from what it covers (`LyricField`).
+ */
+export function lyricSpot(layout: Layout, width: number, at: { bar: number; column: number }): { x: number; y: number } {
+  const fit = (x: number) => Math.min(width - LYRIC_FIELD.width, Math.max(0, x));
+  for (const { bars, rows, top } of layout.systems) {
+    const placed = bars.find(b => b.index === at.bar);
+    if (!placed) continue;
+    const x = placed.columns[at.column]?.x ?? placed.x0;
+    // Over the staff's up stems (the tab alone has none over it); the text starts over the note, with the
+    // line's number just before it, as in Dorico.
+    const over = rows.score ? rows.score.top - STEM_CLEAR : rows.staffTop - 8;
+    return { x: fit(x - LYRIC_TEXT_LEAD), y: Math.max(0, top + over - LYRIC_FIELD.height) };
+  }
+  return { x: 0, y: 0 };
+}
+
 /**
  * Where a later bar's tempo panel goes when the Tempo tool or a picked tempo's Edit opens it: from
  * the bar's start, just under its tempo's row (over the staff when the bar has no tempo yet).

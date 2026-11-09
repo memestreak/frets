@@ -10,16 +10,24 @@ import { CHORD_SIZE, prettyChord } from './widths';
 import { barTextX, CAPO_SIZE, capoText, endingSpans, sameWord, sectionBox, TEMPO_SIZE, tempoOver, tempoParts, type WordHit } from './layoutText';
 import { SECTION_BOX_HEIGHT, SECTION_LINE, SECTION_SIZE, sectionBoxes } from './sectionText';
 import { litLook, type TabLook } from './tabLook';
+import { HYPHEN_ROOM, LYRIC_LINE, LYRIC_SIZE, lyricWidth, syllableOf } from './lyrics';
 import { TempoNote } from './TempoNote';
+
+/** While the Lyrics field is open: its note (a column's index), and the syllable drawn in `--typing`. */
+export type Typing = { hit: WordHit | null; note: number };
 
 /** The room between a tempo and "Free time" in the same bar. */
 const FREE_TIME_GAP = 10;
 
 /** The words over a line: endings, the capo, sections, tempos, chord names and free text. */
-export function SystemWords({ system, rows, clip, look: plain, word, columnsOnly = false }: { system: System; rows: Rows; clip: Part; look: TabLook; word: WordHit | null; columnsOnly?: boolean }) {
+export function SystemWords({ system, rows, clip, look: plain, word, typing = null, columnsOnly = false }: {
+  system: System; rows: Rows; clip: Part; look: TabLook; word: WordHit | null;
+  typing?: Typing | null;
+  columnsOnly?: boolean;
+}) {
   const parts: ReactNode[] = [];
   // Another Voice's drawing carries only the words on its own columns: chord names and texts (step 9, Q13).
-  if (columnsOnly) return <>{columnWords(system, rows, word, plain)}</>;
+  if (columnsOnly) return <>{columnWords(system, rows, word, plain, typing)}</>;
   /** The look of a word: the selection's blue when it is the picked one (issue #276). */
   const lookOf = (hit: WordHit) => litLook(plain, sameWord(word, hit));
   // Endings: one bracket over each run of bars with the same ending.
@@ -94,12 +102,12 @@ export function SystemWords({ system, rows, clip, look: plain, word, columnsOnly
       );
     }
   }
-  parts.push(...columnWords(system, rows, word, plain));
+  parts.push(...columnWords(system, rows, word, plain, typing));
   return <>{parts}</>;
 }
 
 /** The words on a line's columns: chord names and free text. */
-function columnWords(system: System, rows: Rows, word: WordHit | null, plain: TabLook): ReactNode[] {
+function columnWords(system: System, rows: Rows, word: WordHit | null, plain: TabLook, typing: Typing | null): ReactNode[] {
   const parts: ReactNode[] = [];
   const lookOf = (hit: WordHit) => litLook(plain, sameWord(word, hit));
   // Under each chord name its diagram (issue #242), picked with it.
@@ -152,6 +160,41 @@ function columnWords(system: System, rows: Rows, word: WordHit | null, plain: Ta
         );
       }
     }
+  }
+  parts.push(...lyricWords(system, rows, hit => (typing && sameWord(typing.hit, hit) ? { ...plain, ink: 'var(--typing)' } : lookOf(hit))));
+  return parts;
+}
+
+/**
+ * The Lyrics under a line's notes: each syllable centred on its note, one Lyric line under another, and a
+ * hyphen halfway to the next syllable on its line where a syllable is joined to it (at the line's end, just
+ * after it, as Dorico and printed songbooks have it).
+ */
+function lyricWords(system: System, rows: Rows, lookOf: (hit: WordHit) => TabLook): ReactNode[] {
+  if (rows.lyrics === null) return [];
+  const parts: ReactNode[] = [];
+  const placed = system.bars.flatMap(bar => bar.columns);
+  for (let line = 0; line < rows.lyricCount; line++) {
+    const y = rows.lyrics + line * LYRIC_LINE + 4;
+    const sung = placed.filter(p => p.column.lyrics?.[line]);
+    sung.forEach((p, k) => {
+      const { shown, joined } = syllableOf(p.column.lyrics![line]);
+      const look = lookOf({ kind: 'lyric', index: p.index, line });
+      parts.push(
+        <text key={`lyric-${p.index}-${line}`} x={p.x} y={y} fontSize={LYRIC_SIZE} fill={look.ink} textAnchor="middle" data-testid="lyric">
+          {shown}
+        </text>,
+      );
+      if (!joined) return;
+      const end = p.x + lyricWidth(shown) / 2;
+      const next = sung[k + 1];
+      const hx = next ? (end + next.x - lyricWidth(syllableOf(next.column.lyrics![line]).shown) / 2) / 2 : end + HYPHEN_ROOM / 2;
+      parts.push(
+        <text key={`hyphen-${p.index}-${line}`} x={hx} y={y} fontSize={LYRIC_SIZE} fill={look.ink} textAnchor="middle" data-testid="lyric-hyphen">
+          -
+        </text>,
+      );
+    });
   }
   return parts;
 }

@@ -238,7 +238,7 @@ export default function TabPage() {
   /** Whether the palette shows the cursor's notes: only while the tab has the keys and no word is picked. */
   const lit = tabFocused && !picked;
   /** The palette tool that sets the picked word or mark, lit while it is picked. */
-  const pickedTool = !tabFocused || !picked ? null : picked.kind === 'mark' ? markTool(clip, picked) : isBarLine(picked) ? BAR_LINE_TOOL[picked.kind] : picked.kind === 'ending' ? 'ending' : picked.kind === 'time' ? 'barTime' : picked.kind === 'key' ? 'barKey' : WORD_TOOL[picked.kind];
+  const pickedTool = !tabFocused || !picked ? null : picked.kind === 'mark' ? markTool(clip, picked) : isBarLine(picked) ? BAR_LINE_TOOL[picked.kind] : picked.kind === 'ending' ? 'ending' : picked.kind === 'time' ? 'barTime' : picked.kind === 'key' ? 'barKey' : picked.kind === 'lyric' ? 'lyrics' : WORD_TOOL[picked.kind];
   /** Set while placing the playback line takes the keys from the tab, so the blur doesn't fill the bar again. */
   /**
    * The staff cursor's pitch while it has the keys: never with the tab alone. With the staff alone it is
@@ -285,7 +285,7 @@ export default function TabPage() {
   const head = useHeadPanels(editor, { layout, width: clipWidth, zoom, shown: { tab: view === 'tab', drawn: clipWidth > 0 } });
   // Presses and drags on the drawn tab.
   const picking = useTabPicking(editor, {
-    drawn, layout, hearNote, setNotice, openWord: head.openWord,
+    drawn, layout, hearNote, setNotice, openWord: head.openWord, openLyric: head.openLyric,
     openSignature: head.openSignature, dropLine,
   });
   const { deletePicked } = picking;
@@ -513,6 +513,7 @@ export default function TabPage() {
   const onTool = (id: ToolId) => {
     if (!tabFocused) return;
     if (id in WORD_TOOLS) head.openWord(WORD_TOOLS[id as keyof typeof WORD_TOOLS]);
+    else if (id === 'lyrics') head.openLyric(cursor);
     // The cursor bar's time signature panel, as a press on its drawn numbers opens (the clip's own in the first bar).
     else if (id === 'barTime') head.openSignature('time', cursor.bar, null);
     else if (id === 'barKey') head.openSignature('key', cursor.bar, null);
@@ -965,6 +966,7 @@ export default function TabPage() {
                       highlight={highlight}
                       shadow={noteInputMode ? inputLength.value : null} gridStep={noteInputMode ? gridStep : null} gridLook={gridLook}
                       picked={tabFocused ? picked : null}
+                      typing={head.typing}
                       errors={errors} mutedVoices={tabFocused} voiceSelections={shownVoiceSelections}
                     />
                   </HoverTips>
