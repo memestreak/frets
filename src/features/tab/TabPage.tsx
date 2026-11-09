@@ -2,6 +2,7 @@
 
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
 import { HoverTips } from '@/components/HoverTips';
+import { useMock, type Mock } from '@/components/mocks/useMock';
 import { ShapeMenu } from '@/components/chords/export/ShapeMenu';
 import { menuSpot, useMenuTrigger } from '@/components/chords/export/useMenuTrigger';
 import { usePreferenceSaveProblem } from '@/hooks/usePersist';
@@ -118,6 +119,12 @@ const BAR_LINE_TOOL: Record<BarLineHit['kind'], ToolId> = { repeatStart: 'repeat
  * (`useArrangementFile`), the Active voice (`useVoicePick`), playback and the playback line
  * (`usePlayRange`), and the page-wide keys (`usePageKeys`).
  */
+/** MOCK (issue #449): how the Grid button beside the pencil shows its setting. */
+const GRID_SHOW_MOCK: Mock = {
+  param: 'grid', label: 'Grid button',
+  options: [{ value: 'a', label: 'a Glyph' }, { value: 'b', label: 'b Glyph + word' }, { value: 'c', label: 'c Word' }],
+};
+
 export default function TabPage() {
   // The open arrangement, saved on Save, and the others saved (My arrangements).
   const arrangements = useArrangements();
@@ -233,6 +240,7 @@ export default function TabPage() {
   /** The grid's step in ticks: the fixed grid's, else note input mode's length (MuseScore's way, the default). */
   const gridStep = fixedGrid ? gridTicks(grid) : ticks(inputLength);
   /** The Grid panel's pick: a fixed grid, or null for Note length. */
+  const gridShow = useMock(GRID_SHOW_MOCK);
   const pickGrid = (next: GridValue | null) => prefs.setEditing(e => (next === null ? { ...e, fixedGrid: false } : { ...e, fixedGrid: true, grid: next }));
   /** Whether the palette shows the cursor's notes: only while the tab has the keys and no word is picked. */
   const lit = tabFocused && !picked;
@@ -801,7 +809,7 @@ export default function TabPage() {
       onOttava={o => onPanelChoice(() => setOttava(clip, target, o))}
       onWhammy={shape => onPanelChoice(() => setWhammy(clip, target, shape ? WHAMMY_SHAPES[shape] : null))} disabled={view !== 'tab'}
       noteInputMode={noteInputMode} groups={groups} className={className} onNoteInputMode={input ? () => enterNoteInput(!noteInputMode) : undefined}
-      grid={fixedGrid ? grid : null} gridValue={fixedGrid ? grid : inputLength.value} onGrid={pickGrid}
+      grid={fixedGrid ? grid : null} gridValue={fixedGrid ? grid : inputLength.value} onGrid={pickGrid} gridShow={gridShow}
       voices={input ? { active: tabFocused ? voice : null, onVoice: pressVoice, present: v => voicePresentAtCursor(v) } : undefined} />
   );
 
