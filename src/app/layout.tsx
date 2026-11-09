@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { AppShell } from "@/components/AppShell";
-import { SURFACE_COLORS, THEME_BOOT_SCRIPT } from "@/lib/theme";
+import { DEFAULT_THEME, THEME_BOOT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
 // Fretwood's display, text and mono faces (SIL OFL), latin subset, self-hosted so the build
@@ -23,11 +23,8 @@ const jetbrainsMono = localFont({
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  // Follows the system theme only: a meta tag can't see the in-app choice.
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: SURFACE_COLORS.light },
-    { media: "(prefers-color-scheme: dark)", color: SURFACE_COLORS.dark },
-  ],
+  // No themeColor: the boot script and `syncThemeColor` make the status
+  // bar's metas, to follow the theme picked in the app.
 };
 
 export const metadata: Metadata = {
@@ -44,9 +41,11 @@ export default function RootLayout({
 }>) {
   return (
     // On <html>, not <body>: fretwood.css reads these variables at :root.
-    // suppressHydrationWarning: the boot script may set data-theme first.
+    // data-theme: Light, the default, even before the boot script runs (which
+    // sets the saved or linked choice). suppressHydrationWarning: it may.
     <html
       lang="en"
+      data-theme={DEFAULT_THEME}
       className={`${fraunces.variable} ${figtree.variable} ${jetbrainsMono.variable}`}
       suppressHydrationWarning
     >

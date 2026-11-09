@@ -1,10 +1,10 @@
 'use client';
 
-import { useSyncExternalStore, type ComponentType } from 'react';
+import { useLayoutEffect, useSyncExternalStore, type ComponentType } from 'react';
 import { MoonIcon, SunIcon, ThemeAutoIcon } from './icons';
-import { savePreference } from '@/lib/storage';
+import { loadJson, savePreference } from '@/lib/storage';
 import {
-  APPEARANCE_KEY, applyTheme, currentTheme, type ThemeChoice,
+  APPEARANCE_KEY, DEFAULT_THEME, applyTheme, currentTheme, parseAppearance, type ThemeChoice,
 } from '@/lib/theme';
 
 const NAMES: Record<ThemeChoice, string> = { auto: 'Auto', light: 'Light', dark: 'Dark' };
@@ -30,10 +30,24 @@ export function chooseTheme(choice: ThemeChoice) {
 }
 
 /** The theme applied now, kept up to date. */
-export const useTheme = () => useSyncExternalStore(subscribe, currentTheme, () => 'auto' as const);
+export const useTheme = () => useSyncExternalStore(subscribe, currentTheme, () => DEFAULT_THEME);
+
+/**
+ * Applies the saved theme again once React has the page. A hydration error
+ * makes React draw the whole document afresh, which drops the boot script's
+ * `data-theme` and status bar metas; until those errors are gone, a saved
+ * Dark would otherwise turn Light on those pages. Before paint, so no flash.
+ */
+function useReapplySavedTheme() {
+  useLayoutEffect(() => {
+    applyTheme(parseAppearance(loadJson(APPEARANCE_KEY)).theme);
+    listeners.forEach(fn => fn());
+  }, []);
+}
 
 /** One icon button that cycles Auto, Light, Dark; saved per viewer. */
 export function ThemeSwitch() {
+  useReapplySavedTheme();
   const theme = useTheme();
   const Icon = ICONS[theme];
   return (
