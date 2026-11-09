@@ -2,21 +2,22 @@
  * Dynamics on the page (issue #437, `docs/specs/2026-11-09-tab-dynamics-design.md`): Shift+D and the
  * Dynamic tool open the field, what isn't a dynamic gets a ⚠, a drawn dynamic is picked, edited and deleted.
  */
-import { act, fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { partOf } from '@/features/tab/clip';
 import { layoutClip } from '@/features/tab/layout';
 import { markBoxes } from '@/features/tab/marks';
 import { NOT_A_DYNAMIC } from '@/features/tab/WordField';
+import { DYNAMICS } from '@/features/tab/clip';
 import { setUpPage, openWith, keys, alphaTex, editor, isLit, renderAt } from './helpers';
 import { tool } from '../tool';
 
 setUpPage();
 
 const DYNAMIC_TOOL = /^Dynamic from this column on/;
-const field = () => screen.getByRole('textbox', { name: 'Dynamic' });
-const queryField = () => screen.queryByRole('textbox', { name: 'Dynamic' });
+const field = () => screen.getByRole('combobox', { name: 'Dynamic' });
+const queryField = () => screen.queryByRole('combobox', { name: 'Dynamic' });
 const type = (value: string) => {
   fireEvent.change(field(), { target: { value } });
   fireEvent.keyDown(field(), { key: 'Enter' });
@@ -76,6 +77,85 @@ describe('entering a dynamic', { timeout: 20000 }, () => {
     type('');
     expect(screen.queryByTestId('dynamic')).toBeNull();
     expect(alphaTex()).toBe('5.3.4 5.3.4 5.3.2 |');
+  });
+});
+
+describe('the list of dynamics', { timeout: 20000 }, () => {
+  const list = () => within(screen.getByRole('listbox', { name: 'Dynamics' }));
+  const options = () => list().queryAllByRole('option').map(o => o.getAttribute('data-dynamic'));
+  const down = (key = 'ArrowDown') => fireEvent.keyDown(field(), { key });
+
+  it('the Down arrow key lists every dynamic when nothing is typed, softest first', async () => {
+    await openWith('5.3.4 5.3.4 5.3.2 |');
+    keys({ key: 'D', shiftKey: true });
+    expect(screen.queryByRole('listbox')).toBeNull();
+    down();
+    expect(options()).toEqual([...DYNAMICS]);
+    expect(field()).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('lists only those starting with what is typed, and follows the typing', async () => {
+    await openWith('5.3.4 5.3.4 5.3.2 |');
+    keys({ key: 'D', shiftKey: true });
+    fireEvent.change(field(), { target: { value: 'sf' } });
+    down();
+    expect(options()).toEqual(['sf', 'sfp', 'sfpp', 'sfz', 'sffz', 'sfzp']);
+    fireEvent.change(field(), { target: { value: 'SFZ' } });
+    expect(options()).toEqual(['sfz', 'sfzp']);
+    fireEvent.change(field(), { target: { value: 'x' } });
+    expect(options()).toHaveLength(0);
+    expect(screen.getByRole('listbox')).toHaveTextContent('No dynamic starts with “x”');
+  });
+
+  it('↓ and ↑ move through the list, and Enter sets the one picked', async () => {
+    await openWith('5.3.4 5.3.4 5.3.2 |');
+    keys({ key: 'D', shiftKey: true });
+    fireEvent.change(field(), { target: { value: 'm' } });
+    down();
+    const picked = () => list().getByRole('option', { selected: true }).getAttribute('data-dynamic');
+    expect(picked()).toBe('mp');
+    down();
+    expect(picked()).toBe('mf');
+    // Not past the end, nor before the start.
+    down();
+    expect(picked()).toBe('mf');
+    down('ArrowUp');
+    down('ArrowUp');
+    expect(picked()).toBe('mp');
+    down();
+    fireEvent.keyDown(field(), { key: 'Enter' });
+    expect(queryField()).toBeNull();
+    expect(alphaTex()).toBe('5.3.4{dy mf} 5.3.4 5.3.2 |');
+  });
+
+  it('starts on the dynamic typed exactly, so pp and Enter sets pp, not pppppp', async () => {
+    await openWith('5.3.4 5.3.4 5.3.2 |');
+    keys({ key: 'D', shiftKey: true });
+    down();
+    fireEvent.change(field(), { target: { value: 'pp' } });
+    expect(list().getByRole('option', { selected: true })).toHaveAttribute('data-dynamic', 'pp');
+    fireEvent.keyDown(field(), { key: 'Enter' });
+    expect(alphaTex()).toBe('5.3.4{dy pp} 5.3.4 5.3.2 |');
+  });
+
+  it('a press on a dynamic in the list sets it', async () => {
+    await openWith('5.3.4 5.3.4 5.3.2 |');
+    keys({ key: 'D', shiftKey: true });
+    down();
+    fireEvent.click(list().getByRole('option', { name: 'fff' }));
+    expect(alphaTex()).toBe('5.3.4{dy fff} 5.3.4 5.3.2 |');
+  });
+
+  it('Esc closes the list first, then the field, changing nothing', async () => {
+    await openWith('5.3.4{dy p} 5.3.4 5.3.2 |');
+    keys({ key: 'D', shiftKey: true });
+    down();
+    fireEvent.keyDown(field(), { key: 'Escape' });
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(field()).toBeInTheDocument();
+    fireEvent.keyDown(field(), { key: 'Escape' });
+    expect(queryField()).toBeNull();
+    expect(alphaTex()).toBe('5.3.4{dy p} 5.3.4 5.3.2 |');
   });
 });
 

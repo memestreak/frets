@@ -20,23 +20,27 @@ const LETTER = {
 const SCALE = SPACE * 1.15;
 /** Neighbouring letters overlap a little, as the glyphs' italic slant leaves room (Bravura's own kerning is tighter still). */
 const LETTER_OVERLAP = 0.12;
+/** How much closer the letter after an f sits, in staff spaces. */
+const F_KERN = 0.3;
 /** The gap between a dynamic and a hairpin beside it. */
 const HAIRPIN_GAP = 3;
 
 /** A dynamic's letters as paths, centred on `x` with their middle on `y`, and the box round them. */
 export function dynamicWord(dynamic: Dynamic, x: number, y: number): { letters: { d: string; transform: string }[]; box: Box } {
-  const glyphs = [...dynamic].map(letter => LETTER[letter as keyof typeof LETTER]);
-  const advances = glyphs.map(g => (g.width - LETTER_OVERLAP) * SCALE);
+  const letters = [...dynamic];
+  const glyphs = letters.map(letter => LETTER[letter as keyof typeof LETTER]);
+  // An f's tail leaves room under it: the letter after it (but another f) tucks in, as in Bravura's own kerning.
+  const advances = glyphs.map((g, i) => (g.width - LETTER_OVERLAP - (letters[i] === 'f' && letters[i + 1] && letters[i + 1] !== 'f' ? F_KERN : 0)) * SCALE);
   const width = advances.reduce((a, b) => a + b, 0) + LETTER_OVERLAP * SCALE;
   // The letters stand on their baseline, about a space tall; their middle goes on the row.
   const base = y + 0.45 * SCALE;
   let left = x - width / 2;
-  const letters = glyphs.map((glyph, i) => {
+  const paths = glyphs.map((glyph, i) => {
     const letter = { d: glyph.d, transform: `translate(${left} ${base}) scale(${SCALE})` };
     left += advances[i];
     return letter;
   });
-  return { letters, box: { x: x - width / 2, y: base - 1.1 * SCALE, width, height: 1.4 * SCALE } };
+  return { letters: paths, box: { x: x - width / 2, y: base - 1.1 * SCALE, width, height: 1.4 * SCALE } };
 }
 
 /** One dynamic as drawn on a line: the column it is on (`index` in its Voice's part), and whether that is the part's own Voice. */

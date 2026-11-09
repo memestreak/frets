@@ -388,6 +388,18 @@
 /* The input and, for a dynamic that isn't one, its small red ⚠ beside it (issue #437). */
 .tab-word-row { display: flex; align-items: center; gap: 6px; }
 .tab-word-problem { display: inline-flex; color: var(--danger); cursor: default; }
+/* A dynamic's list under its field: each dynamic in its drawn letters, then as typed; the active one raised. */
+.tab-word-list {
+  max-height: 220px; overflow-y: auto; margin: 0; padding: 4px; list-style: none;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--surface-raised);
+}
+.tab-word-option {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 2px 8px; border-radius: 6px; cursor: pointer; color: var(--ink);
+}
+.tab-word-option[aria-selected="true"] { background: var(--surface-sunken); }
+.tab-word-option-text { font-size: 12px; color: var(--ink-muted); }
+.tab-word-none { padding: 2px 8px; font-size: 12px; color: var(--ink-muted); }
 /* A number's box: room for 7 digits, never more (Jeremy, 2026-10-27), with the field fitting round it. */
 .tab-word-number { width: calc(7ch + 23px); }
 .tab-word-fit { width: auto; white-space: nowrap; }

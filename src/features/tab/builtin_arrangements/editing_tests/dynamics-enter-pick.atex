@@ -1,6 +1,6 @@
 \title "Dynamics are entered with Shift+D and picked like any Mark"
 \ts (4 4)
-3.6.4{txt "Both view. 1. Press this 3 on the tab, then Shift+D: a Dynamic field opens under the staff. Type pp and press the Enter key: pp is drawn under the staff, and the Dynamic button (mf) in Articulations › Accents lights"}
+3.6.4{txt "Both view. 1. Press this 3 on the tab, then Shift+D: a Dynamic field opens under the staff. Press the Down arrow key: the list of dynamics opens; type p: it lists only those starting with p. Type p again, press the Enter key: pp is drawn under the staff, and the Dynamic button (mf) in Articulations › Accents lights"}
   3.6.4 5.6.4 3.6.4 |
 5.5.4{txt "2. Press the mf: it turns blue. Double-click it, type xx and press the Enter key: a small red ⚠ shows and the field stays open; the Escape key leaves mf as it was. 3. Press the mf again, then the Delete key: it is gone" dy mf}
   3.5.4 2.5.4 0.5.4 |
