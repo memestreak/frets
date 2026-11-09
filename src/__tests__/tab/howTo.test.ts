@@ -10,8 +10,10 @@ import { BUILTIN_DIR, readBuiltinFiles } from '@/features/tab/builtinFiles';
 import { TAB_SHORTCUTS } from '@/features/tab/shortcuts';
 
 const FOLDER = 'how_to';
-/** The longest a lesson's Text may be: one step, about one line of the drawing's widest Text. */
-const MAX_TEXT = 60;
+/** A lesson's Text: one step on its first line, what you'll see on a second at most. */
+const MAX_LINES = 2;
+/** The longest line, its ** marks not counted: about the drawing's widest Text. */
+const MAX_LINE = 60;
 
 /** Every key the page lists, a range such as `Shift+1–7` or `A–G` spelt out one key at a time. */
 function pageKeys(): Set<string> {
@@ -55,11 +57,13 @@ describe('the How to lessons', () => {
     }
   });
 
-  it('keep each Text to one short step, a line or two (Jeremy, 2026-11-09: no walls of words)', async () => {
+  it('keep each Text to one short step, two lines at most (Jeremy, 2026-11-09: no walls of words)', async () => {
     const lessons = (await readBuiltinFiles()).filter(f => f.folder === FOLDER);
     for (const lesson of lessons) {
       for (const [, text] of lesson.text.matchAll(/txt "([^"]*)"/g)) {
-        expect(text.length, `${lesson.file}: ${text}`).toBeLessThanOrEqual(MAX_TEXT);
+        const lines = text.split('\\n').map(line => line.replaceAll('**', ''));
+        expect(lines.length, `${lesson.file}: ${text}`).toBeLessThanOrEqual(MAX_LINES);
+        for (const line of lines) expect(line.length, `${lesson.file}: ${line}`).toBeLessThanOrEqual(MAX_LINE);
       }
     }
   });

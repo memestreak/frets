@@ -20,8 +20,10 @@ Arrangements written for people learning Frets, one per feature.
   place in the order and the ones after it renumbered.
 - One short step per Text, each on its own bar (Jeremy, 2026-11-09: "way
   too much text in one note... make sure that any of our text notes are
-  significantly less wordy and broken up"). A Text is at most 60
-  characters, about a line, so it reads at a glance and no two touch. The
+  significantly less wordy and broken up"). A Text is a step on its
+  first line, with the keys in **bold**, and at most one more line
+  (`\n`, issue #445) for what you'll see; each line is at most 60
+  characters, so it reads at a glance and no two touch. The
   first step names the view ("Tab view. 1. Press N."), as the
   `test-arrangement` skill says; a step points at what to press as drawn
   ("Press this 7") and spells keys in words ("the Right arrow key").
@@ -31,11 +33,11 @@ Arrangements written for people learning Frets, one per feature.
 - A Text over a column you'll copy is copied with it, so a lesson keeps
   its Text off the columns its steps copy.
 
-The thirteen lessons, in order: enter notes; enter chords and name them;
+The fourteen lessons, in order: enter notes; enter chords and name them;
 change notes; enter notes on the staff; hammer-ons, slides and ties; bends
 and vibrato; let ring and palm mute; triplets and other tuplets; grace
-notes; two voices; repeats and endings; play and loop; copy and paste.
-Lyrics (PR #441) and dynamics (PR #440) get theirs once they merge.
+notes; two voices; repeats and endings; play and loop; copy and paste;
+dynamics. Lyrics (PR #441) gets its lesson once it merges.
 
 ## Keeping them true
 
@@ -63,7 +65,8 @@ Lyrics (PR #441) and dynamics (PR #440) get theirs once they merge.
 ## Tests
 
 - Every file in `how_to/` has a row in its README, and every row a file.
-- Every Text in a lesson is 60 characters or fewer.
+- Every Text in a lesson has at most two lines, each 60 characters or
+  fewer, its `**` marks not counted.
 - Every key in a row's Keys column is a Tab page shortcut; `Shift+4` and
   `Alt+2` count as listed (from `Shift+1–7`, `Alt+1–4`), `Shift+8` doesn't.
 - Each lesson reads with no warnings and writes back exactly

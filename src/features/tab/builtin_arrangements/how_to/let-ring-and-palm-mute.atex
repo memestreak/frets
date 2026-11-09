@@ -1,7 +1,7 @@
 \title "7. Let ring and palm mute"
 \ts (4 4)
-0.5.8{txt "Tab view. 1. Press this 0, then Shift+Right arrow 7 times."} 2.4.8
-  2.3.8 1.2.8 0.1.8{txt "2. Press I: let ring."} 1.2.8 2.3.8 2.4.8 |
-0.6.8{txt "3. Select this bar the same way, then M: palm mute."} 0.6.8 0.6.8
-  0.6.8 0.6.8 0.6.8 0.6.8 0.6.8 |
+0.5.8{txt "Tab view. 1. Press this 0,\nthen **Shift+Right arrow** 7 times."}
+  2.4.8 2.3.8 1.2.8 0.1.8{txt "2. Press **I**:\nlet ring."} 1.2.8 2.3.8 2.4.8 |
+0.6.8{txt "3. Select this bar the same way,\nthen **M**: palm mute."} 0.6.8
+  0.6.8 0.6.8 0.6.8 0.6.8 0.6.8 0.6.8 |
 

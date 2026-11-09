@@ -24,11 +24,13 @@ warnings, every bar full, and write back exactly
 - A PR that changes what a lesson's steps show updates its texts in the
   same PR. Walk through it in a browser, step by step, exactly as written.
 - One short step per Text, each on its own bar, never a paragraph
-  (Jeremy, 2026-11-09); the test holds each to 60 characters. The first
-  step names the view ("Tab view. 1. Press N."); keys are spelt out
-  ("the Right arrow key"), as the `test-arrangement` skill says.
-- A feature gets its lesson once it is merged: Lyrics (PR #441) and
-  dynamics (PR #440) were still open when these were written.
+  (Jeremy, 2026-11-09): what to do on the first line, with the keys in
+  **bold**, and what you'll see on a second line (`\n`) when it helps.
+  The test holds each Text to two lines of 60 characters. The first step
+  names the view ("Tab view. 1. Press **N**."); keys are spelt out
+  ("the **Right arrow** key"), as the `test-arrangement` skill says.
+- A feature gets its lesson once it is merged: Lyrics (PR #441) was
+  still open when these were written.
 
 | File | Teaches | Keys |
 | --- | --- | --- |
@@ -45,3 +47,4 @@ warnings, every bar full, and write back exactly
 | `repeats-and-endings.atex` | Repeat signs, first and second endings, playing them | [, ], E, Space |
 | `play-and-loop.atex` | Playing, and looping a selection | Space, Shift+Right, L |
 | `copy-and-paste.atex` | Copying notes and pasting them into another bar | Shift+Right, Mod+C, Mod+V |
+| `set-dynamics.atex` | Setting a dynamic, which holds until the next one | Shift+D |
