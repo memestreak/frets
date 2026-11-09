@@ -120,6 +120,15 @@ describe('typing Lyrics with Shift+L', () => {
     expect(blue()).toEqual([]);
   }, 20000);
 
+  it('on notes with syllables: nothing orange on opening, then only the one just set, not the next note\'s own', async () => {
+    await openWith('0.6.4{lyrics "a"} 2.5.4{lyrics "b"} 3.5.2 |');
+    shiftL();
+    const orange = () => screen.getAllByTestId('lyric').filter(t => t.getAttribute('fill') === 'var(--typing)').map(t => t.textContent);
+    expect(orange()).toEqual([]);
+    type('a', ' ');
+    expect(orange()).toEqual(['a']);
+  }, 20000);
+
   it('on a rest it opens on the next note; each syllable is one undo step', async () => {
     await openWith('r.4 2.5.4 3.5.2 |');
     shiftL();

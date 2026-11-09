@@ -57,10 +57,10 @@ syllable a note. Frets kept both as written but drew neither.
   - The cursor follows the field from note to note. Each syllable set is
     one undo step.
   - While the field is open, its note is drawn as selected (blue, Jeremy,
-    2026-11-09), and one syllable is drawn in burnt orange (`--typing`,
-    Fretwood's `--degree-root`; Jeremy's pick, 2026-11-09), as Dorico
-    shows its last lyric: the note's own when it has one, else the one the
-    field set last.
+    2026-11-09), and the syllable it set last (on the note before, after Space)
+    is drawn in burnt orange (`--typing`, Fretwood's `--degree-root`;
+    Jeremy's picks, 2026-11-09), as Dorico shows its last lyric. Nothing
+    is orange until the field has set one.
 - **Picking.** A press on a syllable picks it (blue, its notes tinted).
   Enter, a double-click or the right-click menu's Edit opens the field on
   it; Delete or the menu's Delete takes it away. Alt+← → step through

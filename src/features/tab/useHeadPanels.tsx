@@ -50,8 +50,8 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
   /** Where the Lyrics field was dragged to, kept while it goes note to note; it opens over the note again next time. */
   const [lyricNudge, setLyricNudge] = useState<LyricNudge>({ dx: 0, dy: 0 });
   /**
-   * The syllable drawn in the typing colour while the field is open: the note's own when it has one, else the
-   * one the field set last, so what was just typed shows (Dorico's last lyric, in its selection colour).
+   * The syllable drawn in the typing colour while the field is open: the one the field set last, so what was
+   * just typed shows (Dorico's last lyric, in its selection colour). The field's own note is drawn selected.
    */
   const [lyricLit, setLyricLit] = useState<{ bar: number; column: number; line: number } | null>(null);
   /** The bar whose time signature panel is open. */
@@ -127,7 +127,7 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
     setWord(null);
     commit(clip, { ...cursor, ...place }, null);
     if (!lyric) setLyricNudge({ dx: 0, dy: 0 });
-    setLyricLit(lyricAt(clip, place, line) ? { ...place, line } : null);
+    setLyricLit(null);
     setLyricField({ ...place, line });
   };
 
@@ -144,9 +144,8 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
     if (place) {
       // A new turn opens the field afresh even on the same note, with what it now has.
       setLyricField({ ...place, line, turn: (at.turn ?? 0) + 1 });
-      const own = lyricAt(next, place, line) ? { ...place, line } : null;
-      const set = lyricAt(next, at, at.line) ? { bar: at.bar, column: at.column, line: at.line } : null;
-      setLyricLit(own ?? set ?? (lyricLit && lyricAt(next, lyricLit, lyricLit.line) ? lyricLit : null));
+      // What this key set, else (cleared, or Esc) nothing.
+      setLyricLit(move !== 'cancel' && lyricAt(next, at, at.line) ? { bar: at.bar, column: at.column, line: at.line } : null);
       return;
     }
     setLyricField(null);
