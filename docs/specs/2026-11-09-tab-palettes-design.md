@@ -28,7 +28,7 @@ be dragged into another order; Guitar Pro 8's Edition palette is a fixed column 
   from it by lines. It lists **every palette by its header**, top to bottom: Notes, Articulations, Bars,
   Chords, Chat until moved. Their tools are as before.
 - **A header** is a chevron (right when folded, down when open), the palette's icon (the rail's: a quarter
-  note, "mf" in the dynamics' letters, a repeat sign, a chord diagram, a speech bubble), then its name. A
+  note, a vibrato's wavy line, a repeat sign, a chord diagram, a speech bubble), then its name. A
   folded palette's name is drawn as an open one's, not faded. Chords' header also has its Hear toggle at the
   right while open.
 - **A press on a header opens or folds** that palette, downwards from the header. Any number may be open.
@@ -66,7 +66,7 @@ be dragged into another order; Guitar Pro 8's Edition palette is a fixed column 
 ## Tests
 
 - A first visit lists Notes (open, with the pencil, Duration and Rhythm), Articulations, Bars, Chords and
-  Chat (folded), each header with its icon (Articulations' is the two letters of "mf"); no rail.
+  Chat (folded), each header with its icon (Articulations' is a vibrato's wavy line); no rail.
 - Pressing Articulations and Bars opens both beside Notes, their tools shown; pressing Notes folds it.
 - Collapse leaves only Expand (no column, no tools); Expand brings back Notes and Chords open as they were.
 - Bars opened keeps `{ open: ['notes', 'bars'], order: [first order], heights: {}, collapsed: false, width: 272 }`;

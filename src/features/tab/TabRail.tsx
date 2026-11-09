@@ -15,7 +15,6 @@ import {
 } from 'react';
 import { HoverTips } from '@/components/HoverTips';
 import { ICONS } from './TabPalette';
-import { dynamicWord } from './dynamics';
 import type { ChatStatus } from './chat/useChatSession';
 
 /** Draws the palette with only `groups`; `className` sets its look; the note input mode pencil first when `input`. */
@@ -25,14 +24,10 @@ export type PanelId = 'notes' | 'articulations' | 'bars' | 'chords' | 'chat';
 
 /** The tool palettes, in their first order, and the Tool groups each holds; Chords and Chat come after them. */
 /**
- * The Articulations palette's icon: "mf" in the dynamics' own letters, as big as the other palettes' icons and
- * centred on its box (the accent's wedge read as an expand chevron).
+ * The Articulations palette's icon: a vibrato's wavy line, drawn as the other palettes' icons are (the accent's
+ * wedge read as an expand chevron).
  */
-const ARTICULATIONS_ICON = (
-  <g transform="translate(12 12.8) scale(0.6)" fill="currentColor" stroke="none">
-    {dynamicWord('mf', 0, 0).letters.map((letter, i) => <path key={i} d={letter.d} transform={letter.transform} />)}
-  </g>
-);
+const ARTICULATIONS_ICON = <path d="M4 12 q2 -5 4 0 t4 0 t4 0 t4 0" strokeLinecap="round" strokeLinejoin="round" />;
 
 export const PANELS: readonly { id: Exclude<PanelId, 'chords' | 'chat'>; name: string; icon: ReactNode; groups: readonly string[]; input?: boolean }[] = [
   { id: 'notes', name: 'Notes', icon: ICONS.quarter, groups: ['Duration', 'Rhythm'], input: true },
