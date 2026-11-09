@@ -189,8 +189,8 @@ function pickedKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys
       editor.moveSpanEnd(key === 'ArrowRight' ? 1 : -1);
       return true;
     }
-    // A picked tuplet's number: Enter opens the Tuplet panel, as its menu's Edit does (step 8).
-    if (key === 'Enter' && picked.mark === 'tuplet' && !e.ctrlKey && !e.metaKey) {
+    // A picked tuplet's number: Enter opens the Tuplet panel, as its menu's Edit does (step 8); a dynamic's, its field.
+    if (key === 'Enter' && (picked.mark === 'tuplet' || picked.mark === 'dynamic') && !e.ctrlKey && !e.metaKey) {
       e.preventDefault();
       editor.editPicked(picked);
       return true;

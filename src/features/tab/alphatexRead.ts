@@ -10,7 +10,7 @@ import { mod12, SHARP_NOTES } from '@/lib/theory/notes';
 import type { ReadResult, TextSpot } from './ascii';
 import {
   barLength, barTicks, defaultGroupCounts, isGroupingOf, sameGroups, BEND_QUARTERS, isRest, isWhammy, MAX_VOICES, stringClashes, unevenMessage, MAX_BPM, MAX_CAPO, MIN_BPM, NOTE_VALUES, STRING_COUNT, COMMON_TIME, isTimeSignature,
-  TREMOLO_VALUES, tupletFields, type TimeSignature, type BendQuarters, type Clip, type Column, type Note,
+  TREMOLO_VALUES, dynamicOf, tupletFields, type TimeSignature, type BendQuarters, type Clip, type Column, type Note,
   type NoteValue, type Fermata, isBarsPerLine, partOf, trackName, type MasterBar, type Track, type TrackBar,
 } from './clip';
 import { readFxLine } from './fxLine';
@@ -68,7 +68,7 @@ const KEPT_NAMES: Record<string, string> = {
   tp: 'tremolo picking', tb: 'whammy bar',
   psu: 'pick slide up', psd: 'pick slide down',
   rasg: 'rasgueado', bu: 'strum up', bd: 'strum down',
-  au: 'rolled chord up', ad: 'rolled chord down', dy: 'dynamics', lf: 'left-hand fingering',
+  au: 'rolled chord up', ad: 'rolled chord down', dy: 'dynamic', lf: 'left-hand fingering',
   rf: 'right-hand fingering', ten: 'tenuto', tu: 'tuplet',
 };
 
@@ -201,6 +201,14 @@ function beatReads(beat: AtBeat, column: Column, at: AlphaTab, node: BeatNode | 
   const ottavas = { [at.model.Ottavia._8va]: '8va', [at.model.Ottavia._8vb]: '8vb', [at.model.Ottavia._15ma]: '15ma', [at.model.Ottavia._15mb]: '15mb' } as const;
   const ottava = ottavas[beat.ottava as keyof typeof ottavas];
   if (ottava) column.ottava = ottava;
+  // A dynamic Frets draws (`dy mf`, any case); one it doesn't (`dy n`), or two on a beat, is kept as written.
+  const dys = node?.beatEffects?.properties.filter(p => p.property.text === 'dy') ?? [];
+  const args = dys[0]?.arguments?.arguments ?? [];
+  const dynamic = dys.length === 1 && args.length === 1 ? dynamicOf(args[0].text ?? '') : null;
+  if (dynamic) {
+    column.dynamic = dynamic;
+    reads.add('dy');
+  }
   return reads;
 }
 

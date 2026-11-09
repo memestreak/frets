@@ -90,10 +90,10 @@ const UNEVEN_WARNING = /doesn't add up to/;
 /**
  * Whether a picked thing has an Edit (in its menu, and on a double-click, issue #289): a word, the capo, an
  * ending, a repeat's end or count, a time or key signature (its panel, step 8), or a tuplet's number (the
- * Tuplet panel). Other marks, a repeat's start and a double bar have only Delete.
+ * Tuplet panel), or a dynamic (its field). Other marks, a repeat's start and a double bar have only Delete.
  */
 function hasEdit(hit: Picked): boolean {
-  if (hit.kind === 'mark') return hit.mark === 'tuplet';
+  if (hit.kind === 'mark') return hit.mark === 'tuplet' || hit.mark === 'dynamic';
   return !['repeatStart', 'doubleBar'].includes(hit.kind);
 }
 /** Whether a picked thing's menu has Delete: not bar 1's signatures, which a clip always has. */
@@ -345,8 +345,12 @@ export default function TabPage() {
     setChordsAt({ name: chord.name });
     setRailPanel('chords');
   };
-  /** A picked thing's Edit: a chord name's Chords panel, a word's field, a signature's panel, or for a tuplet's number the Tuplet panel at its notes (step 8). */
+  /** A picked thing's Edit: a chord name's Chords panel, a word's or dynamic's field, a signature's panel, or for a tuplet's number the Tuplet panel at its notes (step 8). */
   const editPicked = (hit: Picked) => {
+    if (hit.kind === 'mark' && hit.mark === 'dynamic') {
+      const { bar, column } = placeOf(clip, hit.index);
+      return head.openWord('dynamic', { bar, column, string: cursor.string });
+    }
     if (hit.kind === 'mark') return openTuplets();
     if (hit.kind === 'chord') return openChordsAt(hit.index);
     return picking.editPicked(hit);
@@ -775,10 +779,12 @@ export default function TabPage() {
       picking.onPickRhythm(rest, extend);
     },
     // A double-click on a word or a repeat's count opens its field, as the menu's Edit does (issue #289);
-    // one on a mark or a bar line with no Edit leaves it picked. Out of note input mode, one anywhere else
+    // one on a dynamic opens its field; one on another mark or a bar line with no Edit leaves it picked. Out of note input mode, one anywhere else
     // on the staff or the tab goes into it (Jeremy, 2026-10-31) with the caret where it landed (2026-11-07).
     onDoubleClick: (word: TextHit | null, onMark: boolean, place: DoubleClickPlace) => {
       if (word && hasEdit(word)) return editPicked(word);
+      // A dynamic, picked by the first press, opens its field (issue #437).
+      if (onMark && picked?.kind === 'mark' && picked.mark === 'dynamic') return editPicked(picked);
       if (word || onMark || noteInputMode) return;
       enterNoteInputAt(place);
     },

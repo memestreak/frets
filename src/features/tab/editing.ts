@@ -233,7 +233,7 @@ export function emptyColumn(duration: Duration): Column {
  * them, as Dorico and MuseScore do (issue #393). Only taking the time away (Ctrl/⌘+Delete) removes them.
  * A pick stroke, tremolo, whammy bar and Beam override belong to the notes and go with them.
  */
-const TIME_MARKS = ['chord', 'text', 'fermata', 'wah', 'hairpin', 'ottava', 'extra'] as const;
+const TIME_MARKS = ['chord', 'text', 'fermata', 'wah', 'dynamic', 'hairpin', 'ottava', 'extra'] as const;
 
 /** The rest a Column becomes when its notes are deleted: its length and its time's marks. */
 export function restOf(column: Column): Column {

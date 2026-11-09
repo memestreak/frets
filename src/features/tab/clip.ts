@@ -150,6 +150,11 @@ export interface Column {
    * draw one hairpin under the staff, as the book prints bar 157 of Sweet Child O' Mine. Drawn only.
    */
   hairpin?: 'crescendo' | 'decrescendo';
+  /**
+   * A dynamic from this column on (alphaTex `dy`, issue #437): how loud the music is played until the
+   * next one, drawn in italic letters on the hairpins' row and heard in playback.
+   */
+  dynamic?: Dynamic;
   /** A fermata over the column (alphaTex `fermata`): held longer than written. Drawn only. */
   fermata?: Fermata;
   /**
@@ -176,6 +181,22 @@ export type Ottava = '8va' | '8vb' | '15ma' | '15mb';
 export const OTTAVAS: readonly Ottava[] = ['8va', '8vb', '15ma', '15mb'];
 /** How far the notes under each line sound from where they are written, in semitones. */
 export const OTTAVA_SHIFT: Record<Ottava, number> = { '8va': 12, '8vb': -12, '15ma': 24, '15mb': -24 };
+
+/**
+ * A dynamic, as alphaTex's `dy` writes it (alphaTab 1.8.4's DynamicValue, lowercase), softest first, then
+ * the accents in dynamics (sf, sfz, fp…). Niente (`n`) has no Bravura glyph here, so it is kept as written.
+ */
+export const DYNAMICS = [
+  'pppppp', 'ppppp', 'pppp', 'ppp', 'pp', 'p', 'mp', 'mf', 'f', 'ff', 'fff', 'ffff', 'fffff', 'ffffff',
+  'sf', 'sfp', 'sfpp', 'fp', 'rf', 'rfz', 'sfz', 'sffz', 'fz', 'pf', 'sfzp',
+] as const;
+export type Dynamic = (typeof DYNAMICS)[number];
+
+/** The dynamic a typed word names (any case, spaces round it ignored), or null for a word that isn't one. */
+export function dynamicOf(word: string): Dynamic | null {
+  const w = word.trim().toLowerCase();
+  return (DYNAMICS as readonly string[]).includes(w) ? (w as Dynamic) : null;
+}
 
 /** How fast a tremolo picked note is picked: as eighths, sixteenths or thirty-seconds. */
 export type TremoloValue = 8 | 16 | 32;
@@ -1317,6 +1338,7 @@ function isColumn(v: unknown): v is Column {
     && (v.tremolo === undefined || TREMOLO_VALUES.includes(v.tremolo as TremoloValue))
     && (v.ottava === undefined || OTTAVAS.includes(v.ottava as Ottava))
     && optOneOf(v.wah, ['open', 'closed']) && optOneOf(v.hairpin, ['crescendo', 'decrescendo'])
+    && optOneOf(v.dynamic, DYNAMICS)
     && optOneOf(v.fermata, FERMATAS) && optOneOf(v.beam, ['break', 'join'])
     && (v.whammy === undefined || isWhammy(v.whammy))
     && optStrings(v.extra);

@@ -189,6 +189,8 @@ and in its spec.
   `2026-11-05-tab-range-handles-design.md`.
 - `rectangle.ts` — Shift+drag from blank space: the rectangle and the run
   of columns it takes in (issue #238).
+- `dynamics.ts` — a dynamic's letters (`dynamicWord`) and where a hairpin
+  beside one stops (`hairpinSpan`) — `2026-11-09-tab-dynamics-design.md`.
 - `whammy.ts` — where the whammy bar's lines and labels go, `whammyJoins` —
   `2026-10-29-tab-whammy-design.md`.
 - `fieldSpots.ts` — where the fields and panels over the tab open.
@@ -272,8 +274,8 @@ and in its spec.
 - `ClipWords.tsx` — `SystemWords`: the words over a line (endings, the capo,
   sections, tempos, "Free time", chord names and their diagrams, free text).
 - `ClipMarks.tsx` — `SystemRowMarks`: the marks in their own rows over the tab
-  (P.M., let ring, w/ bar, fermatas, hairpins, vibrato, mordents, strokes,
-  `WahMark`, accents).
+  (P.M., let ring, w/ bar, fermatas, hairpins, dynamics, vibrato, mordents,
+  strokes, `WahMark`, accents).
 - `ClipBars.tsx` — `BarDrawing` (bar lines, repeat signs and counts, double
   bars), `TimeNumbers` (a time signature on the tab) and `StaffJoin` (the
   bracket joining staff and tab).
@@ -448,6 +450,9 @@ or saved. Standard tuning only.
 The principles every editing spec since step 1 follows, with Dorico,
 MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
 
+- `docs/specs/2026-11-09-tab-dynamics-design.md`: dynamics (alphaTex `dy`)
+  drawn on the hairpins' row, entered with Shift+D or the Dynamic tool,
+  picked, edited and deleted like any Mark (issue #437).
 - `docs/specs/2026-11-08-tab-rail-width-design.md`: drag the line between
   the open Rail panel and the clip to set every panel's width, 224 to 560px,
   kept across visits (issue #431)

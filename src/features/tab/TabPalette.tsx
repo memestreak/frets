@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { BEND_QUARTERS, OTTAVAS, TUPLETS, tupletLabel, type BendQuarters, type Ottava } from './clip';
 import { mordentSign } from './marks';
+import { dynamicWord } from './dynamics';
 import { TOOL_GROUPS, toolValue, type noteKinds, type Tool, type ToolId } from './tools';
 import { GRID_NAMES, GRID_VALUES, type GridValue } from './grid';
 import type { NoteValue } from './clip';
@@ -418,6 +419,12 @@ export const ICONS: Record<Exclude<ToolId, 'bend' | 'vibrato' | 'tuplet' | 'wah'
   // A staccato dot over a note, so it can't pass for the duration dot.
   // Drawn by its panel's button (OttavaGlyph).
   ottava: null,
+  // "mf" in the dynamics' own letters, shrunk to fit the button.
+  dynamic: (
+    <g transform="translate(12 12) scale(0.68)" fill="currentColor" stroke="none">
+      {dynamicWord('mf', 0, 0).letters.map((letter, i) => <path key={i} d={letter.d} transform={letter.transform} />)}
+    </g>
+  ),
   // The mordent's own sign over a note, as the staff and tab draw it.
   mordent: <MordentIcon kind="upper" />,
   lowerMordent: <MordentIcon kind="lower" />,

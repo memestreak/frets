@@ -1,6 +1,6 @@
 import type { Part } from './clip';
 import { type Layout } from './layout';
-import { textRowOf } from './rows';
+import { textRowOf, type Rows } from './rows';
 import type { FieldKind } from './WordField';
 import { SECTION_LINE } from './sectionText';
 
@@ -16,8 +16,18 @@ export function wordNow(clip: Part, { kind, bar, column }: { kind: FieldKind; ba
   if (kind === 'repeat') return String(b?.repeatEnd ?? 2);
   if (kind === 'chord') return b?.columns[column]?.chord ?? '';
   if (kind === 'text') return b?.columns[column]?.text ?? '';
+  if (kind === 'dynamic') return b?.columns[column]?.dynamic ?? '';
   if (kind === 'section') return b?.section?.text ?? '';
   return clip.capo ? String(clip.capo) : '';
+}
+
+/** How far a dynamic's field stands from its column's middle, beside it. */
+const BESIDE = 16;
+
+/** The bottom of a line's notes, as drawn: the tab's stems or bottom string, the staff, and the dynamics' row (`dynamic`) under its letters. */
+function lineBottom(rows: Rows, dynamic: number): number {
+  const tab = rows.tab ? (rows.tabStems ? rows.stemBottom : rows.staffBottom) : 0;
+  return Math.max(tab, rows.score?.bottom ?? 0, dynamic + 12);
 }
 
 /** Where a word's field goes over the drawing: above the spot the word is drawn, kept inside the tab's width. */
@@ -32,12 +42,22 @@ export function wordSpot(layout: Layout, width: number, { kind, bar, column }: {
     // A short text's field opens over it, under the chord names; a new text's over the names.
     const spot = placed.columns[column];
     const text = spot?.column.text ? textRowOf(rows, spot) : rows.text;
-    const row = { chord: rows.chords, text, section: rows.section, capo: rows.capo, ending: rows.endings, repeat: rows.endings }[kind];
+    // A dynamic's field opens over its row; a new one's over where the row will be: under the staff, or over the tab.
+    const dynamic = rows.dynamics ?? (rows.score ? rows.score.bottom + 20 : rows.staffTop - 20);
+    const row = { chord: rows.chords, text, section: rows.section, capo: rows.capo, ending: rows.endings, repeat: rows.endings, dynamic }[kind];
     // A section moved up clear of another opens its field over where it is drawn (issue #389).
     const raised = kind === 'section' ? placed.sectionTop * SECTION_LINE : 0;
-    const y = top + (row ?? rows.staffTop - 20) + raised - FIELD_HEIGHT;
+    // A dynamic's field opens under the line, as Dorico's popover opens under the staff, clear of the column's
+    // notes so they show lit while it is open (Jeremy, 2026-11-09); a word's over its row.
+    const y = kind === 'dynamic' ? top + lineBottom(rows, dynamic) + 12 : top + (row ?? rows.staffTop - 20) + raised - FIELD_HEIGHT;
     // The capo is written at the start of the first line, over the time signature.
     // A repeat's count is written over the bar's end.
+    if (kind === 'dynamic') {
+      // Beside its column, not over it, so its list, opening up or down, leaves the column's notes in sight (lit).
+      const at = placed.columns[column]?.x ?? placed.x0;
+      const right = at + BESIDE + FIELD_WIDTH / 2;
+      return { x: right <= width - FIELD_WIDTH / 2 ? right : Math.max(FIELD_WIDTH / 2, at - BESIDE - FIELD_WIDTH / 2), y: Math.max(0, y) };
+    }
     const x = kind === 'chord' || kind === 'text' ? (placed.columns[column]?.x ?? placed.x0) : kind === 'capo' ? 0
       : kind === 'repeat' ? placed.x1 - FIELD_WIDTH / 2 : placed.x0 + FIELD_WIDTH / 2;
     return { x: Math.min(width - FIELD_WIDTH / 2, Math.max(FIELD_WIDTH / 2, x)), y: Math.max(0, y) };
