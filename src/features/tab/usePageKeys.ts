@@ -16,10 +16,10 @@ import type { View } from './views';
 /** Fields, dialogs and the like: the page's keys, paste and undo leave what is typed there to them. */
 export const TEXT_FIELDS = 'input, select, textarea, dialog';
 
-/** Where the focus may go from the tab and note input mode stay on: the clip's own fields, the palette, the Rail, panels and menus. */
+/** Where the focus may go from the tab and note input mode stay on: the clip's own fields, the palettes and their collapsed strip, panels and menus. */
 /** What the tab gives the focus to for a while, staying lit and keeping what is picked (`onEditorBlur`). */
 const TAB_KEEPERS = '.shape-menu, .tab-tuplet-panel, .tab-word';
-const NOTE_INPUT_KEEPERS = '[data-testid="tab-paper"], .tab-palette, .tab-rail, .tab-rail-panel, [role="dialog"], [role="menu"], .shape-menu, dialog';
+const NOTE_INPUT_KEEPERS = '[data-testid="tab-paper"], .tab-palette, .tab-stack-strip, .tab-rail-panel, [role="dialog"], [role="menu"], .shape-menu, dialog';
 
 /**
  * The keys that work anywhere on the page (Jeremy, 2026-10-30: shortcuts are page-wide), not the tab's own

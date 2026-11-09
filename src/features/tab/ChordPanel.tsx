@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * The Chords panel, the Tab rail's last panel (`docs/specs/2026-11-05-tab-chord-panel-design.md`, issues
+ * The Chords palette, one of the Tab page's palettes (`docs/specs/2026-11-05-tab-chord-panel-design.md`, issues
  * #251 and #400): the track's Chord set as diagram tiles, as many to a row as the panel's width holds (four at its first
  * width), two rows to a page; + to add a chord; and one Insert
  * under the tiles for the chord picked. A right-click on a tile opens its menu (Insert, Edit, Rename, Copy to

@@ -1,5 +1,7 @@
 # Tab: drag the line between the panel and the clip to set the panels' width
 
+The width now belongs to the palettes' column (`2026-11-09-tab-palettes-design.md`, issue #454); its handle is named "Palette width".
+
 Jeremy, 2026-11-08: "make the tab left nav resizable by dragging on the divider".
 
 Issue #431. Until now every Rail panel was 17rem

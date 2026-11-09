@@ -30,14 +30,15 @@ import { writtenStrings } from './notation';
 import { dropShowParam, readShowParam } from './shareLink';
 import type { Notice } from './notice';
 import { pitchAtStep, type TypedAccidental } from './staffEntry';
-import { markBox, markTool } from './marks';
+import { markBox, markTool, type MarkHit } from './marks';
+import { addedSpan } from './spans';
 import { litTiedNotes, tieOnInput } from './ties';
 import { useClipActions } from './ClipActions';
 import { SizeField } from './ViewOptions';
 import { TabClip, type DoubleClickPlace } from './TabClip';
 import { ImportDialog } from './TabDialogs';
 import { TabPalette } from './TabPalette';
-import { TabRail, useOpenPanel } from './TabRail';
+import { TabRail, usePalettes } from './TabRail';
 import { ChatPanel } from './chat/ChatPanel';
 import { useChatSession } from './chat/useChatSession';
 import type { PageSpot } from './chat/arrangementTools';
@@ -72,7 +73,7 @@ import { showShortcuts } from '@/components/shortcuts/useShortcuts';
 import { isMac } from '@/lib/shortcuts';
 
 /** What a press may land on and keep the selection and the playback line: controls, the drawing and the palette. */
-const TAB_KEEPS = `${KEEPS_SELECTION}, .tab-editor svg, .tab-palette, .tab-rail, .tab-rail-panel`;
+const TAB_KEEPS = `${KEEPS_SELECTION}, .tab-editor svg, .tab-palette, .tab-stack-strip, .tab-rail-panel`;
 /** The modifier the file shortcuts take, as the tips name it: ⌘ on a Mac, Ctrl elsewhere. */
 const MOD = isMac() ? '⌘' : 'Ctrl+';
 
@@ -293,8 +294,8 @@ export default function TabPage() {
   const {
     voiceOnly, chooseVoice, pickVoice, moveToVoiceKey, voiceKey, selectOnlyVoice, everyVoice, stepElement, voicePresentAtCursor,
   } = useVoicePick(editor, { whole, track, voice, setVoice, stepToElement: picking.stepToElement });
-  // The rail's open panel; a chord name's Edit (and so its double-click) opens Chords at that chord (issue #251).
-  const [railPanel, setRailPanel] = useOpenPanel();
+  // The palettes' layout; a chord name's Edit (and so its double-click) opens Chords at that chord (issue #251).
+  const palettes = usePalettes();
   /**
    * The Chat panel (`docs/specs/2026-11-08-tab-chat-design.md`, issue #424). The model's changes go through `chatClip`: a reply's first is an undo step, and its
    * later ones join it, unless the viewer edited in between.
@@ -315,9 +316,13 @@ export default function TabPage() {
   });
   // The conversation is the page's, not the panel's, so closing the panel keeps it and its running reply (issue #442).
   const chat = useChatSession({
-    prefs: prefs.chat, current: () => ({ clip: wholeNow.current, spot: chatSpot() }), onClip: chatClip, open: railPanel === 'chat',
+    prefs: prefs.chat, current: () => ({ clip: wholeNow.current, spot: chatSpot() }), onClip: chatClip, open: palettes.shown('chat'),
   });
   const [chordsAt, setChordsAt] = useState<{ name: string | null } | null>(null);
+  // Chords folded or the column collapsed drops its ask, so opening it again doesn't open the chord asked for before.
+  const chordsShown = palettes.shown('chords');
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- the palette closing is an outside event for the ask.
+  useEffect(() => { if (!chordsShown) setChordsAt(null); }, [chordsShown]);
   /** A chord picked in the tab or the Chord chart (each pick a new object): an open Edit chord or Change chord follows it (Jeremy, 2026-11-07). */
   const [chordFollow, setChordFollow] = useState<{ name: string } | null>(null);
   useEffect(() => {
@@ -333,7 +338,7 @@ export default function TabPage() {
     setCursor(c => ({ ...c, ...place }));
     setPicked(null);
     setChordsAt({ name: columnAt(clip, { ...cursor, ...place })?.chord ?? null });
-    setRailPanel('chords');
+    palettes.show('chords');
     editorRef.current?.focus();
   };
   /** A Chord chart chord's Edit: its track shown, if another's, and the Chords panel open at it. */
@@ -343,7 +348,7 @@ export default function TabPage() {
     if (owner !== track) chooseTrack(owner);
     setPicked(null);
     setChordsAt({ name: chord.name });
-    setRailPanel('chords');
+    palettes.show('chords');
   };
   /** A picked thing's Edit: a chord name's Chords panel, a word's or dynamic's field, a signature's panel, or for a tuplet's number the Tuplet panel at its notes (step 8). */
   const editPicked = (hit: Picked) => {
@@ -506,6 +511,19 @@ export default function TabPage() {
     commit(next.clip, next.cursor, null);
   };
 
+  /** Whether a palette tool puts on a Span that is picked once added (let ring, P.M.). */
+  const spanTool = (id: ToolId): id is 'letRing' | 'palmMute' => !noteInputMode && (id === 'letRing' || id === 'palmMute');
+  /**
+   * A let ring or P.M. line just added is picked, as a press on it picks it (`onPickMark`): drawn blue,
+   * its notes no longer lit, so it can be dragged straight to the length wanted (Jeremy, 2026-11-09).
+   */
+  const pickAdded = (next: Part, hit: MarkHit) => {
+    setSelection(hit.to !== undefined && hit.to !== hit.index ? { anchor: hit.index, focus: hit.to } : null);
+    setCursor({ ...cursor, ...placeOf(next, hit.index) });
+    setColumnOnly(true);
+    setPicked(hit);
+  };
+
   /**
    * A palette button or panel choice. Off the tab (after Esc or a press elsewhere) nothing is under the
    * cursor, so the palette acts on nothing, as it lights nothing (Jeremy, 2026-10-30).
@@ -537,10 +555,19 @@ export default function TabPage() {
     // A dead note goes on one string; with none picked there is nothing to mark.
     else if (!(columnOnly && id === 'dead')) {
       // On a selection, a Mark goes on every Voice's notes in its time (Q19).
-      if (!picked && !ACTIVE_VOICE_ONLY.has(id) && everyVoice((part, run) => applyTool(part, { ...target, selection: run }, id))) return;
-      commitKeepingMark(applyTool(clip, target, id));
+      const next = applyTool(clip, target, id);
+      const added = spanTool(id) ? addedSpan(clip, next, id, target) : null;
+      if (!picked && !ACTIVE_VOICE_ONLY.has(id) && everyVoice((part, run) => applyTool(part, { ...target, selection: run }, id))) {
+        if (added) pickAdded(next, added);
+        return;
+      }
+      if (added) {
+        commit(next);
+        pickAdded(next, added);
+      } else commitKeepingMark(next);
     }
   };
+
 
   /** A palette change; a picked mark changed by it (vibrato to wide, a bend's amount) stays picked while it is there. */
   const commitKeepingMark = (next: Part) => {
@@ -858,10 +885,9 @@ export default function TabPage() {
         </div>
       </header>
 
-      {/* The tools, in panels on a rail to the clip's left (issue #301). */}
+      {/* The tools, in palettes in a column on the clip's left (issue #454). */}
       <TabRail
-        palette={drawPalette} open={railPanel}
-        onOpen={id => { setRailPanel(id); setChordsAt(null); }}
+        palette={drawPalette} palettes={palettes}
         chords={(
           <ChordPanel
             key={track} clip={clip} track={whole.tracks[track]} cursor={cursor} tabFocused={tabFocused} at={chordsAt} follow={chordFollow}

@@ -5,7 +5,7 @@
  */
 import * as alphaTab from '@coderline/alphatab';
 import { vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import TabPage from '@/features/tab/TabPage';
 import { BUILTIN_URL } from '@/features/tab/builtins';
 import { readBuiltinFiles } from '@/features/tab/builtinFiles';
@@ -16,6 +16,7 @@ import { STRING_GAP } from '@/features/tab/rows';
 import { textBox, type WordHit } from '@/features/tab/layoutText';
 import { barLineBoxes, type BarLineHit } from '@/features/tab/barLines';
 import { markBoxes } from '@/features/tab/marks';
+import { paletteHeader } from './tool';
 
 const BUILTIN_FILES = await readBuiltinFiles();
 vi.stubGlobal('fetch', vi.fn(async (url: unknown) => {
@@ -85,12 +86,10 @@ describe('a double-click on something with an Edit opens its field (issue #289)'
   it('a chord name opens the Chords panel and that chord’s editor (issue #251), not note input mode', async () => {
     await open();
     doubleClick(wordAt({ kind: 'chord', index: 0 }));
-    expect(screen.getByRole('complementary', { name: 'Chords' })).toBeInTheDocument();
+    expect(paletteHeader('Chords')).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByRole('group', { name: 'Edit A' })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Done' }));
-    // The Notes panel, where the pencil is, has given way to Chords.
-    expect(screen.queryByRole('button', { name: 'Note input mode' })).toBeNull();
-    fireEvent.click(within(screen.getByRole('navigation', { name: 'Panels' })).getByRole('button', { name: 'Notes' }));
+    // Notes, where the pencil is, stays open beside Chords (issue #454).
     expect(pencil()).toHaveAttribute('aria-pressed', 'false');
   });
 

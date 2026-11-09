@@ -429,12 +429,13 @@
 .tab-tool-caption-room { visibility: hidden; }
 /* A lit tool is in the selection's denim, as what it applies to is (issue #276), not the primary red. */
 .tab-tool.btn-toggle[aria-pressed='true'] { background: var(--select-soft); box-shadow: inset 0 0 0 1.5px var(--select); }
-/* A palette button with a panel under it (Bend): the panel opens over the tab, left edges lined up. */
+/* A palette button with a panel under it (Bend): the panel opens over the tab, left edges lined up, fixed
+   where it opened (its place is set from the button), so a palette that scrolls doesn't cut it off. */
 .tab-tool-box { position: relative; display: inline-flex; }
 /* The Voice row's numbers (step 9): the same size as the tools' glyphs. */
 .tab-voice-tool { font: 600 14px/1 var(--font-sans); }
 .tab-tool-panel {
-  position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; display: grid; gap: 8px; justify-items: start;
+  position: fixed; z-index: 20; display: grid; gap: 8px; justify-items: start;
   padding: 12px; width: max-content; color: var(--ink);
 }
 .tab-panel-choice { min-width: 36px; }
@@ -524,59 +525,41 @@
 /* Picked (issue #281), its outline says so: no underline. */
 .score-picked .tab-title-text:hover:enabled, .score-picked .tab-title-text:focus-visible { text-decoration: none; }
 
-/* The rail of panels on the clip's left (TabRail.tsx, issue #301), as Dorico draws it: flush with the page,
-   divided by lines. The rail and panel sit against the clip's left edge and grow into the page's left
-   margin, so the clip keeps its right edge and, while there is room, its width: the grid may reach 16px from
-   the window's left edge, its tracks packed to the right end. Every panel is one width, so switching panels
-   never moves the clip; only opening and closing one do. */
+/* The palettes' column on the clip's left (TabRail.tsx, issue #454), flush with the page and divided from it
+   by lines. It sits against the clip's left edge and grows into the page's left margin, so the clip keeps its
+   right edge and, while there is room, its width: the grid may reach 16px from the window's left edge, its
+   tracks packed to the right end. Collapsed, the column is a 40px strip holding its Expand button. */
 .tab-rail-layout {
   --clip-width: calc(min(1240px, 100vw) - 40px);
-  display: grid; align-items: start; justify-content: end; grid-template-columns: 48px minmax(0, var(--clip-width));
+  display: grid; align-items: start; justify-content: end; grid-template-columns: 40px minmax(0, var(--clip-width));
   margin-left: calc(-1 * (max(0px, (100vw - 1240px) / 2) + 4px));
 }
-.tab-rail-layout[data-open] { grid-template-columns: 48px var(--rail-panel-width, 17rem) minmax(0, var(--clip-width)); }
-.tab-rail-clip { min-width: 0; }
+.tab-rail-layout[data-open] { grid-template-columns: var(--rail-panel-width, 17rem) minmax(0, var(--clip-width)); }
+.tab-rail-clip { min-width: 0; padding-left: 8px; }
 .tab-rail-layout[data-open] .tab-rail-clip { padding-left: 16px; }
-.tab-rail { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 4px; padding-right: 8px; }
-.tab-rail-button {
-  position: relative; display: grid; place-items: center; width: 40px; height: 40px; border-radius: var(--radius-sm);
-  border: 1px solid transparent; background: none; color: var(--ink-muted); cursor: pointer;
-}
-.tab-rail-button:hover { color: var(--ink); background: var(--surface-sunken); }
-.tab-rail-button[aria-pressed='true'] { color: var(--ink); background: var(--surface-sunken); }
-/* The open panel's button: a bar on its outer edge. */
-.tab-rail-button[aria-pressed='true']::before {
-  content: ''; position: absolute; left: -8px; top: 8px; bottom: 8px; width: 3px; border-radius: 2px; background: var(--ink);
-}
-.tab-rail-button:focus-visible, .tab-rail-close:focus-visible { outline: none; }
-/* The Chat button while a reply runs (issue #442): three dots in the bubble pulse one after another, in the button's own muted ink. */
+/* Chat while a reply runs (issue #442): three dots in the bubble pulse one after another, in its own muted ink. */
 .tab-rail-typing circle { animation: tab-rail-typing 1.2s ease-in-out infinite; }
 .tab-rail-typing circle:nth-child(2) { animation-delay: 0.2s; }
 .tab-rail-typing circle:nth-child(3) { animation-delay: 0.4s; }
 @keyframes tab-rail-typing { 0%, 60%, 100% { opacity: 0.25; } 30% { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .tab-rail-typing circle { animation: none; } }
-/* A reply that ended while the panel was closed: a small dot on the button's corner until Chat opens. */
-.tab-rail-button[data-status='unread']::after {
-  content: ''; position: absolute; top: 7px; right: 7px; width: 7px; height: 7px; border-radius: 50%;
-  background: var(--primary); box-shadow: 0 0 0 2px var(--surface);
-}
-/* The page fills the window over the footer, and the rail's row takes the spare height, so the open
-   panel can run down to the footer without making a short clip's page scroll. */
+/* The page fills the window over the footer, and the column's row takes the spare height, so the column
+   can run down to the footer without making a short clip's page scroll. */
 main:has(> .tab-page) { display: flex; flex-direction: column; }
 .tab-page { flex: 1; }
 .tab-page > .tab-rail-layout { flex: 1; }
-/* The rail and the panel each sit in a column as tall as the clip's row, so they stay in view
-   (sticky) while a long clip scrolls by. */
+/* The column sits in a grid cell as tall as the clip's row, so it stays in view (sticky) while a long clip
+   scrolls by. */
 .tab-rail-column { align-self: stretch; }
-/* Runs down the row, but no taller than the window, nor shorter than its tools. No overflow of its
-   own, so a tool's panel (Bend, Tuplet) can open past its edge, over the pinned playback bar (z-index 5). */
+/* Runs down the row, but no taller than the window. Its palettes scroll inside it when they outgrow it; a
+   tool's panel (Bend, Tuplet) is fixed to the window, so it still opens past the column's edge. */
 .tab-rail-panel {
-  position: sticky; top: 16px; z-index: 6; display: grid; gap: 14px; align-content: start;
-  height: 100%; max-height: calc(100vh - 32px); min-height: min-content; padding: 4px 14px 16px;
+  position: sticky; top: 16px; z-index: 6; display: flex; flex-direction: column;
+  height: 100%; max-height: calc(100vh - 32px); min-height: 0; padding: 0;
   border-left: 1px solid var(--line); border-right: 1px solid var(--line);
 }
-/* The line between the panel and the clip is a handle (issue #431): its hit area runs 14px either side
-   of the panel's right border, inside the panel's padding and the clip's; hovered or dragged, the line darkens. */
+/* The line between the column and the clip is a handle (issue #431): its hit area runs 14px either side
+   of the column's right border, inside the clip's padding; hovered or dragged, the line darkens. */
 .tab-rail-divider {
   position: absolute; top: 0; bottom: 0; right: -15px; width: 28px; z-index: 1;
   display: flex; justify-content: center; cursor: ew-resize; touch-action: none; outline: none;
@@ -586,29 +569,81 @@ main:has(> .tab-page) { display: flex; flex-direction: column; }
   width: 3px; border-radius: 2px; background: var(--line-strong);
 }
 body:has(.tab-rail-divider[data-dragging]) { cursor: ew-resize; user-select: none; }
-.tab-rail-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.tab-rail-panel-name { display: flex; align-items: center; gap: 6px; }
 .tab-rail-panel-title { margin: 0; font: 600 15px/20px var(--font-sans); color: var(--ink); }
-.tab-rail-close {
-  display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: var(--radius-sm);
-  background: none; color: var(--ink-muted); cursor: pointer;
-}
-.tab-rail-close:hover { color: var(--ink); background: var(--surface-sunken); }
 .tab-rail-tools { flex-direction: column; flex-wrap: nowrap; gap: 14px; }
 
-/* Under 900px the rail is a row over the clip and the open panel sits under it. */
+/* The Collapse button over the palettes, and the strip it leaves. */
+.tab-stack-top { display: flex; justify-content: flex-end; padding: 0 8px; border-bottom: 1px solid var(--line); }
+.tab-stack-strip { position: sticky; top: 16px; display: flex; justify-content: center; }
+.tab-stack-collapse {
+  position: relative; display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: var(--radius-sm);
+  background: none; color: var(--ink-muted); cursor: pointer;
+}
+.tab-stack-collapse:hover { color: var(--ink); background: var(--surface-sunken); }
+.tab-stack-collapse:focus-visible { outline: none; }
+/* Collapsed, a Chat reply running (a pulsing dot) or ended unseen (a solid one) shows on the strip's button. */
+.tab-stack-collapse[data-status]::after {
+  content: ''; position: absolute; top: 3px; right: 3px; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--primary); box-shadow: 0 0 0 2px var(--surface);
+}
+.tab-stack-collapse[data-status='working']::after { background: var(--ink-muted); animation: tab-rail-typing 1.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .tab-stack-collapse[data-status='working']::after { animation: none; } }
+/* The palettes, top to bottom; the column scrolls when the open ones outgrow it. */
+.tab-stack { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-bottom: 16px; }
+.tab-stack-panel { position: relative; display: flex; flex-direction: column; flex: none; border-bottom: 1px solid var(--line); }
+/* A header: chevron, icon, name; a press opens or folds it, a drag moves it. */
+.tab-stack-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 14px; min-height: 40px; }
+.tab-stack-toggle {
+  display: flex; align-items: center; gap: 6px; flex: 1; min-height: 40px; padding: 0; border: 0; background: none;
+  color: var(--ink-muted); cursor: pointer; text-align: left; touch-action: none;
+}
+.tab-stack-toggle:hover { color: var(--ink); }
+.tab-stack-toggle:focus-visible { outline: none; }
+.tab-stack-panel:not([data-expanded]) .tab-rail-panel-title { color: var(--ink-muted); font-weight: 500; }
+.tab-stack-toggle:hover .tab-rail-panel-title { color: var(--ink); }
+.tab-stack-chevron { flex: none; transition: transform 120ms ease; }
+.tab-stack-chevron[data-open] { transform: rotate(90deg); }
+@media (prefers-reduced-motion: reduce) { .tab-stack-chevron { transition: none; } }
+.tab-stack-icon { position: relative; display: grid; place-items: center; flex: none; color: var(--ink-muted); }
+.tab-stack-toggle:hover .tab-stack-icon, .tab-stack-panel[data-expanded] .tab-stack-icon { color: var(--ink); }
+/* A Chat reply that ended unseen: a small dot on its icon until Chat is open and in view. */
+.tab-stack-icon[data-status='unread']::after {
+  content: ''; position: absolute; top: -2px; right: -3px; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--primary); box-shadow: 0 0 0 2px var(--surface);
+}
+.tab-stack-body { display: grid; gap: 14px; align-content: start; padding: 2px 14px 10px; min-height: 0; }
+/* A palette dragged shorter than its tools scrolls inside. */
+.tab-stack-panel[data-sized] .tab-stack-body { overflow-y: auto; }
+/* The line under an open palette is a handle: 12px tall over its bottom border; hovered or dragged, it thickens. */
+.tab-stack-handle {
+  position: relative; height: 12px; margin-bottom: -7px; z-index: 1; cursor: ns-resize; touch-action: none; outline: none;
+  display: flex; align-items: center;
+}
+.tab-stack-handle::before { content: ''; flex: 1; height: 1px; background: transparent; }
+.tab-stack-handle:hover::before, .tab-stack-handle:focus-visible::before, .tab-stack-handle[data-dragging]::before {
+  height: 3px; border-radius: 2px; background: var(--line-strong);
+}
+body:has(.tab-stack-handle[data-dragging]) { cursor: ns-resize; user-select: none; }
+/* A palette being dragged by its header fades, and a line shows where it would land. */
+.tab-stack-panel[data-dragging] { opacity: 0.5; }
+.tab-stack-panel[data-drop]::before {
+  content: ''; position: absolute; left: 8px; right: 8px; height: 3px; border-radius: 2px; background: var(--select); z-index: 2;
+}
+.tab-stack-panel[data-drop='before']::before { top: -2px; }
+.tab-stack-panel[data-drop='after']::before { bottom: -2px; }
+body:has(.tab-stack-panel[data-dragging]) { cursor: grabbing; user-select: none; }
+
+/* Under 900px the column sits over the clip, as tall as its palettes, with no width to drag. */
 @media (max-width: 899px) {
   .tab-rail-layout, .tab-rail-layout[data-open] {
     grid-template-columns: minmax(0, 1fr); justify-content: stretch; align-content: start; gap: 12px; margin-left: 0;
   }
-  .tab-rail-layout[data-open] .tab-rail-clip { padding-left: 0; }
+  .tab-rail-clip, .tab-rail-layout[data-open] .tab-rail-clip { padding-left: 0; }
   .tab-rail-column { align-self: start; }
-  .tab-rail { position: static; flex-direction: row; padding-right: 0; }
-  .tab-rail-button[aria-pressed='true']::before { left: 8px; right: 8px; top: auto; bottom: -6px; width: auto; height: 3px; }
-  .tab-rail-panel {
-    position: static; height: auto; min-height: 0; max-height: none; padding: 4px 0 12px;
-    border: 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);
-  }
+  .tab-rail-panel { position: static; height: auto; max-height: none; border: 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .tab-stack-strip { position: static; justify-content: flex-start; }
+  .tab-stack { overflow: visible; }
+  .tab-stack-head, .tab-stack-body { padding-left: 0; padding-right: 0; }
   .tab-rail-tools { flex-direction: row; flex-wrap: wrap; gap: 8px 18px; }
   .tab-rail-divider { display: none; }
 }
