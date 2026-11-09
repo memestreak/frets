@@ -527,6 +527,17 @@
   content: ''; position: absolute; left: -8px; top: 8px; bottom: 8px; width: 3px; border-radius: 2px; background: var(--ink);
 }
 .tab-rail-button:focus-visible, .tab-rail-close:focus-visible { outline: none; }
+/* The Chat button while a reply runs (issue #442): three dots in the bubble pulse one after another, in the button's own muted ink. */
+.tab-rail-typing circle { animation: tab-rail-typing 1.2s ease-in-out infinite; }
+.tab-rail-typing circle:nth-child(2) { animation-delay: 0.2s; }
+.tab-rail-typing circle:nth-child(3) { animation-delay: 0.4s; }
+@keyframes tab-rail-typing { 0%, 60%, 100% { opacity: 0.25; } 30% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .tab-rail-typing circle { animation: none; } }
+/* A reply that ended while the panel was closed: a small dot on the button's corner until Chat opens. */
+.tab-rail-button[data-status='unread']::after {
+  content: ''; position: absolute; top: 7px; right: 7px; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--primary); box-shadow: 0 0 0 2px var(--surface);
+}
 /* The page fills the window over the footer, and the rail's row takes the spare height, so the open
    panel can run down to the footer without making a short clip's page scroll. */
 main:has(> .tab-page) { display: flex; flex-direction: column; }
