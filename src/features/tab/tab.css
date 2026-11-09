@@ -765,4 +765,22 @@ body:has(.tab-rail-divider[data-dragging]) { cursor: ew-resize; user-select: non
 .tab-chat-picker-model { font: 13px/18px var(--font-mono); color: var(--ink); overflow-wrap: anywhere; }
 .tab-chat-picker-description { font-size: 12px; line-height: 16px; color: var(--ink-muted); }
 /* The Lyrics field, under the note its syllable goes on (issue #408). */
-.tab-lyric { width: 210px; }
+/* The Lyrics field (issue #408): small as Dorico's lyrics popover, the Lyric line's number in a tinted cell. */
+.tab-lyric {
+  position: absolute; z-index: 20; display: flex; flex-direction: row; gap: 0; align-items: stretch; width: 180px; height: 30px;
+  padding: 0; overflow: hidden; border-radius: 6px; border-color: var(--line-strong); color: var(--ink);
+}
+.tab-lyric-grip {
+  display: flex; align-items: center; justify-content: center; width: 16px; flex: none;
+  cursor: grab; touch-action: none; fill: var(--ink-muted); background: var(--surface-sunken);
+}
+.tab-lyric-grip:active { cursor: grabbing; }
+.tab-lyric-line {
+  display: flex; align-items: center; justify-content: center; width: 28px; flex: none;
+  font-size: 13px; font-weight: 600; color: var(--select); background: var(--surface-sunken);
+  border-right: 1px solid var(--line);
+}
+.tab-lyric-input {
+  flex: 1; min-width: 0; border: 0; padding: 0 8px; font: inherit; font-size: 14px;
+  background: var(--surface-raised); color: var(--ink); outline: none;
+}

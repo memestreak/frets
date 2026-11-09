@@ -35,8 +35,14 @@ syllable a note. Frets kept both as written but drew neither.
   its notes, muted as they are; the lines are shared.
 - **Typing (Shift+L).** Dorico's lyrics popover: with the cursor on a note,
   Shift+L (or the Lyrics button in Bars › Text) opens the Lyrics field
-  under it, on Lyric line 1; on a rest it opens on the next note, and with
-  none after it says so and opens nothing. In the field:
+  on Lyric line 1; on a rest it opens on the next note, and with none
+  after it says so and opens nothing. The field is small, as Dorico's
+  popover (Jeremy's screenshot, 2026-11-09): the Lyric line's number in a
+  tinted cell, then the text, which starts over the note. It sits over
+  the staff, clear of its up stems (over the tab when only it is drawn),
+  so the syllables already typed stay in sight. Its grip drags it off
+  what it covers; it keeps that place as it goes note to note, and opens
+  over the note again the next time. In the field:
   - Space sets the syllable and moves to the next note; a hyphen sets it
     joined ("Hel-") and moves on; Shift+Space sets it and goes back a note.
     Past the last note (or before the first) the field stays on that note,
@@ -47,7 +53,7 @@ syllable a note. Frets kept both as written but drew neither.
     was; leaving the field sets it.
   - An empty field clears the note's syllable. Alt+Space (Option+Space
     on a Mac) types a space in the syllable without moving on, for two
-    words sung on one note, as in Dorico.
+    words sung on one note, and Alt+hyphen a hyphen, as in Dorico.
   - The cursor follows the field from note to note. Each syllable set is
     one undo step.
 - **Picking.** A press on a syllable picks it (blue, its notes tinted).
@@ -106,7 +112,8 @@ glossary yet; the PR says so.
   merges: its rows already leave the room.
 - Syllables on an empty bar's beats (a chord sheet with words and no
   melody), as their own FR if wanted.
-- Extender lines, and a literal hyphen inside a syllable.
+- Extender lines, and a literal hyphen at the end of a syllable (it
+  reads as joined).
 
 ## Tests
 
@@ -127,7 +134,9 @@ glossary yet; the PR says so.
 - Drawing: a hyphen between joined syllables, after one at a System's end.
 - Page: Shift+L on a note opens the field; "Hel" `-` "lo" Space "world"
   Enter writes `lyrics "Hel-"`, `lyrics "lo"`, `lyrics "world"`;
-  Shift+Space goes back; Alt+Space types "a ver" on one note; Down types on line 2; Esc leaves it; Space past
+  Shift+Space goes back; Alt+Space types "a ver" and Alt+hyphen "x-y" on one note; the field's
+  grip drags it, it keeps that place to the next note and opens over the
+  note again next time; Down types on line 2; Esc leaves it; Space past
   the last note keeps the field there; Shift+L on
   a rest opens on the next note; a press picks a syllable, Delete takes it
   away, Enter opens it in the field.

@@ -7,7 +7,7 @@ import { BarFixPopover } from './BarFixPopover';
 import { BarTimePanel } from './BarTimePanel';
 import { CreditsPanel, type HeadField } from './CreditsPanel';
 import { barTempoSpot, barTimeSpot, lyricSpot, PANEL_DROP, PANEL_LEAD, wordNow, wordSpot } from './fieldSpots';
-import { LyricField } from './LyricField';
+import { LyricField, type LyricNudge } from './LyricField';
 import { lyricAt, lyricNote, lyricValue, MAX_LYRIC_LINES, setLyric, type LyricMove } from './lyrics';
 import { SPLITS_TUPLET } from './timeline';
 import type { Layout } from './layout';
@@ -46,6 +46,8 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
   const [word, setWord] = useState<{ kind: FieldKind; bar: number; column: number } | null>(null);
   /** The note whose syllable the Lyrics field is typing, and its Lyric line (issue #408). */
   const [lyric, setLyricField] = useState<{ bar: number; column: number; line: number; turn?: number } | null>(null);
+  /** Where the Lyrics field was dragged to, kept while it goes note to note; it opens over the note again next time. */
+  const [lyricNudge, setLyricNudge] = useState<LyricNudge>({ dx: 0, dy: 0 });
   /** The bar whose time signature panel is open. */
   const [timeBar, setTimeBar] = useState<number | null>(null);
   /** The bar whose key signature panel is open. */
@@ -118,6 +120,7 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
     }
     setWord(null);
     commit(clip, { ...cursor, ...place }, null);
+    if (!lyric) setLyricNudge({ dx: 0, dy: 0 });
     setLyricField({ ...place, line });
   };
 
@@ -211,7 +214,8 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
       )}
       {tab && lyric && drawn && (
         <LyricField
-          key={`lyric-${lyric.bar}-${lyric.column}-${lyric.line}-${lyric.turn ?? 0}`} line={lyric.line} {...lyricSpot(layout, width, lyric, lyric.line)}
+          key={`lyric-${lyric.bar}-${lyric.column}-${lyric.line}-${lyric.turn ?? 0}`} line={lyric.line} {...lyricSpot(layout, width, lyric)}
+          nudge={lyricNudge} onNudge={setLyricNudge} zoom={zoom}
           initial={lyricAt(clip, lyric, lyric.line)} onDone={finishLyric}
         />
       )}

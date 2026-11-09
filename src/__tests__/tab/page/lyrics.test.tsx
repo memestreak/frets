@@ -71,6 +71,41 @@ describe('typing Lyrics with Shift+L', () => {
     expect(alphaTex()).toBe('0.6.4{lyrics "a ver"} 2.5.4{lyrics "y oh"} 3.5.2 |');
   }, 20000);
 
+  it('Alt+hyphen types a hyphen without moving on (Option+hyphen\'s dash too)', async () => {
+    await openWith('0.6.4 2.5.4 3.5.2 |');
+    shiftL();
+    type('x', { key: '-', altKey: true });
+    expect(field()!.value).toBe('x-');
+    type('x', { key: '–', altKey: true });
+    expect(field()!.value).toBe('x-');
+    // At the caret, not the end, and the caret goes after it.
+    fireEvent.change(field()!, { target: { value: 'xy' } });
+    field()!.setSelectionRange(1, 1);
+    fireEvent.keyDown(field()!, { key: '-', altKey: true });
+    expect(field()!.value).toBe('x-y');
+    expect(field()!.selectionStart).toBe(2);
+    type('x-y');
+    expect(alphaTex()).toBe('0.6.4{lyrics "x-y"} 2.5.4 3.5.2 |');
+  }, 20000);
+
+  it('opens small, its Lyric line\'s number in front; dragged by its grip it keeps that place note to note, and opens over the note again next time', async () => {
+    await openWith('0.6.4 2.5.4 3.5.2 |');
+    shiftL();
+    const box = () => screen.getByRole('dialog', { name: 'Lyrics' });
+    expect(box().textContent).toContain('1');
+    const at = { left: box().style.left, top: box().style.top };
+    const grip = box().querySelector('.tab-lyric-grip')!;
+    fireEvent.pointerDown(grip, { clientX: 10, clientY: 10, pointerId: 1 });
+    fireEvent.pointerMove(grip, { clientX: 40, clientY: -20, pointerId: 1 });
+    fireEvent.pointerUp(grip, { clientX: 40, clientY: -20, pointerId: 1 });
+    expect(parseFloat(box().style.top)).toBe(parseFloat(at.top) - 30);
+    type('a', ' ');
+    expect(parseFloat(box().style.top)).toBe(parseFloat(at.top) - 30);
+    type('b');
+    shiftL();
+    expect(parseFloat(box().style.top)).toBe(parseFloat(at.top));
+  }, 20000);
+
   it('on a rest it opens on the next note; each syllable is one undo step', async () => {
     await openWith('r.4 2.5.4 3.5.2 |');
     shiftL();

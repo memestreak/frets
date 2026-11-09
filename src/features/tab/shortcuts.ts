@@ -120,6 +120,7 @@ const LYRICS: ShortcutGroup = {
     { keys: ['-'], does: 'Join it to the next syllable with a hyphen, and go there' },
     { keys: ['Shift+Space'], does: 'Set it and go back a note' },
     { keys: ['Alt+Space'], does: 'A space in the syllable, for two words on one note' },
+    { keys: ['Alt+-'], does: 'A hyphen in the syllable, without moving on' },
     { keys: ['Up', 'Down'], does: 'Set it and go to the lyric line above or below' },
     { keys: ['Enter'], does: 'Set it and close' },
     { keys: ['Esc'], does: 'Close, leaving the note’s syllable as it was' },
