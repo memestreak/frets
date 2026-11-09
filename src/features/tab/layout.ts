@@ -10,7 +10,7 @@ import { BEAT_TEXT_INSET, placeBeatTexts, textGoesUnder } from './beatText';
 import { BAR_TEXT_INSET, placeSections } from './sectionText';
 import { diagramOf, type ShapedChord } from './chordDiagrams';
 import { rowsFor, SPACE, STEM_STEPS, STRING_GAP, TAP_RADIUS, type Rows, type StaffReach } from './rows';
-import { BAR_PAD_END, BAR_TIME_WIDTH, barLead, BRACKET_MARGIN, CLEF_WIDTH, columnWidth, EMPTY_BAR, HEAD_WIDTH, keyWidth, leastWidth, minColumnWidth, noteInset, REPEAT_PAD, signRoom, STAFF_MARGIN, STAFF_TIME_WIDTH, staffWidth, TIME_BRACKETS_WIDTH, TIME_WIDTH } from './widths';
+import { BAR_PAD_END, BAR_TIME_WIDTH, barLead, BRACKET_MARGIN, CLEF_WIDTH, columnWidth, EMPTY_BAR, HEAD_WIDTH, keyWidth, leastWidth, minColumnWidth, noteInset, REPEAT_PAD, rollRoom, signRoom, STAFF_MARGIN, STAFF_TIME_WIDTH, staffWidth, TIME_BRACKETS_WIDTH, TIME_WIDTH } from './widths';
 
 /**
  * What the Notation view draws (Jeremy, 2026-10-27; `docs/specs/2026-10-27-tab-notation-design.md`):
@@ -145,7 +145,7 @@ export const MULTI_REST_WIDTH = 300;
 
 /** A rest with nothing on it or over it. */
 export function plainRestColumn(c: Column): boolean {
-  return isRest(c) && !c.chord && !c.text && !c.stroke && !c.grace && !c.tremolo && !c.ottava && !c.wah && !c.hairpin && !c.dynamic && !c.whammy && !c.extra?.length;
+  return isRest(c) && !c.chord && !c.text && !c.stroke && !c.roll && !c.grace && !c.tremolo && !c.ottava && !c.wah && !c.hairpin && !c.dynamic && !c.whammy && !c.extra?.length;
 }
 
 /**
@@ -514,7 +514,8 @@ export function layoutClip(clip: Part, width: number, parts: Parts = 'tab', diag
       const cw = inRun ? inner / bar.columns.length : Math.max(least, ownRoom(k) * spread * squeeze);
       // The accidentals stand left of the heads, so the heads (and the tab's numbers) move right of the middle.
       const signs = (multi ? multi.spotSigns[multi.ownFrom[k]] : signRoom(columnHeads)) / 2;
-      const x = cx + Math.min(noteInset(column), cw / 2) + signs * 2 * Math.min(1, squeeze);
+      // A Strum's or Rolled chord's sign stands left of them all.
+      const x = cx + Math.min(noteInset(column), cw / 2) + (signs * 2 + rollRoom(column)) * Math.min(1, squeeze);
       const placed: PlacedColumn = { column, index: place++, x, start: cx, width: cw, bendRoom: 0, bendPeakRoom: 0, heads: columnHeads, stemUp: stemUpFor(columnHeads), textLines: [] as string[], textTop: 0, textUnder: false };
       if (multi?.several) {
         placed.voiceUp = ownVoice % 2 === 0;

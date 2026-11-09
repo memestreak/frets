@@ -279,7 +279,10 @@ and in its spec.
   and the Lyrics under its notes with their hyphens.
 - `ClipMarks.tsx` — `SystemRowMarks`: the marks in their own rows over the tab
   (P.M., let ring, w/ bar, fermatas, hairpins, dynamics, vibrato, mordents,
-  strokes, `WahMark`, accents).
+  strokes, `WahMark`, accents), and each chord's Strum or Rolled chord sign.
+- `rollSign.ts` — the sign of a Strum or Rolled chord left of its chord
+  (`rollSign`, `rollSpan`, `tabRollPlace`), for the palette, the tab and the
+  staff — `2026-11-09-tab-strums-rolled-chords-design.md`.
 - `ClipBars.tsx` — `BarDrawing` (bar lines, repeat signs and counts, double
   bars), `TimeNumbers` (a time signature on the tab) and `StaffJoin` (the
   bracket joining staff and tab).
@@ -455,6 +458,10 @@ or saved. Standard tuning only.
 The principles every editing spec since step 1 follows, with Dorico,
 MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
 
+- `docs/specs/2026-11-09-tab-strums-rolled-chords-design.md`: Strums and
+  Rolled chords (alphaTex `bd` `bu` `ad` `au`) drawn as an arrow or a wavy
+  arrow left of the chord on the staff and the tab, set by four palette
+  buttons, picked and deleted like any Mark (issue #384).
 - `docs/specs/2026-11-09-tab-dynamics-design.md`: dynamics (alphaTex `dy`)
   drawn on the hairpins' row, entered with Shift+D or the Dynamic tool,
   picked, edited and deleted like any Mark (issue #437).

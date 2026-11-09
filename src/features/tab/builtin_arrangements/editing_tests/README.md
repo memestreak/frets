@@ -43,6 +43,7 @@ PR, or removes the file and its row when the behaviour is gone.
 | `rest-key-in-note-input.atex` | `,` in note input mode writes a rest of the Input length and moves the cursor on | `docs/specs/2026-11-04-tab-tuplets-grace-rest-design.md` |
 | `rests-follow-the-meter.atex` | Delete leaves a Gap written by the meter: rests that show each beat | `docs/specs/2026-11-03-tab-rests-are-gaps-design.md` |
 | `shift-press-grows.atex` | A Shift+press outside the selection grows it, keeping its start; inside it, it trims the end nearer the press | `docs/specs/2026-11-05-tab-shift-press-grows-design.md`, #366 |
+| `strum-roll-buttons.atex` | The Strum and Rolled chord buttons put their sign left of a chord, one replacing another, pressed again taking it away; a drawn sign is picked, lights its button, and Delete takes it away | `docs/specs/2026-11-09-tab-strums-rolled-chords-design.md`, #384 |
 | `text-markdown.atex` | `**bold**` in a Text drawn bold, Ctrl/⌘+B in the Text field on and off, Shift+Enter for a new line, a short bold Text under its chord name, other marks as typed | `docs/specs/2026-11-09-tab-text-markdown-design.md`, #446, #445 |
 | `tie-chain-is-one-note.atex` | A press on any Tied note picks the whole Tie chain, and Delete takes all of it | `docs/specs/2026-11-04-tab-ties-forward-design.md` |
 | `tie-forward.atex` | T ties a note on to the next one, in normal mode and in note input mode | `docs/specs/2026-11-04-tab-ties-forward-design.md` |

@@ -11,7 +11,7 @@ import type { ReadResult, TextSpot } from './ascii';
 import {
   barLength, barTicks, defaultGroupCounts, isGroupingOf, sameGroups, BEND_QUARTERS, isRest, isWhammy, MAX_VOICES, stringClashes, unevenMessage, MAX_BPM, MAX_CAPO, MIN_BPM, NOTE_VALUES, STRING_COUNT, COMMON_TIME, isTimeSignature,
   TREMOLO_VALUES, dynamicOf, tupletFields, type TimeSignature, type BendQuarters, type Clip, type Column, type Note,
-  type NoteValue, type Fermata, isBarsPerLine, partOf, trackName, type MasterBar, type Track, type TrackBar,
+  type NoteValue, type Fermata, isBarsPerLine, partOf, trackName, type MasterBar, type Roll, type Track, type TrackBar,
 } from './clip';
 import { readFxLine } from './fxLine';
 import { STANDARD_TUNING_TEX } from './instrument';
@@ -201,6 +201,11 @@ function beatReads(beat: AtBeat, column: Column, at: AlphaTab, node: BeatNode | 
   const ottavas = { [at.model.Ottavia._8va]: '8va', [at.model.Ottavia._8vb]: '8vb', [at.model.Ottavia._15ma]: '15ma', [at.model.Ottavia._15mb]: '15mb' } as const;
   const ottava = ottavas[beat.ottava as keyof typeof ottavas];
   if (ottava) column.ottava = ottava;
+  const roll = rollOf(node?.beatEffects);
+  if (roll) {
+    column.roll = roll.roll;
+    reads.add(roll.keyword);
+  }
   // A dynamic Frets draws (`dy mf`, any case); one it doesn't (`dy n`), or two on a beat, is kept as written.
   const dys = node?.beatEffects?.properties.filter(p => p.property.text === 'dy') ?? [];
   const args = dys[0]?.arguments?.arguments ?? [];
@@ -210,6 +215,28 @@ function beatReads(beat: AtBeat, column: Column, at: AlphaTab, node: BeatNode | 
     reads.add('dy');
   }
   return reads;
+}
+
+/** The Strum or Rolled chord each alphaTex keyword writes. */
+const ROLL_KEYWORDS: Record<string, Roll> = {
+  bd: { sign: 'strum', direction: 'down' }, bu: { sign: 'strum', direction: 'up' },
+  ad: { sign: 'rolled', direction: 'down' }, au: { sign: 'rolled', direction: 'up' },
+};
+
+/**
+ * A beat's Strum or Rolled chord (`bd`, `bu`, `ad`, `au`), with its length when one is written as a
+ * whole number of ticks (`bd 60`). Two on one beat, or a length Frets can't keep, are kept as written.
+ */
+function rollOf(effects: PropertiesNode | undefined): { roll: Roll; keyword: string } | null {
+  const found = effects?.properties.filter(p => p.property.text in ROLL_KEYWORDS) ?? [];
+  if (found.length !== 1) return null;
+  const keyword = found[0].property.text;
+  let args = found[0].arguments?.arguments ?? [];
+  if (args.length === 1 && args[0].arguments) args = args[0].arguments;
+  if (args.length === 0) return { roll: { ...ROLL_KEYWORDS[keyword] }, keyword };
+  const length = args.length === 1 && args[0].text === undefined ? args[0].value : undefined;
+  if (typeof length !== 'number' || !Number.isInteger(length) || length < 0) return null;
+  return { roll: { ...ROLL_KEYWORDS[keyword], length }, keyword };
 }
 
 /**

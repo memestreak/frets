@@ -1,0 +1,11 @@
+\title "Strum and Rolled chord buttons"
+\ts (4 4)
+(0.1 1.2 0.3 2.4 3.5).4{txt "Both view. 1. Press this chord's 0 on the tab"}
+  (0.1 1.2 0.3 2.4 3.5).4{txt "2. Articulations › Techniques: press Strum down"}
+  (0.1 1.2 0.3 2.4 3.5).4{txt "An arrow pointing up stands left of chord 1"}
+  (0.1 1.2 0.3 2.4 3.5).4{txt "3. Press Rolled chord up: a wavy arrow down replaces it"} |
+(0.1 1.2 0.3 2.4 3.5).4{txt "4. Press Rolled chord up again: chord 1 has no sign"}
+  (0.1 1.2 0.3 2.4 3.5).4{txt "5. Press this arrow: it turns blue" bu}
+  (0.1 1.2 0.3 2.4 3.5).4{txt "Strum up lights in the palette"}
+  (0.1 1.2 0.3 2.4 3.5).4{txt "6. Press the Delete key: the arrow is gone"} |
+

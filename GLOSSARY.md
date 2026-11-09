@@ -204,7 +204,8 @@ _Avoid_: brush, spread
 **Rolled chord**:
 A chord played one string after another across its beat, written
 `ad` (arpeggio down) / `au` (arpeggio up) in alphaTex and drawn as a
-wavy arpeggio sign with an arrowhead. Kept but not yet drawn (issue #384).
+wavy arpeggio sign with an arrowhead, left of the chord on the staff and
+the tab; `ad` starts on the low string, so its arrow points up.
 _Avoid_: arpeggio (for the chord), broken chord
 
 **Sounding note**:
@@ -226,10 +227,10 @@ _Avoid_: staff only, staff alone
 
 **Strum**:
 A chord strummed down or up, written `bd` (strum down) / `bu` (strum up)
-in alphaTex and drawn by Guitar Pro and alphaTab as an arrow beside the
-chord on the tab: a strum down points up the tab, from the low string to
-the high one. It plays as a quick Roll. Kept but not yet drawn (issue
-#384). Not a Pick stroke, which only says which way the pick moves.
+in alphaTex and drawn as a straight arrow left of the chord: a strum
+down points up, from the low string to the high one. Guitar Pro and
+alphaTab draw it on the tab only; Frets on the staff too. It plays as a
+quick Roll. Not a Pick stroke, which only says which way the pick moves.
 _Avoid_: brush, stroke (for the strum)
 
 **System**:

@@ -10,7 +10,7 @@
  */
 import {
   asClip, barTicks, defaultGroupCounts, ownVoice, fewestRests, isRest, isStandardTuningNames, keyTex, STRING_COUNT, type Bend, type Clip, type Column,
-  type MasterBar, type Note, type Part, type TimeSignature, type Track, type TrackBar,
+  type MasterBar, type Note, type Part, type Roll, type TimeSignature, type Track, type TrackBar,
 } from './clip';
 import { chordDefTex } from './chordSet';
 import { fxLine } from './fxLine';
@@ -129,6 +129,12 @@ function lyricsTex(lyrics: readonly string[] | undefined): string[] {
   return lyrics.flatMap((l, i) => (l === '' ? [] : [`lyrics ${i} ${quoted(l)}`]));
 }
 
+/** A Strum or Rolled chord as alphaTex: `bd`, `bu`, `ad` or `au`, then its length when one is written. */
+function rollTex(roll: Roll): string {
+  const keyword = `${roll.sign === 'strum' ? 'b' : 'a'}${roll.direction === 'down' ? 'd' : 'u'}`;
+  return roll.length === undefined ? keyword : `${keyword} ${roll.length}`;
+}
+
 function beatTex(columns: Column[], bar: number, index: number, marks: Map<string, string[]>): string {
   const column = columns[index];
   // A grace note is written plain, at the length alphaTab gives it.
@@ -143,6 +149,7 @@ function beatTex(columns: Column[], bar: number, index: number, marks: Map<strin
   if (column.text) effects.push(`txt ${quoted(column.text)}`);
   effects.push(...lyricsTex(column.lyrics));
   if (column.stroke) effects.push(column.stroke === 'down' ? 'sd' : 'su');
+  if (column.roll) effects.push(rollTex(column.roll));
   if (column.notes.some(n => n?.tap)) effects.push('tt');
   if (column.ottava) effects.push(`ot ${column.ottava}`);
   if (column.wah) effects.push(column.wah === 'open' ? 'waho' : 'wahc');

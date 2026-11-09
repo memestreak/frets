@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { BEND_QUARTERS, OTTAVAS, TUPLETS, tupletLabel, type BendQuarters, type Ottava } from './clip';
+import { BEND_QUARTERS, OTTAVAS, TUPLETS, tupletLabel, type BendQuarters, type Ottava, type Roll } from './clip';
+import { rollSign } from './rollSign';
 import { mordentSign } from './marks';
 import { dynamicWord } from './dynamics';
 import { TOOL_GROUPS, toolValue, type noteKinds, type Tool, type ToolId } from './tools';
@@ -376,6 +377,20 @@ function WhammyGlyph() {
   );
 }
 
+/** A Strum's or Rolled chord's sign, three chord numbers right of it. */
+function RollGlyph(roll: Pick<Roll, 'sign' | 'direction'>) {
+  const { line, head } = rollSign(roll, 7, 3, 21);
+  return (
+    <>
+      <path d={line} strokeWidth={1.4} />
+      <path d={head} fill="currentColor" stroke="none" />
+      <Label x={16} y={8} size={7}>0</Label>
+      <Label x={16} y={15} size={7}>2</Label>
+      <Label x={16} y={22} size={7}>2</Label>
+    </>
+  );
+}
+
 export const ICONS: Record<Exclude<ToolId, 'bend' | 'vibrato' | 'tuplet' | 'wah' | 'whammy'>, ReactNode> = {
   whole: <NoteGlyph open stem={false} />,
   half: <NoteGlyph open />,
@@ -414,6 +429,11 @@ export const ICONS: Record<Exclude<ToolId, 'bend' | 'vibrato' | 'tuplet' | 'wah'
   tap: <Label y={17} size={13}>T</Label>,
   strokeDown: <path d="M6 18 V7 H18 V18" strokeWidth={2} />,
   strokeUp: <path d="M6 6 L12 19 L18 6" strokeWidth={2} />,
+  // The signs as the music draws them (`rollSign.ts`): an arrow up for a roll from the low string.
+  strumDown: <RollGlyph sign="strum" direction="down" />,
+  strumUp: <RollGlyph sign="strum" direction="up" />,
+  rolledDown: <RollGlyph sign="rolled" direction="down" />,
+  rolledUp: <RollGlyph sign="rolled" direction="up" />,
   accent: <path d="M6 7 L18 12 L6 17" strokeWidth={2} />,
   heavyAccent: <path d="M6 18 L12 6 L18 18" strokeWidth={2} />,
   // A staccato dot over a note, so it can't pass for the duration dot.

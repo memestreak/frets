@@ -46,7 +46,15 @@ export function columnWidth(column: Column): number {
   const own = column.notes.filter(n => n?.bend && !(n.tie && n.bend.pre));
   const bend = own.some(n => n?.bend?.release) ? 30 : own.length > 0 ? 18 : 0;
   const slideOut = bend === 0 && column.notes.some(n => n?.slideOut) ? 12 : 0;
-  return Math.max(byTime, minColumnWidth(column)) + bend + slideOut;
+  return Math.max(byTime, minColumnWidth(column)) + bend + slideOut + rollRoom(column);
+}
+
+/** The room a Strum's or Rolled chord's sign takes left of the chord (`rollSign.ts`). */
+export const ROLL_ROOM = 14;
+
+/** The room left of a column's notes for its Strum or Rolled chord; none without one. */
+export function rollRoom(column: Column): number {
+  return column.roll ? ROLL_ROOM : 0;
 }
 
 /** A quarter note's room along the line: a sixteenth keeps the room it had, 28, so its numbers stay apart. */
@@ -59,9 +67,9 @@ export function noteInset(column: Column): number {
 
 /** The least room a column takes on a line squeezed to fit: its numbers, and on the staff its heads and accidentals. */
 export function leastWidth(column: Column, heads: Head[], staff: boolean): number {
-  if (!staff) return minColumnWidth(column);
+  if (!staff) return minColumnWidth(column) + rollRoom(column);
   const seconds = heads.some((h, k) => k > 0 && h.step - heads[k - 1].step === 1) ? HEAD_WIDTH : 0;
-  return Math.max(minColumnWidth(column), STAFF_LEAST) + signRoom(heads) + seconds;
+  return Math.max(minColumnWidth(column), STAFF_LEAST) + signRoom(heads) + seconds + rollRoom(column);
 }
 /** A note head and a little room either side. */
 const STAFF_LEAST = 20;

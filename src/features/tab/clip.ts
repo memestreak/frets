@@ -118,12 +118,26 @@ export interface Note {
   extra?: string[];
 }
 
+/**
+ * A Strum (alphaTex `bd` / `bu`) or a Rolled chord (`ad` / `au`), drawn left of the chord on the staff
+ * and the tab (issue #384). Named as alphaTex names it: `down` starts on the low string, so its arrow
+ * points up, toward the high strings; `up` starts on the high string. `length` is a roll written
+ * with its own length in ticks (`bd 60`), which playback keeps; left out, the Settings set it.
+ */
+export interface Roll {
+  sign: 'strum' | 'rolled';
+  direction: 'down' | 'up';
+  length?: number;
+}
+
 /** Notes played at one time; a column with no notes is a rest. */
 export interface Column {
   duration: Duration;
   /** Six slots, high e first. */
   notes: (Note | null)[];
   stroke?: 'down' | 'up';
+  /** A Strum or a Rolled chord: the sign beside the chord saying its strings start one after another (`Roll`). */
+  roll?: Roll;
   /**
    * A chord name written over the column, as typed ("Am7", "C/G"): its symbol, which points at the
    * entry of that name in its track's Chord set (`chordSet.ts`).
@@ -1338,11 +1352,17 @@ function isLyrics(v: unknown): v is string[] {
   return Array.isArray(v) && v.length > 0 && v.every(l => typeof l === 'string') && v[v.length - 1] !== '';
 }
 
+function isRoll(v: unknown): v is Roll {
+  return isObj(v) && (v.sign === 'strum' || v.sign === 'rolled') && (v.direction === 'down' || v.direction === 'up')
+    && (v.length === undefined || (Number.isInteger(v.length) && (v.length as number) >= 0));
+}
+
 function isColumn(v: unknown): v is Column {
   return isObj(v) && isDuration(v.duration)
     && Array.isArray(v.notes) && v.notes.length === STRING_COUNT
     && v.notes.every(n => n === null || isNote(n))
     && (v.stroke === undefined || v.stroke === 'down' || v.stroke === 'up')
+    && (v.roll === undefined || isRoll(v.roll))
     && (v.chord === undefined || typeof v.chord === 'string')
     && (v.text === undefined || typeof v.text === 'string')
     && (v.lyrics === undefined || isLyrics(v.lyrics))
