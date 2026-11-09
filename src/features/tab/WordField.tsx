@@ -49,10 +49,16 @@ interface WordFieldProps {
   onDone: (value: string | null, byKey: boolean) => void;
 }
 
-/** The dynamics a dynamic's list offers for what is typed: those starting with it, every one for nothing typed. */
+/** Every dynamic in alphabetical order, so a word comes before the longer ones it starts: p, pf, pp, ppp… */
+const ALPHABETICAL = [...DYNAMICS].sort();
+
+/**
+ * The dynamics a dynamic's list offers for what is typed: those starting with it, every one for nothing typed,
+ * alphabetically. The dynamic typed exactly is always first, so Enter sets it.
+ */
 export function dynamicsFor(typed: string): readonly Dynamic[] {
   const start = typed.trim().toLowerCase();
-  return DYNAMICS.filter(d => d.startsWith(start));
+  return ALPHABETICAL.filter(d => d.startsWith(start));
 }
 
 export function WordField({ kind, initial, x, y, onDone }: WordFieldProps) {
@@ -76,8 +82,6 @@ export function WordField({ kind, initial, x, y, onDone }: WordFieldProps) {
   const [active, setActive] = useState(0);
   const choices = kind === 'dynamic' ? dynamicsFor(value) : [];
   const activeRef = useRef<HTMLDivElement>(null);
-  /** Where the list starts for what is typed: on the dynamic typed exactly (pp, not pppppp), else its first. */
-  const startFor = (typed: string) => Math.max(0, dynamicsFor(typed).indexOf(typed.trim().toLowerCase() as Dynamic));
   useEffect(() => {
     activeRef.current?.scrollIntoView?.({ block: 'nearest' });
   }, [active, listOpen]);
@@ -87,7 +91,7 @@ export function WordField({ kind, initial, x, y, onDone }: WordFieldProps) {
       e.preventDefault();
       if (!listOpen) {
         setListOpen(true);
-        setActive(startFor(value));
+        setActive(0);
       } else setActive(a => Math.min(a + 1, choices.length - 1));
       return true;
     }
@@ -126,7 +130,7 @@ export function WordField({ kind, initial, x, y, onDone }: WordFieldProps) {
           onChange={e => {
             setValue(digits ? e.target.value.replace(/\D/g, '') : e.target.value);
             setRefused(false);
-            setActive(startFor(e.target.value));
+            setActive(0);
           }}
           // Leaving a field with what can't be set leaves things as they were.
           onFocus={e => e.target.select()} onKeyDown={onKeyDown} onBlur={() => finish(settable(kind, value) ? value : null, false)}

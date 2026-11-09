@@ -85,21 +85,24 @@ describe('the list of dynamics', { timeout: 20000 }, () => {
   const options = () => list().queryAllByRole('option').map(o => o.getAttribute('data-dynamic'));
   const down = (key = 'ArrowDown') => fireEvent.keyDown(field(), { key });
 
-  it('the Down arrow key lists every dynamic when nothing is typed, softest first', async () => {
+  it('the Down arrow key lists every dynamic when nothing is typed, alphabetically', async () => {
     await openWith('5.3.4 5.3.4 5.3.2 |');
     keys({ key: 'D', shiftKey: true });
     expect(screen.queryByRole('listbox')).toBeNull();
     down();
-    expect(options()).toEqual([...DYNAMICS]);
+    expect(options()).toEqual([...DYNAMICS].sort());
+    expect(options().slice(0, 3)).toEqual(['f', 'ff', 'fff']);
     expect(field()).toHaveAttribute('aria-expanded', 'true');
   });
 
-  it('lists only those starting with what is typed, and follows the typing', async () => {
+  it('lists only those starting with what is typed, shorter first, and follows the typing', async () => {
     await openWith('5.3.4 5.3.4 5.3.2 |');
     keys({ key: 'D', shiftKey: true });
-    fireEvent.change(field(), { target: { value: 'sf' } });
+    fireEvent.change(field(), { target: { value: 'p' } });
     down();
-    expect(options()).toEqual(['sf', 'sfp', 'sfpp', 'sfz', 'sffz', 'sfzp']);
+    expect(options()).toEqual(['p', 'pf', 'pp', 'ppp', 'pppp', 'ppppp', 'pppppp']);
+    fireEvent.change(field(), { target: { value: 'sf' } });
+    expect(options()).toEqual(['sf', 'sffz', 'sfp', 'sfpp', 'sfz', 'sfzp']);
     fireEvent.change(field(), { target: { value: 'SFZ' } });
     expect(options()).toEqual(['sfz', 'sfzp']);
     fireEvent.change(field(), { target: { value: 'x' } });
@@ -113,19 +116,19 @@ describe('the list of dynamics', { timeout: 20000 }, () => {
     fireEvent.change(field(), { target: { value: 'm' } });
     down();
     const picked = () => list().getByRole('option', { selected: true }).getAttribute('data-dynamic');
-    expect(picked()).toBe('mp');
-    down();
     expect(picked()).toBe('mf');
+    down();
+    expect(picked()).toBe('mp');
     // Not past the end, nor before the start.
     down();
-    expect(picked()).toBe('mf');
-    down('ArrowUp');
-    down('ArrowUp');
     expect(picked()).toBe('mp');
+    down('ArrowUp');
+    down('ArrowUp');
+    expect(picked()).toBe('mf');
     down();
     fireEvent.keyDown(field(), { key: 'Enter' });
     expect(queryField()).toBeNull();
-    expect(alphaTex()).toBe('5.3.4{dy mf} 5.3.4 5.3.2 |');
+    expect(alphaTex()).toBe('5.3.4{dy mp} 5.3.4 5.3.2 |');
   });
 
   it('starts on the dynamic typed exactly, so pp and Enter sets pp, not pppppp', async () => {

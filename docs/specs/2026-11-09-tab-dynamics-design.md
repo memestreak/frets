@@ -42,13 +42,14 @@ Editing follows Dorico first (`docs/tab-editing-principles.md`).
   takes the dynamic away. The button lights while the cursor's column
   has one.
 - **The list** (Jeremy, 2026-11-09): in the field, the Down arrow key
-  opens a list of the dynamics starting with what is typed (every one,
-  softest first, when nothing is), each in its drawn letters and as
-  typed. It follows the typing, starting on the dynamic typed exactly
-  (`pp` picks pp, not pppppp), else on the first; ↓ and ↑ move through it (not past
-  either end), Enter or a press sets the one picked, and Esc closes the
-  list first, then the field. The placeholder says "mf, or ↓ for the
-  list", and the ⚠'s tip points to it.
+  opens a list of the dynamics starting with what is typed (every one
+  when nothing is), each in its drawn letters and as typed. It is in
+  alphabetical order (Jeremy, 2026-11-09), so a word comes before the
+  longer ones it starts: p, pf, pp, ppp…, and the dynamic typed exactly
+  is first. It follows the typing, starting on its first entry; ↓ and ↑
+  move through it (not past either end), Enter or a press sets the one
+  picked, and Esc closes the list first, then the field. The placeholder
+  says "mf, or ↓ for the list", and the ⚠'s tip points to it.
 - **Picked.** A press on a dynamic picks it, blue, like any Mark. Delete
   takes it away; right-click has Edit and Delete; a double-click or Edit
   opens its field.
@@ -80,10 +81,11 @@ Editing follows Dorico first (`docs/tab-editing-principles.md`).
   nothing; Esc changes nothing; an empty field clears it. Double-click
   and Enter on a picked dynamic open its field; its menu has Edit and
   Delete.
-- The list: ↓ with nothing typed lists all 25 in `DYNAMICS` order; `sf`
-  lists sf, sfp, sfpp, sfz, sffz, sfzp, and typing SFZ narrows it to sfz,
-  sfzp; `x` lists none and says so; with `m`, ↓ ↓ ↓ ↑ ↑ stays inside mp,
-  mf, and ↓ Enter sets mf; a press on fff sets it; Esc closes the list,
+- The list: ↓ with nothing typed lists all 25 alphabetically, starting
+  f, ff, fff; `p` lists p, pf, pp, ppp, pppp, ppppp, pppppp; `sf`
+  lists sf, sffz, sfp, sfpp, sfz, sfzp, and typing SFZ narrows it to sfz,
+  sfzp; `x` lists none and says so; with `m`, ↓ ↓ ↓ ↑ ↑ stays inside mf,
+  mp, and ↓ Enter sets mp; a press on fff sets it; Esc closes the list,
   a second Esc the field, nothing changed; ↓ then `pp` starts on pp,
   and Enter sets it.
 - Deleting the notes of a column with a dynamic leaves it on the rest.
