@@ -1,8 +1,8 @@
 \title "8. Triplets and other tuplets"
 \ts (4 4)
-r.1{txt "Tab view. 1. Press N, then Shift+4: eighths. 2. Press ; (semicolon) and pick 3 in the Tuplet panel: tuplet entry is on. 3. Type 0, Right arrow key, 2, Right arrow, 3, Right arrow: three eighths in the time of two, under a 3. 4. Press ; and pick None: tuplet entry ends. 5. Type 5, Right arrow, then Esc."} |
-r.1 |
-5.3.4
-  7.3.4{txt "6. Press this 7, then ; and pick 3: the beat turns into a triplet: the 7 is its first eighth, a rest the rest of it."}
-  5.3.4 7.3.4 |
+r.1{txt "Tab view. 1. Press N, then Shift+4."} |
+r.1{txt "2. Press ; and pick 3."} |
+r.1{txt "3. Type 0, 2, 3, a Right arrow after each."} |
+r.1{txt "4. Press ; and pick None. Esc."} |
+5.3.4 7.3.4{txt "5. Press this 7, then ; and pick 3."} 5.3.4 7.3.4 |
 

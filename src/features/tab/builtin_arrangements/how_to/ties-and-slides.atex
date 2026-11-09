@@ -1,14 +1,8 @@
 \title "5. Hammer-ons, slides and ties"
 \ts (4 4)
-5.3.4
-  7.3.4{txt "Tab view. 1. Press this 7, then H: a hammer-on from the 5 before."}
-  5.3.4 7.3.4 |
-5.3.4
-  7.3.4{txt "2. Press this 7, then Alt+/ (Alt and slash): a slide up from the 5 before."}
-  5.3.4 7.3.4 |
-7.3.4 5.3.4{txt "3. Press this 5, then H: a pull-off from the 7 before."} 7.3.4
-  5.3.4 |
-5.3.4 7.3.4 5.3.4
-  7.3.4{txt "4. Press this 7, then T: it is tied on to the next note, which turns (7)."} |
+5.3.4 7.3.4{txt "Tab view. 1. Press this 7, then H: a hammer-on."} 5.3.4 7.3.4 |
+5.3.4 7.3.4{txt "2. Press this 7, then Alt+/: a slide."} 5.3.4 7.3.4 |
+7.3.4 5.3.4{txt "3. Press this 5, then H: a pull-off."} 7.3.4 5.3.4 |
+5.3.4 7.3.4 5.3.4 7.3.4{txt "4. Press this 7, then T: a tie."} |
 9.3.4 7.3.4 5.3.2 |
 

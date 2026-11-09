@@ -18,15 +18,16 @@ Arrangements written for people learning Frets, one per feature.
   by title with numbers in order, so the folder reads as a course, from
   typing notes to copy and paste. A new lesson takes the next number, or a
   place in the order and the ones after it renumbered.
-- The steps are numbered and written as Text over the bars, worded as the
-  `test-arrangement` skill says: the view first ("Tab view."), then what
-  to press as drawn ("Press this 7"), then the keys in words ("the Right
-  arrow key", "Ctrl/⌘+C"), then what you'll see.
-- Where a lesson types into empty bars, all its steps go in one Text on
-  bar 1, with no Text in the bars after it, so the Text has its widest
-  room (about 60 characters a line) rather than the 100px a narrow empty
-  bar leaves. Where the steps press written notes, each step goes over its
-  note, one Text to a bar, so no two touch and stack out of order.
+- One short step per Text, each on its own bar (Jeremy, 2026-11-09: "way
+  too much text in one note... make sure that any of our text notes are
+  significantly less wordy and broken up"). A Text is at most 60
+  characters, about a line, so it reads at a glance and no two touch. The
+  first step names the view ("Tab view. 1. Press N."), as the
+  `test-arrangement` skill says; a step points at what to press as drawn
+  ("Press this 7") and spells keys in words ("the Right arrow key").
+- A lesson that types into empty bars has one step over each of them, in
+  order; the bars it types into fill from the start, so a step's Text
+  need not sit over the bar its notes land in.
 - A Text over a column you'll copy is copied with it, so a lesson keeps
   its Text off the columns its steps copy.
 
@@ -62,6 +63,7 @@ Lyrics (PR #441) and dynamics (PR #440) get theirs once they merge.
 ## Tests
 
 - Every file in `how_to/` has a row in its README, and every row a file.
+- Every Text in a lesson is 60 characters or fewer.
 - Every key in a row's Keys column is a Tab page shortcut; `Shift+4` and
   `Alt+2` count as listed (from `Shift+1–7`, `Alt+1–4`), `Shift+8` doesn't.
 - Each lesson reads with no warnings and writes back exactly
