@@ -385,6 +385,8 @@
   transform: translateX(-50%); color: var(--ink);
 }
 .tab-word-input { width: 100%; }
+/* The Text field: a line until Shift+Enter adds more (issue #445), never dragged bigger. */
+.tab-word-text { display: block; resize: none; line-height: 1.4; }
 /* A number's box: room for 7 digits, never more (Jeremy, 2026-10-27), with the field fitting round it. */
 .tab-word-number { width: calc(7ch + 23px); }
 .tab-word-fit { width: auto; white-space: nowrap; }

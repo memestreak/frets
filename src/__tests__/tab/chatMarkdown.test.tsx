@@ -106,6 +106,15 @@ describe('parseInlines', () => {
     expect(parseInlines('\\*not em\\*')).toEqual([{ kind: 'text', text: '*not em*' }]);
   });
 
+  it('reads only bold for a Tab Text (boldOnly, issue #446): italics, code, strike, links and new lines as typed', () => {
+    expect(parseInlines('**a** *b* `c` ~~d~~ [e](https://example.com)\nf', { boldOnly: true })).toEqual([
+      { kind: 'strong', children: [{ kind: 'text', text: 'a' }] },
+      { kind: 'text', text: ' *b* `c` ~~d~~ [e](https://example.com)\nf' },
+    ]);
+    // Only a star, an underscore or a backslash is escaped; any other backslash is a letter.
+    expect(parseInlines('\\* \\_ \\\\ \\(', { boldOnly: true })).toEqual([{ kind: 'text', text: '* _ \\ \\(' }]);
+  });
+
   it('links http, https and mailto, with a title or emphasis in the label', () => {
     expect(parseInlines('[**docs**](https://example.com/a_(b) "Title")')).toEqual([
       { kind: 'link', href: 'https://example.com/a_(b)', children: [{ kind: 'strong', children: [{ kind: 'text', text: 'docs' }] }] },

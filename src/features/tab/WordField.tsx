@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { toggleBold, type TypedText } from './textMarks';
 import type { WordKind } from './tools';
 
 /**
@@ -23,9 +24,14 @@ const NUMBER_LENGTH: Partial<Record<FieldKind, number>> = { capo: 2, ending: 1, 
 /** The longest a word can be typed: free text may run to a few lines, as it wraps over its column (issue #323). */
 const WORD_LENGTH = (kind: FieldKind) => (kind === 'text' ? 200 : 40);
 
+/** The most rows the Text field grows to as new lines are typed; past them it scrolls. */
+const TEXT_ROWS = 6;
+
 /**
  * A small field over the tab for a chord name, free text, a section or the capo, at the spot it is drawn.
- * Enter or leaving the field sets what is typed (empty clears it); Esc leaves it as it was.
+ * Enter or leaving the field sets what is typed (empty clears it); Esc leaves it as it was. The Text
+ * field takes more: Shift+Enter starts a new line in it (issue #445), and Cmd+B makes the selected words
+ * bold, `**` round them (issue #446).
  */
 
 interface WordFieldProps {
@@ -42,7 +48,7 @@ interface WordFieldProps {
 export function WordField({ kind, initial, x, y, onDone }: WordFieldProps) {
   const [value, setValue] = useState(initial);
   const digits = NUMBER_LENGTH[kind];
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement & HTMLTextAreaElement>(null);
   // The field opens from a press or a key on the tab, so typing goes straight into it.
   useEffect(() => inputRef.current?.focus(), []);
   // Enter and then the blur it causes would both finish; only the first counts.
@@ -52,20 +58,50 @@ export function WordField({ kind, initial, x, y, onDone }: WordFieldProps) {
     done.current = true;
     onDone(result, byKey);
   };
-  const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+  // Where the selection goes once a Cmd+B change is drawn.
+  const selectAfter = useRef<TypedText | null>(null);
+  useLayoutEffect(() => {
+    const next = selectAfter.current;
+    selectAfter.current = null;
+    if (next) inputRef.current?.setSelectionRange(next.start, next.end);
+  }, [value]);
+  const isText = kind === 'text';
+  const onKeyDown = (e: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     e.stopPropagation();
-    if (e.key === 'Enter') finish(value, true);
+    // Shift+Enter is a new line in a Text: the textarea's own.
+    if (e.key === 'Enter' && !(isText && e.shiftKey)) {
+      e.preventDefault();
+      finish(value, true);
+    }
     if (e.key === 'Escape') finish(null, true);
+    // Cmd+B, as in Dorico's and MuseScore's text editors.
+    if (isText && (e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'b') {
+      e.preventDefault();
+      const field = e.currentTarget;
+      const next = toggleBold({ value, start: field.selectionStart ?? value.length, end: field.selectionEnd ?? value.length });
+      if (next.value.length > WORD_LENGTH(kind)) return;
+      selectAfter.current = next;
+      setValue(next.value);
+    }
+  };
+  const shared = {
+    ref: inputRef, 'aria-label': CAPTIONS[kind], placeholder: PLACEHOLDERS[kind], value, maxLength: digits ?? WORD_LENGTH(kind),
+    onFocus: (e: { target: HTMLInputElement | HTMLTextAreaElement }) => e.target.select(), onKeyDown, onBlur: () => finish(value, false),
   };
   return (
     <span className={`tab-word card${digits ? ' tab-word-fit' : ''}`} style={{ left: x, top: y }} role="dialog" aria-label={CAPTIONS[kind]}>
       <span className="tab-time-caption">{CAPTIONS[kind]}</span>
-      <input
-        ref={inputRef} className={`input ${digits ? 'tab-word-number' : 'tab-word-input'}`} aria-label={CAPTIONS[kind]} placeholder={PLACEHOLDERS[kind]}
-        value={value} inputMode={digits ? 'numeric' : 'text'} maxLength={digits ?? WORD_LENGTH(kind)}
-        onChange={e => setValue(digits ? e.target.value.replace(/\D/g, '') : e.target.value)}
-        onFocus={e => e.target.select()} onKeyDown={onKeyDown} onBlur={() => finish(value, false)}
-      />
+      {isText ? (
+        <textarea
+          {...shared} className="input tab-word-input tab-word-text" rows={Math.min(TEXT_ROWS, value.split('\n').length)}
+          onChange={e => setValue(e.target.value)}
+        />
+      ) : (
+        <input
+          {...shared} className={`input ${digits ? 'tab-word-number' : 'tab-word-input'}`} inputMode={digits ? 'numeric' : 'text'}
+          onChange={e => setValue(digits ? e.target.value.replace(/\D/g, '') : e.target.value)}
+        />
+      )}
     </span>
   );
 }
