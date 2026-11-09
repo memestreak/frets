@@ -14,7 +14,7 @@ Arrangements written for people learning Frets, one per feature.
   nothing kept.
 - One feature per lesson, the whole of it a learner needs, not its edge
   cases (those belong to `editing_tests/`, which stays as it is).
-- `\title` is a number and the feature: "1. Type notes". The dialog sorts
+- `\title` is a number and the feature: "1. Enter notes". The dialog sorts
   by title with numbers in order, so the folder reads as a course, from
   typing notes to copy and paste. A new lesson takes the next number, or a
   place in the order and the ones after it renumbered.
@@ -31,8 +31,8 @@ Arrangements written for people learning Frets, one per feature.
 - A Text over a column you'll copy is copied with it, so a lesson keeps
   its Text off the columns its steps copy.
 
-The thirteen lessons, in order: type notes; type chords and name them;
-change notes; type notes on the staff; hammer-ons, slides and ties; bends
+The thirteen lessons, in order: enter notes; enter chords and name them;
+change notes; enter notes on the staff; hammer-ons, slides and ties; bends
 and vibrato; let ring and palm mute; triplets and other tuplets; grace
 notes; two voices; repeats and endings; play and loop; copy and paste.
 Lyrics (PR #441) and dynamics (PR #440) get theirs once they merge.

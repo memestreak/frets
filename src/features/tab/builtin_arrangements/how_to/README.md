@@ -32,10 +32,10 @@ warnings, every bar full, and write back exactly
 
 | File | Teaches | Keys |
 | --- | --- | --- |
-| `type-notes.atex` | Note input mode: typing frets, moving on, note lengths, changing string, playing | N, 0–9, Right, Shift+1–7, Down, Esc, Space, ? |
-| `type-chords.atex` | Typing a chord a string at a time, moving on by its length, naming it | N, 0–9, Down, Up, Shift+Space, Esc, C |
+| `enter-notes.atex` | Note input mode: entering frets, moving on, note lengths, changing string, playing | N, 0–9, Right, Shift+1–7, Down, Esc, Space, ? |
+| `enter-chords.atex` | Entering a chord a string at a time, moving on by its length, naming it | N, 0–9, Down, Up, Shift+Space, Esc, C |
 | `change-notes.atex` | Changing typed notes in normal mode: fret, length, rest, string, undo | Alt+Up, Alt+Down, 1–7, Mod+Z, Delete, Mod+Down |
-| `staff-notes.atex` | Typing notes on the staff by letter, with a length and a sharp | N, A–G, 1–7, =, Esc |
+| `enter-notes-on-the-staff.atex` | Entering notes on the staff by letter, with a length and a sharp | N, A–G, 1–7, =, Esc |
 | `ties-and-slides.atex` | Hammer-ons, pull-offs, slides and ties | H, Alt+/, T |
 | `bends-and-vibrato.atex` | Bends (¼, ½, full) and vibrato (normal, wide) | B, V |
 | `let-ring-and-palm-mute.atex` | Selecting a bar of notes, then let ring and palm mute | Shift+Right, I, M |
