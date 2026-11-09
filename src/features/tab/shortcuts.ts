@@ -113,6 +113,16 @@ const LINE: ShortcutGroup = {
   ],
 };
 
+const TEXT_FIELD: ShortcutGroup = {
+  title: 'In the Text field',
+  shortcuts: [
+    { keys: ['Mod+B'], does: 'Bold: **words** (again: plain)' },
+    { keys: ['Shift+Enter'], does: 'New line' },
+    { keys: ['Enter'], does: 'Set the Text' },
+    { keys: ['Esc'], does: 'Leave it as it was' },
+  ],
+};
+
 const CHOOSER: ShortcutGroup = {
   title: 'In Arrangements…',
   shortcuts: [
@@ -160,4 +170,4 @@ export function paletteShortcuts(): ShortcutGroup {
   return { title: 'Palette', shortcuts: [...duration.map(t => ({ keys: [t.key], does: t.label })), ...shortcuts] };
 }
 
-export const TAB_SHORTCUTS: readonly ShortcutGroup[] = [PAGE, MOVING, INPUT, NORMAL, PICKED, STAFF, paletteShortcuts(), LINE, HEAD, CHORDS, CHOOSER];
+export const TAB_SHORTCUTS: readonly ShortcutGroup[] = [PAGE, MOVING, INPUT, NORMAL, PICKED, STAFF, paletteShortcuts(), TEXT_FIELD, LINE, HEAD, CHORDS, CHOOSER];

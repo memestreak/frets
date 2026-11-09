@@ -152,7 +152,11 @@ and in its spec.
 - `beatText.ts` — free text over a column: its size and `wrapBeatText`,
   which breaks a long one onto more lines — `2026-11-03-tab-text-wrap-design.md`; and
   `textGoesUnder`, which puts a short one under the chord names (`Rows.textUnder`) —
-  `2026-11-07-tab-short-text-under-chords-design.md`.
+  `2026-11-07-tab-short-text-under-chords-design.md`; and `beatTextLines`, the
+  wrapped lines as bold and plain runs to draw — `2026-11-09-tab-text-markdown-design.md`.
+- `textMarks.ts` — a Text's `**bold**` read by the Chat panel's Markdown
+  reader with only bold on, and `toggleBold` for Ctrl/⌘+B in the Text field —
+  `2026-11-09-tab-text-markdown-design.md`.
 - `sectionText.ts` — a section over its bar: its size, `sectionBoxes`, and
   `placeSections`, which wraps a long one and moves it up if it still
   runs into the next —
@@ -323,7 +327,9 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 - `BarKeyPanel.tsx` — the key signature from a bar on (`\ks`).
 - `barPanel.ts` — keeps the bar panels inside the tab.
 - `WordField.tsx` — the field over the tab for a chord name, text, section,
-  capo, ending number or repeat count — `2026-10-26-tab-words-design.md`.
+  capo, ending number or repeat count — `2026-10-26-tab-words-design.md`; the
+  Text's is a textarea taking Shift+Enter and Ctrl/⌘+B —
+  `2026-11-09-tab-text-markdown-design.md`.
 - `TempoPanel.tsx` — bpm, Tap (`src/lib/tapTempo.ts`) and a label —
   `2026-10-29-tab-tempo-button-design.md`.
 - `CreditsPanel.tsx` — title (needed), artist, words and music.
@@ -515,6 +521,8 @@ MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
   column wraps onto more lines
 - `docs/specs/2026-11-07-tab-short-text-under-chords-design.md`: a short
   Text goes under the chord names and their diagrams, a long one over
+- `docs/specs/2026-11-09-tab-text-markdown-design.md`: `**bold**` and new
+  lines in a Text; Ctrl/⌘+B and Shift+Enter in its field
 - `docs/specs/2026-11-03-tab-test-arrangements-design.md`: test
   arrangements, the `editing_tests/` folder and its skill
 - `docs/specs/2026-11-01-tab-note-input-grid-design.md`: note input mode's grid,
