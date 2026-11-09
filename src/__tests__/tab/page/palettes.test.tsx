@@ -31,6 +31,8 @@ describe('the palettes’ column (issue #454)', () => {
     for (const name of ['Notes', 'Articulations', 'Bars', 'Chords', 'Chat']) {
       expect(paletteHeader(name).querySelector('.tab-stack-icon svg')).not.toBeNull();
     }
+    // Articulations' icon is a vibrato's wavy line, not the accent's wedge (which read as an expand chevron).
+    expect(paletteHeader('Articulations').querySelector('.tab-stack-icon svg path')).toHaveAttribute('d', 'M4 12 q2 -5 4 0 t4 0 t4 0 t4 0');
     expect(screen.getByRole('button', { name: 'Note input mode' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Quarter note/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /^Tuplet/ })).toBeInTheDocument();

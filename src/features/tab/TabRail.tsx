@@ -23,9 +23,15 @@ export type DrawPalette = (groups: readonly string[], className?: string, input?
 export type PanelId = 'notes' | 'articulations' | 'bars' | 'chords' | 'chat';
 
 /** The tool palettes, in their first order, and the Tool groups each holds; Chords and Chat come after them. */
+/**
+ * The Articulations palette's icon: a vibrato's wavy line, drawn as the other palettes' icons are (the accent's
+ * wedge read as an expand chevron).
+ */
+const ARTICULATIONS_ICON = <path d="M4 12 q2 -5 4 0 t4 0 t4 0 t4 0" strokeLinecap="round" strokeLinejoin="round" />;
+
 export const PANELS: readonly { id: Exclude<PanelId, 'chords' | 'chat'>; name: string; icon: ReactNode; groups: readonly string[]; input?: boolean }[] = [
   { id: 'notes', name: 'Notes', icon: ICONS.quarter, groups: ['Duration', 'Rhythm'], input: true },
-  { id: 'articulations', name: 'Articulations', icon: ICONS.accent, groups: ['Joins', 'Bends', 'Techniques', 'Accents'] },
+  { id: 'articulations', name: 'Articulations', icon: ARTICULATIONS_ICON, groups: ['Joins', 'Bends', 'Techniques', 'Accents'] },
   { id: 'bars', name: 'Bars', icon: ICONS.repeatStart, groups: ['Bars', 'Text'] },
 ];
 

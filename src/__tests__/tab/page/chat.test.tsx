@@ -62,6 +62,17 @@ describe('the Chat panel', () => {
     expect(screen.getByRole('treeitem', { name: 'Chat' })).toBeInTheDocument();
   });
 
+  it('with a key and no messages, says how to undo a reply and links More settings to Tab › Chat', async () => {
+    withKey();
+    serve();
+    renderAt(TEX);
+    await screen.findAllByTestId('tab-system', undefined, SLOW);
+    fireEvent.click(paletteHeader('Chat'));
+    expect(within(chatPanel()).getByText(/Use undo to revert a reply's changes\./)).toBeInTheDocument();
+    fireEvent.click(within(chatPanel()).getByRole('button', { name: 'More settings' }));
+    expect(await screen.findByLabelText('OpenRouter key')).toHaveValue('sk-or-test');
+  });
+
   it('with no key, asks for one and opens Settings at Tab › Chat', async () => {
     serve();
     renderAt(TEX);

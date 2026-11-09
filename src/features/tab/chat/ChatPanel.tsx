@@ -73,7 +73,10 @@ export function ChatPanel({ prefs, onModel, session, onOpenSettings }: ChatPanel
       )}
       <div ref={listRef} className="tab-chat-list" aria-live="polite">
         {entries.length === 0 && prefs.apiKey && (
-          <p className="tab-chat-hint">Ask about this arrangement, or ask for a change. One Undo takes back each reply&apos;s changes.</p>
+          <p className="tab-chat-hint">
+            Ask about this arrangement, or ask for a change. Use undo to revert a reply&apos;s changes.{' '}
+            <button type="button" className="tab-chat-link" onClick={onOpenSettings}>More settings</button>
+          </p>
         )}
         {entries.map((entry, i) => <ChatEntry key={i} entry={entry} />)}
         {working && (

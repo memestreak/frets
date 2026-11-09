@@ -175,7 +175,9 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
 - `amend` after `replace` is one undo step, and redo brings it back; `amend`
   with no step before it is a step of its own; it clears redo.
 - On the page, with nothing in the address: the rail ends Chords, Chat, and
-  Settings lists Tab › Chat. With no key, the box is disabled and Open Settings opens Tab › Chat, whose key
+  Settings lists Tab › Chat. With a key and no messages, the hint ends "Use undo to revert a reply's
+  changes." and a More settings link that opens Tab › Chat.
+  With no key, the box is disabled and Open Settings opens Tab › Chat, whose key
   and Model fields are plain text shown as typed, with autocomplete and spellcheck off and no autocorrect or autocapitalize attribute; saving `  sk-or-typed ` keeps `sk-or-typed` and
   enables the box.
 - A reply that changes bar 1, then bar 2, then answers shows both lines, the
