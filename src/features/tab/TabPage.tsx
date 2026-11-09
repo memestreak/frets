@@ -14,7 +14,7 @@ import { barErrors, brokenTupletMessage, emptyClip, partOf, stringClashes, title
 import { pastesVoices, pasteVoices, sliceVoices, spansVoices, voiceRange, voiceSelections } from './voices';
 import { clipAction, type ClipAction, type PartAction } from './clipState';
 import { useArrangements } from './useArrangements';
-import { clampCursor, columnAt, indexOf, sliceClip, insertBar, insertPaste, isEmpty, noteAt, withRestsInEmptyBars, pasteOver, placeOf, selectedRange, START } from './editing';
+import { clampCursor, columnAt, indexOf, sliceClip, deleteBars, insertBar, insertPaste, isEmpty, noteAt, withRestsInEmptyBars, pasteOver, placeOf, selectedRange, START } from './editing';
 import { isBarLine, type BarLineHit } from './barLines';
 import { beamLit, canBeamTarget, clearToRests, setBend, setOttava, setWhammy } from './noteEdits';
 import { applyTuplet, isProblem } from './tuplets';
@@ -522,6 +522,15 @@ export default function TabPage() {
   const addBar = (where: 'before' | 'after') => {
     const next = insertBar(clip, cursor, where);
     commit(next.clip, next.cursor, null);
+  };
+
+  /** The bars a selection touches, else the cursor's bar: what the menu's Delete bar takes away. */
+  const menuBars: [number, number] = selection
+    ? [placeOf(clip, selectedRange(selection)[0]).bar, placeOf(clip, selectedRange(selection)[1]).bar]
+    : [cursor.bar, cursor.bar];
+  const removeBars = ([first, last]: [number, number]) => {
+    const next = deleteBars(clip, first, last);
+    commit(next.clip, { ...cursor, ...next.cursor }, null);
   };
 
   /** Whether a palette tool puts on a Span that is picked once added (let ring, P.M.). */
@@ -1087,6 +1096,16 @@ export default function TabPage() {
             ...(hasEdit(menu.hit) ? [{ label: 'Edit', onSelect: () => editPicked(menu.hit!) }] : []),
             ...(hasDelete(menu.hit) ? [{ label: 'Delete', onSelect: () => deletePicked(menu.hit!) }] : []),
           ] : [
+            // Insert first, then Delete bar: the bars a selection touches, else the one pressed (Jeremy, 2026-11-09).
+            // The bar under a right-click already has the cursor: the press put it there.
+            {
+              label: 'Insert', onSelect: () => {},
+              items: [
+                { label: 'Bar before', onSelect: () => addBar('before') },
+                { label: 'Bar after', onSelect: () => addBar('after') },
+              ],
+            },
+            { label: menuBars[1] > menuBars[0] ? `Delete ${menuBars[1] - menuBars[0] + 1} bars` : 'Delete bar', onSelect: () => removeBars(menuBars) },
             // Picked or selected notes: into another Voice (Q11); a selection over several Voices: one of them alone (Q21).
             ...(!noteInputMode && (selection || (!columnOnly && noteAt(clip, cursor))) ? [{
               label: 'Move to voice', onSelect: () => {},
@@ -1096,9 +1115,6 @@ export default function TabPage() {
               label: 'Select only voice', onSelect: () => {},
               items: [voice, ...voiceSelections(clip, selection).keys()].sort((a, b) => a - b).map(v => ({ label: `Voice ${v + 1}`, onSelect: () => selectOnlyVoice(v) })),
             }] : []),
-            // The bar under a right-click already has the cursor: the press put it there.
-            { label: 'Insert bar before', onSelect: () => addBar('before') },
-            { label: 'Insert bar after', onSelect: () => addBar('after') },
             // Paste writes over what is there; this puts the clipboard's tab in before the cursor instead (issue #238).
             { label: 'Insert paste', onSelect: () => void navigator.clipboard?.readText().then(text => { if (text) void pasteTab(text, true); }, () => {}) },
             // On notes that can take a Beam override, the two beam tools, ticked as set (spec Q9).

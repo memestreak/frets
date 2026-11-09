@@ -27,6 +27,7 @@ PR, or removes the file and its row when the behaviour is gone.
 | `chords-panel-edit.atex` | Adding and changing chords in the Chords panel: a pick only picks; Edit or a double-click opens it; Save renames every use; Save as new chord adds a changed copy; Esc closes it; + looks a chord up, offers the cursor's fingering, and draws your own | `docs/specs/2026-11-05-tab-chord-panel-design.md`, #251, #368 |
 | `drag-range-handles.atex` | A selection box's left or right edge drags its start or end to another note, the other end staying | `docs/specs/2026-11-05-tab-range-handles-design.md` |
 | `delete-keeps-text.atex` | Delete on a note, a chord and cut leave rests that keep the column's text and chord name; a longer note over the rest takes them; Ctrl/⌘+Delete takes them with the time | `docs/specs/2026-11-06-tab-delete-keeps-marks-design.md`, #393 |
+| `delete-bars-menu.atex` | The right-click menu's Delete bar takes the pressed bar away, or every bar a selection touches; the bar after keeps the time signature in force | `docs/specs/2026-11-09-tab-delete-bars-menu-design.md`, #191 |
 | `delete-whole-bar.atex` | Delete on a bar selected whole leaves one whole rest | `docs/specs/2026-11-01-tab-rest-lengths-design.md`, #294 |
 | `dynamics-enter-pick.atex` | Shift+D enters a dynamic at the cursor; a drawn one is picked, its field refuses what isn't a dynamic with a ⚠, and Delete takes it away | `docs/specs/2026-11-09-tab-dynamics-design.md`, #437 |
 | `empty-bar-press.atex` | A press in an empty bar boxes the whole bar | #317, #318 |

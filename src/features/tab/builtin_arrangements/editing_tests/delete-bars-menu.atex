@@ -1,0 +1,9 @@
+\title "Delete bar from the menu"
+\ts (4 4)
+0.6.1{txt "Bar 1 stays"} |
+2.6.2{txt "1. Tab view: right-click this 2"} 2.6.2{txt "2. Pick Delete bar"} |
+3.6.1{txt "3. This is bar 2 now"} | 5.6.1{txt "4. Press this 5"} |
+\ts (3 4) 7.6.4{txt "5. Shift+Right arrow key"}
+  7.6.4{txt "6. Right-click the first 7"} 7.6.4{txt "7. Pick Delete 2 bars"} |
+8.6.2{d txt "8. This bar is still 3/4"} |
+
