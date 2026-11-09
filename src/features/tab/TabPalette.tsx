@@ -18,7 +18,7 @@ import { WHAMMY_SHAPE_IDS, WHAMMY_SHAPE_NAMES, type WhammyShape } from './whammy
  * and off; Bend and Tuplet open a panel of choices. Their icons show the
  * cursor's kind.
  */
-export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, onWhammy, disabled, noteInputMode = false, onNoteInputMode, groups, className, grid: gridSetting, gridValue, onGrid, voices }: {
+export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, onWhammy, disabled, noteInputMode = false, onNoteInputMode, groups, className, grid, gridValue, onGrid, voices }: {
   isOn: (id: ToolId) => boolean;
   /** What the cursor has of the things the Bend, Vibrato and Tuplet icons draw. */
   kinds: ReturnType<typeof noteKinds>;
@@ -40,11 +40,11 @@ export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, on
   /** Only these groups, by label (a rail panel's, TabRail.tsx); all when left out. */
   groups?: readonly string[];
   className?: string;
-  /** Note input mode's fixed grid (issue #293), or null while it follows note input mode's length; first under the Duration group's note values. */
+  /** Note input mode's fixed grid (issue #293), or null while it follows note input mode's length; beside the pencil (issue #449). */
   grid?: GridValue | null;
   /** The note value the grid steps by now, drawn on the button. */
   gridValue?: NoteValue;
-  /** A grid picked in the button's panel, or null for Note length. */
+  /** A grid picked in the button's panel, or null for Follow note length. */
   onGrid?: (grid: GridValue | null) => void;
   /**
    * The Voice row under Input (step 9, Q5): the Active voice lit (none while the tab hasn't the keys), a
@@ -109,6 +109,12 @@ export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, on
                 <path d="M5 19l1-4L16 5l3 3L9 18l-4 1zM14 7l3 3" strokeLinejoin="round" />
               </svg>
             </button>
+            {grid !== undefined && gridValue && onGrid && (
+              <PanelTool
+                tool={GRID_TOOL} current={grid} choices={GRID_VALUES} label={g => GRID_NAMES[g]} toggle={false} noneLabel={FOLLOW_NOTE_LENGTH}
+                icon={<GridGlyph value={gridValue} />} caption={gridCaption(grid)} captions={GRID_CAPTIONS} onPick={onGrid} disabled={disabled}
+              />
+            )}
           </div>
         </div>
       )}
@@ -132,12 +138,6 @@ export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, on
         </div>
       )}
       {shown.map(group => {
-        const grid = group.label === 'Duration' && gridSetting !== undefined && gridValue && onGrid && (
-          <PanelTool
-            tool={GRID_TOOL} current={gridSetting} choices={GRID_VALUES} label={g => GRID_NAMES[g]} toggle={false} noneLabel="Note length"
-            icon={<GridGlyph value={gridValue} />} onPick={onGrid} disabled={disabled}
-          />
-        );
         // The note values (Duration's) get a row of their own, shortest to longest; the group's other tools go under them.
         const values = group.tools.filter(tool => toolValue(tool.id) !== undefined);
         const others = group.tools.filter(tool => toolValue(tool.id) === undefined);
@@ -147,10 +147,10 @@ export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, on
             {values.length > 0 ? (
               <div className="tab-palette-rows">
                 <div className="tab-palette-tools tab-palette-values">{values.map(toolButton)}</div>
-                <div className="tab-palette-tools">{grid}{others.map(toolButton)}</div>
+                <div className="tab-palette-tools">{others.map(toolButton)}</div>
               </div>
             ) : (
-              <div className="tab-palette-tools">{grid}{others.map(toolButton)}</div>
+              <div className="tab-palette-tools">{others.map(toolButton)}</div>
             )}
           </div>
         );
@@ -230,7 +230,7 @@ function VibratoGlyph({ wide }: { wide: boolean }) {
  * choice, and the panel lights it; picking one sets it, None takes it away. A press outside, or Esc,
  * closes the panel; focus never leaves the tab.
  */
-function PanelTool<T extends number | string>({ tool, current, pressed = current !== null, choices, label, icon, onPick, disabled, toggle = true, noneLabel }: {
+function PanelTool<T extends number | string>({ tool, current, pressed = current !== null, choices, label, icon, caption, captions = [], onPick, disabled, toggle = true, noneLabel }: {
   tool: Pick<Tool, 'label' | 'key'>;
   /** The cursor's choice, or null for none (or for one the panel doesn't offer). */
   current: T | null;
@@ -240,11 +240,15 @@ function PanelTool<T extends number | string>({ tool, current, pressed = current
   /** A choice as the panel names it. */
   label: (choice: T) => string;
   icon: ReactNode;
+  /** A word after the icon naming the setting (the Grid's), widening the button. */
+  caption?: string;
+  /** Every word the caption can be, laid over each other so the button keeps the longest's width. */
+  captions?: readonly string[];
   onPick: (choice: T | null) => void;
   disabled: boolean;
   /** Whether the button shows the cursor has the mark (pressed); false for a setting, as the Grid's. */
   toggle?: boolean;
-  /** For a setting whose null is a choice of its own (the Grid's Note length): its name, first in the panel; else None, last. */
+  /** For a setting whose null is a choice of its own (the Grid's Follow note length): its name, first in the panel; else None, last. */
   noneLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -273,8 +277,8 @@ function PanelTool<T extends number | string>({ tool, current, pressed = current
   return (
     <span ref={boxRef} className="tab-tool-box">
       <button
-        type="button" className="btn btn-secondary btn-toggle tab-tool"
-        aria-label={tool.label} aria-pressed={toggle ? !disabled && pressed : undefined} aria-expanded={open} aria-haspopup="dialog" disabled={disabled}
+        type="button" className={caption ? 'btn btn-secondary btn-toggle tab-tool tab-tool-worded' : 'btn btn-secondary btn-toggle tab-tool'}
+        aria-label={caption ? `${tool.label}: ${caption}` : tool.label} aria-pressed={toggle ? !disabled && pressed : undefined} aria-expanded={open} aria-haspopup="dialog" disabled={disabled}
         data-tip={tool.key ? `${tool.label} (${tool.key})` : tool.label}
         onMouseDown={e => e.preventDefault()}
         onClick={() => setOpen(o => !o)}
@@ -282,6 +286,11 @@ function PanelTool<T extends number | string>({ tool, current, pressed = current
         <svg width={24} height={24} viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5}>
           {icon}
         </svg>
+        {caption && (
+          <span className="tab-tool-caption" aria-hidden="true">
+            {[caption, ...captions.filter(c => c !== caption)].map((c, i) => <span key={c} className={i ? 'tab-tool-caption-room' : undefined}>{c}</span>)}
+          </span>
+        )}
       </button>
       {open && !disabled && (
         <span className="tab-tool-panel card" role="dialog" aria-label={tool.label}>
@@ -305,6 +314,17 @@ function PanelTool<T extends number | string>({ tool, current, pressed = current
 
 /** The Grid button's name, tip and keys (issue #293); not a palette tool, so not in `TOOL_GROUPS`. */
 const GRID_TOOL = { label: 'Note input grid', key: 'Alt+G, Alt+[ ]' };
+
+/** The Grid panel's choice for following note input mode's length, not a fixed grid (Jeremy, 2026-11-09). */
+const FOLLOW_NOTE_LENGTH = 'Follow note length';
+
+/** The Grid button's words for its setting, after its glyph (issue #449): the fixed grid's note, or Follow note length. */
+function gridCaption(grid: GridValue | null): string {
+  return grid === null ? FOLLOW_NOTE_LENGTH : GRID_NAMES[grid];
+}
+
+/** Every word the Grid button can show, so it keeps the longest's width. */
+const GRID_CAPTIONS = [null, ...GRID_VALUES].map(gridCaption);
 
 /** The grid's note over a ruler: the note value ← → step by in a rest. */
 function GridGlyph({ value }: { value: NoteValue }) {

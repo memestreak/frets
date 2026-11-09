@@ -1,6 +1,6 @@
 /**
  * The palette's Duration group: the note values on a row of their own, shortest to longest,
- * with the grid, dot and rest on the row under them.
+ * with the dot and rest on the row under them.
  */
 import { render, screen, within } from '@testing-library/react';
 import { TabPalette } from '@/features/tab/TabPalette';
@@ -29,10 +29,10 @@ describe('the palette Duration group', () => {
     ]);
   });
 
-  it('puts the grid, dot and rest on the row under them, and no note value', () => {
+  it('puts the dot and rest on the row under them, and no note value', () => {
     const group = renderDuration();
     const second = group.querySelectorAll('.tab-palette-tools')[1] as HTMLElement;
     const names = within(second).getAllByRole('button').map(b => b.getAttribute('aria-label'));
-    expect(names).toEqual(['Note input grid', 'Dotted, then double dotted', 'Rest']);
+    expect(names).toEqual(['Dotted, then double dotted', 'Rest']);
   });
 });

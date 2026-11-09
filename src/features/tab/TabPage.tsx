@@ -233,7 +233,7 @@ export default function TabPage() {
   const { fixedGrid, grid, gridLook } = prefs.editing;
   /** The grid's step in ticks: the fixed grid's, else note input mode's length (MuseScore's way, the default). */
   const gridStep = fixedGrid ? gridTicks(grid) : ticks(inputLength);
-  /** The Grid panel's pick: a fixed grid, or null for Note length. */
+  /** The Grid panel's pick: a fixed grid, or null for Follow note length. */
   const pickGrid = (next: GridValue | null) => prefs.setEditing(e => (next === null ? { ...e, fixedGrid: false } : { ...e, fixedGrid: true, grid: next }));
   /** Whether the palette shows the cursor's notes: only while the tab has the keys and no word is picked. */
   const lit = tabFocused && !picked;

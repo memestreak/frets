@@ -136,7 +136,7 @@ describe('Settings', () => {
     openSettings();
     fireEvent.click(section('Editing'));
     const follows = inDialog().getByRole('group', { name: 'Note input grid' });
-    expect(within(follows).getByRole('button', { name: 'Note length' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(follows).getByRole('button', { name: 'Follow note length' })).toHaveAttribute('aria-pressed', 'true');
     const fixed = inDialog().getByRole('group', { name: 'Fixed grid' });
     expect(within(fixed).getByRole('button', { name: 'Eighth' })).toBeDisabled();
     fireEvent.click(within(follows).getByRole('button', { name: 'Fixed' }));

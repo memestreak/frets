@@ -47,7 +47,7 @@ describe('Esc always leaves note input mode', () => {
 
   it('closes an open palette panel first, then leaves on the next Esc', () => {
     inNoteInputMode();
-    fireEvent.click(screen.getByRole('button', { name: 'Note input grid' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Note input grid/ }));
     expect(screen.getByRole('dialog', { name: 'Note input grid' })).toBeInTheDocument();
     keys('Escape');
     expect(screen.queryByRole('dialog', { name: 'Note input grid' })).toBeNull();
