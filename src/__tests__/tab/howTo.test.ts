@@ -10,6 +10,8 @@ import { BUILTIN_DIR, readBuiltinFiles } from '@/features/tab/builtinFiles';
 import { TAB_SHORTCUTS } from '@/features/tab/shortcuts';
 
 const FOLDER = 'how_to';
+/** The longest a lesson's Text may be: one step, about one line of the drawing's widest Text. */
+const MAX_TEXT = 60;
 
 /** Every key the page lists, a range such as `Shift+1–7` or `A–G` spelt out one key at a time. */
 function pageKeys(): Set<string> {
@@ -50,6 +52,15 @@ describe('the How to lessons', () => {
     const keys = pageKeys();
     for (const row of rows) {
       for (const key of row.keys) expect(keys.has(key), `${row.file} teaches ${key}`).toBe(true);
+    }
+  });
+
+  it('keep each Text to one short step, a line or two (Jeremy, 2026-11-09: no walls of words)', async () => {
+    const lessons = (await readBuiltinFiles()).filter(f => f.folder === FOLDER);
+    for (const lesson of lessons) {
+      for (const [, text] of lesson.text.matchAll(/txt "([^"]*)"/g)) {
+        expect(text.length, `${lesson.file}: ${text}`).toBeLessThanOrEqual(MAX_TEXT);
+      }
     }
   });
 

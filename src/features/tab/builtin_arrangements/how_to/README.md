@@ -23,9 +23,10 @@ warnings, every bar full, and write back exactly
   removes one of these keys updates the lessons that teach it.
 - A PR that changes what a lesson's steps show updates its texts in the
   same PR. Walk through it in a browser, step by step, exactly as written.
-- Wording follows the `test-arrangement` skill
-  (`.claude/skills/test-arrangement/`): the view first, then what to
-  press, then what you'll see; keys spelt out ("the Right arrow key").
+- One short step per Text, each on its own bar, never a paragraph
+  (Jeremy, 2026-11-09); the test holds each to 60 characters. The first
+  step names the view ("Tab view. 1. Press N."); keys are spelt out
+  ("the Right arrow key"), as the `test-arrangement` skill says.
 - A feature gets its lesson once it is merged: Lyrics (PR #441) and
   dynamics (PR #440) were still open when these were written.
 

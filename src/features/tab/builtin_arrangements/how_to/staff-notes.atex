@@ -1,5 +1,6 @@
 \title "4. Type notes on the staff"
 \ts (4 4)
-r.1{txt "Staff view. 1. Press N: a caret line and a faint note show at the start of this bar. 2. Type C, D, E, G: four quarter notes, each the nearest of its name, the caret moving on after each. 3. Press 6, =, F: a half note, F sharp (= before a letter is a sharp, 0 a natural). 4. Press Esc, then Both: the tab shows the frets Frets picked."} |
-r.1 |
+r.1{txt "Staff view. 1. Press N."} | r.1{txt "2. Type C, D, E, G."} |
+r.1{txt "3. Press 6, =, F: a half F sharp."} |
+r.1{txt "4. Esc, then Both: see the frets."} |
 
