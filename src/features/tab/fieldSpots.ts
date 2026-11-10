@@ -21,6 +21,9 @@ export function wordNow(clip: Part, { kind, bar, column }: { kind: FieldKind; ba
   return clip.capo ? String(clip.capo) : '';
 }
 
+/** The chord popover's height (`.tab-word`: its caption and field) and a small gap under it. */
+const CHORD_FIELD_HEIGHT = 96;
+
 /** How far a dynamic's field stands from its column's middle, beside it. */
 const BESIDE = 16;
 
@@ -58,7 +61,21 @@ export function wordSpot(layout: Layout, width: number, { kind, bar, column }: {
       const right = at + BESIDE + FIELD_WIDTH / 2;
       return { x: right <= width - FIELD_WIDTH / 2 ? right : Math.max(FIELD_WIDTH / 2, at - BESIDE - FIELD_WIDTH / 2), y: Math.max(0, y) };
     }
-    const x = kind === 'chord' || kind === 'text' ? (placed.columns[column]?.x ?? placed.x0) : kind === 'capo' ? 0
+    // The chord popover goes under the line when the drawing has no room over it (the first line with no chord
+    // names yet), so it never covers the bar it names.
+    if (kind === 'chord') {
+      // The chord popover sits wholly over where the line's chord names go (over the staff, or over the tab
+      // when only it is drawn), so it never covers the column it names; with no room for it over the first line,
+      // it goes under the line instead.
+      const names = rows.chords ?? (rows.score?.top ?? rows.staffTop) - 20;
+      const over = top + names - CHORD_FIELD_HEIGHT;
+      const at = placed.columns[column]?.x ?? placed.x0 + FIELD_WIDTH / 2;
+      return {
+        x: Math.min(width - FIELD_WIDTH / 2, Math.max(FIELD_WIDTH / 2, at)),
+        y: over >= 0 ? over : top + lineBottom(rows, dynamic) + 12,
+      };
+    }
+    const x = kind === 'text' ? (placed.columns[column]?.x ?? placed.x0) : kind === 'capo' ? 0
       : kind === 'repeat' ? placed.x1 - FIELD_WIDTH / 2 : placed.x0 + FIELD_WIDTH / 2;
     return { x: Math.min(width - FIELD_WIDTH / 2, Math.max(FIELD_WIDTH / 2, x)), y: Math.max(0, y) };
   }

@@ -23,6 +23,7 @@ PR, or removes the file and its row when the behaviour is gone.
 | --- | --- | --- |
 | `beam-overrides.atex` | Break the beam before this note and Join the beam to the note before, and pressing the lit one again for Automatic | `docs/specs/2026-11-04-tab-beat-groups-beams-design.md` |
 | `beat-groups.atex` | Beat groups typed in the time signature panel re-beam a run of 7/8 | `docs/specs/2026-11-04-tab-beat-groups-beams-design.md` |
+| `chord-popover.atex` | Shift+Q opens the chord popover; Space, Tab and Shift+Space set a chord name and move it on, so a run of names is typed in one go; Enter closes it | `docs/specs/2026-11-10-tab-chord-popover-design.md`, #342 |
 | `chords-panel-layout.atex` | The Chord set as tiles a page at a time, unused ones tinted; folding it apart from the chord editor; Insert at the cursor's bar and beat; Edit chord is choosing its shape, renamed apart; Change chord opens the same dialog as +; Copy to new chord; Delete in an unused chord’s menu | #400 |
 | `chords-panel-edit.atex` | Adding and changing chords in the Chords panel: a pick only picks; Edit or a double-click opens it; Save renames every use; Save as new chord adds a changed copy; Esc closes it; + looks a chord up, offers the cursor's fingering, and draws your own | `docs/specs/2026-11-05-tab-chord-panel-design.md`, #251, #368 |
 | `drag-range-handles.atex` | A selection box's left or right edge drags its start or end to another note, the other end staying | `docs/specs/2026-11-05-tab-range-handles-design.md` |

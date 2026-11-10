@@ -133,8 +133,8 @@ describe('the focus moving off the clip in note input mode', () => {
     await screen.findAllByTestId('tab-system');
     act(() => editor().focus());
     fireEvent.keyDown(editor(), { key: 'n' });
-    // C opens the chord name field over the tab: still note input mode, and Esc brings the caret back.
-    fireEvent.keyDown(editor(), { key: 'c' });
+    // Shift+Q opens the chord popover over the tab: still note input mode, and Esc brings the caret back.
+    fireEvent.keyDown(editor(), { key: 'Q', shiftKey: true });
     await act(async () => { await new Promise(r => setTimeout(r, 10)); });
     expect(pencil()).toHaveAttribute('aria-pressed', 'true');
     fireEvent.keyDown(document.activeElement!, { key: 'Escape' });

@@ -16,6 +16,7 @@ import { TempoPanel } from './TempoPanel';
 import { TuningPanel } from './TuningPanel';
 import type { EditorState } from './useEditorState';
 import { WordField, type FieldKind } from './WordField';
+import { chordStep, type ChordMove } from './chordPopover';
 
 /**
  * The score head's open panel and where it was pressed, in viewport pixels; the title and credits'
@@ -43,8 +44,11 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
   shown: { tab: boolean; drawn: boolean };
 }) {
   const { clip, cursor, commit, commitReBar, dispatch, editorRef, setNotice } = editor;
-  /** The chord name, text, section, tempo or capo being typed, and where: the cursor's column or bar when it opened. */
-  const [word, setWord] = useState<{ kind: FieldKind; bar: number; column: number } | null>(null);
+  /**
+   * The chord name, text, section, tempo or capo being typed, and where: the cursor's column or bar when it opened.
+   * The chord popover's `turn` counts its moves, so a move that stays put (past the clip's end) opens it afresh.
+   */
+  const [word, setWord] = useState<{ kind: FieldKind; bar: number; column: number; turn?: number } | null>(null);
   /** The note whose syllable the Lyrics field is typing, and its Lyric line (issue #408). */
   const [lyric, setLyricField] = useState<{ bar: number; column: number; line: number; turn?: number } | null>(null);
   /** Where the Lyrics field was dragged to, kept while it goes note to note; it opens over the note again next time. */
@@ -89,10 +93,10 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
       openTempo(at.bar);
       return;
     }
-    // A chord name or text belongs to a column; an empty bar has none yet.
-    if ((kind === 'chord' || kind === 'text') && !columnAt(clip, at)) return;
-    // A dynamic can go on an empty bar too: it lands on the first of the rests that fill it (P1).
-    if (kind === 'dynamic' && !columnAt(clip, at)) {
+    // Text belongs to a column; an empty bar has none yet.
+    if (kind === 'text' && !columnAt(clip, at)) return;
+    // A chord name or a dynamic can go on an empty bar too: it lands on the first of the rests that fill it (P1).
+    if ((kind === 'chord' || kind === 'dynamic') && !columnAt(clip, at)) {
       if (clip.bars[at.bar]?.columns.length !== 0) return;
       setWord({ kind, bar: at.bar, column: 0 });
       return;
@@ -102,14 +106,41 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
     else setWord({ kind, bar: at.bar, column: at.column });
   };
 
+  /**
+   * The chord popover's name set on its spot (an empty bar filled with its rests first), then the popover
+   * moved on as its key says (issue #342). Esc (null) leaves the spot as it was and closes it.
+   */
+  const finishChord = (at: { bar: number; column: number; turn?: number }, value: string | null, byKey: boolean, move?: ChordMove) => {
+    const place = { ...cursor, bar: at.bar, column: at.column };
+    let next = clip;
+    if (value !== null && value.trim() !== (clip.bars[at.bar]?.columns[at.column]?.chord ?? '')) {
+      const base = columnAt(clip, place) ? clip : value.trim() ? withRestsInEmptyBars(clip) ?? clip : clip;
+      next = setChordName(base, place, value);
+    }
+    const to = move && value !== null ? chordStep(next, at, move) ?? at : null;
+    if (!to) {
+      setWord(null);
+      if (next !== clip) commit(next, columnAt(next, place) ? place : cursor);
+      // After Enter or Esc the keys go back to the tab; leaving the field leaves the focus where it went.
+      if (byKey) editorRef.current?.focus();
+      return;
+    }
+    // The cursor follows the popover, so what it is over shows; a bar still empty keeps it on the bar.
+    commit(next, { ...cursor, bar: to.bar, column: to.column }, null);
+    setWord({ kind: 'chord', ...to, turn: (at.turn ?? 0) + 1 });
+  };
+
   /** A typed chord name, text, section or capo set (an empty one clears it); null leaves it as it was. */
-  const finishWord = (value: string | null, byKey: boolean) => {
+  const finishWord = (value: string | null, byKey: boolean, move?: ChordMove) => {
     const w = word;
+    if (w?.kind === 'chord') {
+      finishChord(w, value, byKey, move);
+      return;
+    }
     setWord(null);
     // After Enter or Esc the keys go back to the tab; leaving the field leaves the focus where it went.
     if (byKey) editorRef.current?.focus();
     if (!w || value === null) return;
-    if (w.kind === 'chord') commit(setChordName(clip, { bar: w.bar, column: w.column, string: cursor.string }, value));
     if (w.kind === 'text') commit(setBeatText(clip, { bar: w.bar, column: w.column, string: cursor.string }, value));
     if (w.kind === 'section') commit(setSection(clip, w.bar, value));
     // The field lets only a dynamic or nothing through; nothing takes it away.
@@ -243,7 +274,7 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
     <>
       {tab && word && drawn && (
         <WordField
-          key={`${word.kind}-${word.bar}-${word.column}`} kind={word.kind} {...wordSpot(layout, width, word)}
+          key={`${word.kind}-${word.bar}-${word.column}-${word.turn ?? 0}`} kind={word.kind} {...wordSpot(layout, width, word)}
           initial={wordNow(clip, word)} onDone={finishWord}
         />
       )}

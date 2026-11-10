@@ -5,6 +5,7 @@ import { toggleBold, type TypedText } from './textMarks';
 import type { WordKind } from './tools';
 import { DYNAMICS, dynamicOf, type Dynamic } from './clip';
 import { DYNAMIC_REACH, dynamicWord } from './dynamics';
+import type { ChordMove } from './chordPopover';
 
 /**
  * What a field sets: a palette word, a picked ending bracket's number, or how many times a picked repeat
@@ -51,8 +52,11 @@ interface WordFieldProps {
   /** Where the field's middle and top go, in the tab's own units. */
   x: number;
   y: number;
-  /** What was typed, or null for Esc; `byKey` when Enter or Esc finished it, not leaving the field. */
-  onDone: (value: string | null, byKey: boolean) => void;
+  /**
+   * What was typed, or null for Esc; `byKey` when a key finished it, not leaving the field. A chord name's
+   * field (the chord popover, issue #342) also gives where Space, Shift+Space, Tab or Shift+Tab moves it.
+   */
+  onDone: (value: string | null, byKey: boolean, move?: ChordMove) => void;
 }
 
 /** Every dynamic in alphabetical order, so a word comes before the longer ones it starts: p, pf, pp, ppp… */
@@ -75,10 +79,10 @@ export function WordField({ kind, initial, x, y, onDone }: WordFieldProps) {
   useEffect(() => inputRef.current?.focus(), []);
   // Enter and then the blur it causes would both finish; only the first counts.
   const done = useRef(false);
-  const finish = (result: string | null, byKey: boolean) => {
+  const finish = (result: string | null, byKey: boolean, move?: ChordMove) => {
     if (done.current) return;
     done.current = true;
-    onDone(result, byKey);
+    onDone(result, byKey, move);
   };
   // Where the selection goes once a Cmd+B change is drawn.
   const selectAfter = useRef<TypedText | null>(null);
@@ -130,9 +134,34 @@ export function WordField({ kind, initial, x, y, onDone }: WordFieldProps) {
     }
     return false;
   };
+  /**
+   * The chord popover's own keys, as Dorico's Shift+Q popover has them: Space sets the name and moves to the
+   * next column, Shift+Space to the one before, Tab to the next bar, Shift+Tab to the bar before. Alt+Space
+   * types a space in the name without moving (Option+Space types a no-break space on a Mac, so it counts too).
+   */
+  const onChordKey = (e: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>): boolean => {
+    if (kind !== 'chord' || e.ctrlKey || e.metaKey) return false;
+    const field = e.currentTarget;
+    if (e.altKey && (e.key === ' ' || e.key === '\u00a0')) {
+      e.preventDefault();
+      const start = field.selectionStart ?? value.length;
+      const end = field.selectionEnd ?? start;
+      const next = value.slice(0, start) + ' ' + value.slice(end);
+      if (next.length > WORD_LENGTH(kind)) return true;
+      selectAfter.current = { value: next, start: start + 1, end: start + 1 };
+      setValue(next);
+      return true;
+    }
+    if (e.altKey) return false;
+    const move: ChordMove | null = e.key === ' ' ? (e.shiftKey ? 'back' : 'next') : e.key === 'Tab' ? (e.shiftKey ? 'backBar' : 'nextBar') : null;
+    if (!move) return false;
+    e.preventDefault();
+    finish(value, true, move);
+    return true;
+  };
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     e.stopPropagation();
-    if (onListKey(e)) return;
+    if (onListKey(e) || onChordKey(e)) return;
     // Shift+Enter is a new line in a Text: the textarea's own.
     if (e.key === 'Enter' && !(isText && e.shiftKey)) {
       e.preventDefault();
