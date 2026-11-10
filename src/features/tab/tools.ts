@@ -128,7 +128,7 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
   {
     label: 'Text',
     tools: [
-      { id: 'chordName', label: 'Chord name over this column', key: 'C' },
+      { id: 'chordName', label: 'Chord name over this column', key: 'Shift+Q' },
       { id: 'beatText', label: 'Text over this column', key: '' },
       { id: 'lyrics', label: 'Lyrics under this note', key: 'Shift+L' },
       { id: 'section', label: 'Section starting at this bar', key: '' },
@@ -280,7 +280,9 @@ export function toolForKey(key: string, alt: boolean, code = ''): ToolId | null 
   const keys: Record<string, ToolId> = {
     '.': 'dot', ',': 'rest', '/': 'grace', t: 'tie', h: 'legato', p: 'legato', m: 'palmMute', i: 'letRing',
     x: 'dead', g: 'ghost', d: 'strokeDown', u: 'strokeUp', s: 'staccato',
-    '[': 'repeatStart', ']': 'repeatEnd', e: 'ending', c: 'chordName',
+    '[': 'repeatStart', ']': 'repeatEnd', e: 'ending',
+    // Shift+Q opens the chord popover, as Dorico's does (issue #342).
+    Q: 'chordName',
     // Shift+L opens the Lyrics field, as Dorico's does (issue #408); L alone is Loop.
     L: 'lyrics',
     // Shift+D opens the dynamic's field, as Dorico's Shift+D opens its dynamics popover.

@@ -209,7 +209,7 @@ describe('TabPage editing', () => {
 
   it('keeps Ctrl/⌘+B and new lines out of other words’ fields', async () => {
     await openWith('5.1.1 |');
-    keys('c');
+    keys({ key: 'Q', shiftKey: true });
     const field = screen.getByRole('textbox', { name: 'Chord name' });
     expect(field.tagName).toBe('INPUT');
     fireEvent.change(field, { target: { value: 'Am7' } });
@@ -220,9 +220,9 @@ describe('TabPage editing', () => {
     expect(screen.queryByRole('textbox', { name: 'Chord name' })).toBeNull();
   });
 
-  it('names a chord from C and a field over the tab, and sets the capo from the palette', async () => {
+  it('names a chord from Shift+Q and a field over the tab, and sets the capo from the palette', async () => {
     await openWith('5.1.1 |');
-    keys('c');
+    keys({ key: 'Q', shiftKey: true });
     const field = screen.getByRole('textbox', { name: 'Chord name' });
     fireEvent.change(field, { target: { value: 'Am7' } });
     fireEvent.keyDown(field, { key: 'Enter' });

@@ -127,6 +127,19 @@ const LYRICS: ShortcutGroup = {
   ],
 };
 
+const CHORD_FIELD: ShortcutGroup = {
+  title: 'In the Chord name field (Shift+Q)',
+  shortcuts: [
+    { keys: ['Space'], does: 'Set the chord name and go to the next column' },
+    { keys: ['Shift+Space'], does: 'Set it and go back a column' },
+    { keys: ['Tab'], does: 'Set it and go to the next bar' },
+    { keys: ['Shift+Tab'], does: 'Set it and go back a bar' },
+    { keys: ['Alt+Space'], does: 'A space in the chord name' },
+    { keys: ['Enter'], does: 'Set it and close' },
+    { keys: ['Esc'], does: 'Close, leaving the column’s chord name as it was' },
+  ],
+};
+
 const TEXT_FIELD: ShortcutGroup = {
   title: 'In the Text field',
   shortcuts: [
@@ -184,4 +197,4 @@ export function paletteShortcuts(): ShortcutGroup {
   return { title: 'Palette', shortcuts: [...duration.map(t => ({ keys: [t.key], does: t.label })), ...shortcuts] };
 }
 
-export const TAB_SHORTCUTS: readonly ShortcutGroup[] = [PAGE, MOVING, INPUT, NORMAL, PICKED, STAFF, paletteShortcuts(), LYRICS, TEXT_FIELD, LINE, HEAD, CHORDS, CHOOSER];
+export const TAB_SHORTCUTS: readonly ShortcutGroup[] = [PAGE, MOVING, INPUT, NORMAL, PICKED, STAFF, paletteShortcuts(), CHORD_FIELD, LYRICS, TEXT_FIELD, LINE, HEAD, CHORDS, CHOOSER];

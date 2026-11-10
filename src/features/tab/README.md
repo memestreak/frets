@@ -118,6 +118,8 @@ and in its spec.
 - `instrument.ts` — the clip's Sound as `\instrument`; one Frets has no
   sound for is kept and played by the nearest —
   `2026-10-29-tab-sound-and-fx-in-clip-design.md`.
+- `chordPopover.ts` — where the chord popover (Shift+Q) moves on Space,
+  Shift+Space, Tab and Shift+Tab — `2026-11-10-tab-chord-popover-design.md`.
 - `chordSet.ts` — a track's Chord set: its `\chord` definitions
   (`Track.chords`, each a name and shape) and the names only typed over
   columns, each read by `readChordName` — `2026-11-05-tab-chord-set-design.md`;
@@ -477,6 +479,9 @@ MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
   note per Lyric line, read and written as alphaTex `lyrics`, drawn under
   the staff, between staff and tab, or under the tab; typed with Shift+L as
   in Dorico; MusicXML and ASCII carry them (issue #408)
+- `docs/specs/2026-11-10-tab-chord-popover-design.md`: the chord popover,
+  Dorico's Shift+Q: Space, Shift+Space, Tab and Shift+Tab set a chord name
+  and move it on, so a run of names is typed in one go (issue #342)
 - `docs/specs/2026-11-09-tab-palettes-design.md`: the rail gives way to one
   column listing every palette, several open at once, each folded from its
   header, moved by dragging it, its height dragged from the line under it;
