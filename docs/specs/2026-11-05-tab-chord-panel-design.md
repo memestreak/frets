@@ -177,7 +177,8 @@ Settled while building (my calls, open to change):
 
 - Insert works only with the cursor in the tab, as the palette's tools.
 - Insert Notes leaves the column's name as it was.
-- The `C` key still opens the chord name field, the way to change a
+- The chord name field (Shift+Q, the chord popover:
+  `2026-11-10-tab-chord-popover-design.md`) is still the way to change a
   column's name; keys for the panel wait for the open question on keys
   (Q2 of the mock round).
 - The chord dialog is staged: nothing changes until Add chord, Save chord

@@ -32,7 +32,7 @@ nothing then has to be placed after text whose width is unknown.
 ## Setting them
 
 - **The Text palette group:**
-  - **Chord name** (key C) and **Section** belong to the cursor's column and
+  - **Chord name** (Shift+Q, the chord popover: `2026-11-10-tab-chord-popover-design.md`) and **Section** belong to the cursor's column and
     bar. **Tempo** applies from the cursor's bar on.
   - Each opens a small field over the spot its word is drawn, already
     holding what is there.
