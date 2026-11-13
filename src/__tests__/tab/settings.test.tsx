@@ -142,7 +142,7 @@ describe('Settings', () => {
     fireEvent.click(within(follows).getByRole('button', { name: 'Fixed' }));
     fireEvent.click(within(fixed).getByRole('button', { name: 'Eighth' }));
     fireEvent.click(button('OK'));
-    expect(saved(EDITING_KEY)).toEqual({ fixedGrid: true, grid: 8, gridLook: 'ruler' });
+    expect(saved(EDITING_KEY)).toEqual({ fixedGrid: true, grid: 8, gridLook: 'ruler', chordNames: 'shape' });
   });
 
   it('sets how note input mode’s grid is drawn under Tab › Editing: a ruler over the staff by default, or lines across the bar', () => {
@@ -154,7 +154,18 @@ describe('Settings', () => {
     expect(within(look).queryByRole('button', { name: /Dots/ })).toBeNull();
     fireEvent.click(within(look).getByRole('button', { name: 'Lines across the bar' }));
     fireEvent.click(button('OK'));
-    expect(saved(EDITING_KEY)).toEqual({ fixedGrid: false, grid: 16, gridLook: 'lines' });
+    expect(saved(EDITING_KEY)).toEqual({ fixedGrid: false, grid: 16, gridLook: 'lines', chordNames: 'shape' });
+  });
+
+  it('sets which name Chord from notes writes under a capo, under Tab › Editing: the shape’s by default, or the sounding one (issue #464)', () => {
+    render(<TabPage />);
+    openSettings();
+    fireEvent.click(section('Editing'));
+    const names = inDialog().getByRole('group', { name: 'Chord from notes, with a capo' });
+    expect(within(names).getByRole('button', { name: 'Shape name (from the capo)' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(within(names).getByRole('button', { name: 'Sounding name' }));
+    fireEvent.click(button('OK'));
+    expect(saved(EDITING_KEY)).toEqual({ fixedGrid: false, grid: 16, gridLook: 'ruler', chordNames: 'sounding' });
   });
 
   it('resets a field to its default on a double-click on its label, staged, but never on its control', () => {

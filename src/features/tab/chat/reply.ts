@@ -5,7 +5,7 @@
  * makes the reply's changes one Undo step (Q3).
  */
 import { runTool, TOOLS, type PageSpot, type ToolContext } from './arrangementTools';
-import { ChatError, type ChatMessage, type Complete, type Usage } from './openRouter';
+import { ChatError, type ChatMessage, type Complete, type ContentPart, type Usage } from './openRouter';
 import type { Clip } from '../clip';
 import { DEFAULT_CHAT, instructionsOf, type ChatPrefs } from './chatPrefs';
 
@@ -76,6 +76,18 @@ function addUsage(total: Usage, more: Usage) {
 export function askWithArrangement(ask: string, arrangement: string): string {
   return `${ask}\n\n<arrangement>\n${arrangement}\n</arrangement>`;
 }
+
+/**
+ * A viewer's message as the model gets it (issue #465): the text alone, or, with images, the text then
+ * each image as a part of its own, in the order they were added.
+ */
+export function userContent(text: string, images: readonly { url: string }[]): string | ContentPart[] {
+  if (images.length === 0) return text;
+  return [{ type: 'text', text }, ...images.map(({ url }) => ({ type: 'image_url' as const, image_url: { url } }))];
+}
+
+/** The text of an ask sent with images and no words, so the model is told what they are for. */
+export const IMAGES_ONLY_ASK = 'Transcribe the attached image into the arrangement.';
 
 /** The heading over the viewer's own prompt, so the model reads it as theirs and apart from the guide. */
 export const CUSTOM_HEADING = "The guitarist's own instructions:";

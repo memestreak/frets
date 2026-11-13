@@ -78,6 +78,9 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
 - The message box and Model field keep the page's keys to themselves: Delete,
   Ctrl+Z and the like typed there never reach the tab.
 
+- **Images (issue #465).** An image pasted into the message box goes with
+  the ask, for the model to transcribe: `2026-11-13-tab-chat-images-design.md`.
+
 ## The model's tools (Q4)
 
 - `read_arrangement`: the whole clip as alphaTex, one bar per line, each

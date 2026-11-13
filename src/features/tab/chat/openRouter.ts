@@ -16,9 +16,17 @@ export interface ToolCall {
   function: { name: string; arguments: string };
 }
 
+/**
+ * A part of a viewer's message with images (issue #465): its text, or one image as a `data:` URL, in
+ * OpenRouter's OpenAI-style form. A message without images is a plain string.
+ */
+export type ContentPart =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string } };
+
 export type ChatMessage =
   | { role: 'system'; content: string }
-  | { role: 'user'; content: string }
+  | { role: 'user'; content: string | ContentPart[] }
   | { role: 'assistant'; content: string | null; tool_calls?: ToolCall[] }
   | { role: 'tool'; tool_call_id: string; content: string };
 
@@ -133,19 +141,37 @@ function isToolCall(call: unknown): call is ToolCall {
   return !!c && typeof c.id === 'string' && typeof c.function?.name === 'string';
 }
 
-/** The ids of the models OpenRouter offers that take tools, or null when the list can't be had. */
-export async function fetchToolModels(signal?: AbortSignal): Promise<string[] | null> {
+/** A model OpenRouter offers: its id, and whether it reads images (issue #465). */
+export interface ModelInfo {
+  id: string;
+  images: boolean;
+}
+
+/** The models OpenRouter offers that take tools, by id, or null when the list can't be had. */
+export async function fetchToolModels(signal?: AbortSignal): Promise<ModelInfo[] | null> {
   try {
     const response = await fetch(MODELS_URL, { signal });
     if (!response.ok) return null;
-    const body = (await response.json()) as { data?: { id?: unknown; supported_parameters?: unknown }[] };
+    const body = (await response.json()) as { data?: { id?: unknown; supported_parameters?: unknown; architecture?: { input_modalities?: unknown } }[] };
     return (body.data ?? [])
       .filter(m => typeof m.id === 'string' && (!Array.isArray(m.supported_parameters) || m.supported_parameters.includes('tools')))
-      .map(m => m.id as string)
-      .sort();
+      .map(m => {
+        const inputs = m.architecture?.input_modalities;
+        // A model whose inputs aren't listed is taken to read images: only a list without `image` says it can't.
+        return { id: m.id as string, images: !Array.isArray(inputs) || inputs.includes('image') };
+      })
+      .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   } catch {
     return null;
   }
+}
+
+/**
+ * Whether the model can't read images, as far as OpenRouter's list says: true only for a model listed
+ * without image input. A preset, or a model not in the list (or no list), isn't known, so isn't flagged.
+ */
+export function knownBlind(model: string, models: readonly ModelInfo[]): boolean {
+  return models.find(m => m.id === model)?.images === false;
 }
 
 /** A preset saved on OpenRouter: a model with its settings, named by slug, used as the model `@preset/<slug>`. */

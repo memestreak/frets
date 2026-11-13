@@ -4,7 +4,8 @@
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { partOf } from '@/features/tab/clip';
-import { cursorPlace, freeName } from '@/features/tab/ChordPanel';
+import { cursorPlace } from '@/features/tab/ChordPanel';
+import { freeName } from '@/features/tab/chordSet';
 
 function part(text: string) {
   const read = readAlphaTexWith(alphaTab, text);
