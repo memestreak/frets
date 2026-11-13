@@ -16,7 +16,7 @@ and the Chords page) work again instead of going to it.
 - **Lists** (`<select>`) let go once a choice is made, when they were opened
   by a press. A list keeps no blue ring after its choice, which Chrome draws
   on a list even when it was clicked.
-- A click handler that moves the focus on (a button opening a popover or a
+- A click handler that moves the focus on (a button opening a panel or a
   menu that focuses its first item) keeps it where it moved it.
 
 ## Keyboard use keeps the focus

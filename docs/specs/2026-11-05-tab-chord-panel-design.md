@@ -16,7 +16,7 @@ and the Penpot page "Tab Chords panel (issue 400)".
 - **A fourth rail panel, Chords**, after Notes, Articulations and Bars
   (`2026-11-02-tab-rail-design.md`): one open at a time, kept in
   `frets.tab.layout` like the others. Jeremy picked this layout (mock a)
-  over a panel of its own on the left (b) and a popover (c) on
+  over a panel of its own on the left (b) and a small floating panel (c) on
   2026-11-05.
 - **The Chord set** (Jeremy, 2026-11-07: it was "This track's chords"):
   the panel's first section, its chords as tiles, each its name over its
