@@ -54,10 +54,10 @@ and in its spec.
 - `useEditorState.ts` — the cursor, selection, picked thing, note input mode and
   `commit` (and `commitVoices` for an edit of several Voices), which refuse
   an edit that sounds one string in two Voices.
-- `useTabPicking.ts` — presses, drags and Alt+← → on the tab.
+- `useTabPicking.ts` — presses, drags (a head or number dragged sideways moves its chord in time, `onDragTime`) and Ctrl/⌘+Alt+← → on the tab.
 - `useVoicePick.ts` — the Active voice (`useActiveVoice`) and the edits that
   cross Voices: a press on another Voice's note, Alt+1–4, Move to voice,
-  Select only voice, an edit of every Voice a selection covers, Alt+← →.
+  Select only voice, an edit of every Voice a selection covers, Ctrl/⌘+Alt+← →.
 - `usePlayRange.ts` — playback (`usePlayback`), the playback line, where
   Play starts and stops, Loop, and a press above or below the staff.
 - `usePageKeys.ts` — the keys that work anywhere on the page (the grid keys,
@@ -192,8 +192,13 @@ and in its spec.
   `2026-10-27-tab-pick-marks-design.md`.
 - `barLines.ts` — the repeat signs, ×N counts and double bar lines a press
   picks; `hasEdit` (issue #276).
-- `elements.ts` — every pickable thing in reading order, for Alt+← →
+- `elements.ts` — every pickable thing in reading order, for Ctrl/⌘+Alt+← →
   (MuseScore's next element, issue #238).
+- `timeMoves.ts` — the picked chord or selection moved earlier or later
+  by the grid, written over what it lands on (`moveInTime`, Alt+← → and a
+  sideways drag); `ownStep`, a note's own length as the step when the grid
+  isn't fixed; `timeAtX`, the time under the pointer —
+  `2026-11-13-tab-move-in-time-design.md`.
 - `rangeBox.ts` — the box round a selected run, and its Range handles:
   where they are and where a dragged end lands —
   `2026-11-05-tab-range-handles-design.md`.
@@ -236,7 +241,7 @@ and in its spec.
 - `voices.ts` — editing every Voice: a selection's runs in the other
   Voices (`voiceSelections`), an edit run on each (`perVoice`), the string
   clash check (`clashMessage`), Move to voice (`moveToVoice`), copy and
-  paste of several Voices (`sliceVoices`, `pasteVoices`) and Alt+← → by
+  paste of several Voices (`sliceVoices`, `pasteVoices`) and Ctrl/⌘+Alt+← → by
   time across them (`stepAcrossVoices`) —
   `2026-11-04-tab-voices-drawn-edited-design.md`.
 - `barEdits.ts` — the words over the tab and what a bar carries (repeats,
@@ -478,6 +483,10 @@ or saved. Standard tuning only.
 The principles every editing spec since step 1 follows, with Dorico,
 MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
 
+- `docs/specs/2026-11-13-tab-move-in-time-design.md`: Alt+← → (Dorico's
+  keys) move the picked chord or selection a grid step earlier or later,
+  and a sideways drag of a head or number does the same; stepping through
+  pickable things moves to Ctrl/⌘+Alt+← → (issue #473)
 - `docs/specs/2026-11-13-tab-capo-in-tuning-design.md`: the capo set by a
   dropdown and a small neck in the Tuning panel and drawn beside the tuning's name in the
   score head; the Capo tool and the capo row over the first line go;

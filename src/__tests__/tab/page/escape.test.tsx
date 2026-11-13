@@ -77,7 +77,7 @@ describe('Esc always leaves note input mode', () => {
     act(() => editor().focus());
     keys('n');
     // Alt+→ steps through the notes and marks, as MuseScore's does, to the vibrato.
-    for (let k = 0; k < 4 && !isLit(screen.getAllByTestId('vibrato')[0]); k++) keys({ key: 'ArrowRight', altKey: true });
+    for (let k = 0; k < 4 && !isLit(screen.getAllByTestId('vibrato')[0]); k++) keys({ key: 'ArrowRight', altKey: true, ctrlKey: true });
     expect(isLit(screen.getAllByTestId('vibrato')[0])).toBe(true);
     expect(pencil()).toHaveAttribute('aria-pressed', 'true');
     keys('Escape');

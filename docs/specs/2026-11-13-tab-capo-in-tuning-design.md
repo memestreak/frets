@@ -63,7 +63,7 @@ first line in `2026-10-26-tab-words-design.md` and
   the title, 2026-10-29). Its word field ("Capo on fret, 1 to 12") goes
   with it.
 - The capo is no longer drawn over the first line on the Tab page, so it
-  can't be picked there; Alt+← → no longer stops on it.
+  can't be picked there; Ctrl/⌘+Alt+← → no longer stops on it.
 - A capo is taken off only in the Tuning panel (None). Delete on the
   picked tuning still does nothing.
 

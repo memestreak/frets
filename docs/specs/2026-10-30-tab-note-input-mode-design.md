@@ -54,6 +54,7 @@ note selected on the tab coloured on the staff; the same goes for note input mod
 | ↑ ↓, staff | Selects the next note up or down the chord by pitch; down past the lowest to the tab when it is shown (Jeremy, 2026-11-07, issue #396; ↑ ↓ moved it a semitone before, and Alt+↑ ↓ went between the notes). |
 | Alt+↑ ↓, staff | The selected notes a line or space, in the key, as in note input mode. |
 | Alt+Shift+↑ ↓, staff | A semitone. |
+| Alt+← →, either | The picked chord (a picked note moves its chord) or the selection a grid step earlier or later, as Dorico's Alt+arrows; a head or number dragged sideways does the same (`2026-11-13-tab-move-in-time-design.md`, issue #473). |
 | Ctrl/⌘+↑ ↓, staff | An octave. |
 | ← → | Selects the next or last column: its note on the same string, else the column. Adds no rests. |
 

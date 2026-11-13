@@ -140,14 +140,14 @@ Handles, Attachment lines and the tint are drawn only on the page while
 a Mark is picked. Nothing moves or changes size, and none of them reaches
 a PNG, SVG or print.
 
-## The menu, one pick, Alt+← → (Q13–Q15)
+## The menu, one pick, Ctrl/⌘+Alt+← → (Q13–Q15)
 
 - A picked Mark's menu has Delete, with Edit first where a panel or field
   exists: words, ×N counts, time and key signatures, and tuplet numbers
   (Edit opens the Tuplet panel). Nothing else is added.
 - One Mark is picked at a time, as now. Picking several and Select
   similar stay with issue #260.
-- Alt+← → step onto the new pickable things too, in reading order: a
+- Ctrl/⌘+Alt+← → step onto the new pickable things too, in reading order: a
   bar's signatures before its opening words, a P.M. or let ring Span
   with its first column's Marks.
 
@@ -208,7 +208,7 @@ to other notes by dragging its body.
   a Mark over the whole column put the cursor on.
 - The Handles sit 2 units outside the Span's drawn ends, so the start
   Handle doesn't cover the label's first letter.
-- Alt+← → stop on bar 1's signatures and on each change, not on every
+- Ctrl/⌘+Alt+← → stop on bar 1's signatures and on each change, not on every
   bar's.
 - A key signature's box ends where the time signature after it starts,
   so a press on the time signature never picks the key.

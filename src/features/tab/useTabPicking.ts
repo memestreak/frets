@@ -2,12 +2,13 @@ import { useRef } from 'react';
 import type { Part } from './clip';
 import { removeBarLine, setBarKey, setBarTime, setBeatText, setChordName, setEnding, setSection, setTempo } from './barEdits';
 import { isBarLine } from './barLines';
-import { barSelection, columnAt, growSelection, indexOf, noteAt, placeOf, selectedRange, setFret, type Cursor, type Selection } from './editing';
+import { barSelection, columnAt, growSelection, indexOf, noteAt, placeOf, selectedRange, setFret, type Cursor, type Selection, type Target } from './editing';
+import { moveInTime, type TimeMove } from './timeMoves';
 import { elementsOf, stepElement } from './elements';
 import { chainStart, isChained } from './ties';
 import { PANEL_DROP, PANEL_LEAD } from './fieldSpots';
 import { splitRestAt } from './grid';
-import type { FretDrag, Hit, SpanDrag, StaffDrag, StaffHit } from './hitTest';
+import type { FretDrag, Hit, SpanDrag, StaffDrag, StaffHit, TimeDrag } from './hitTest';
 import { draggedRange, type RangeDrag } from './rangeBox';
 import { clampSpan, isSpan, moveSpan, spanAround, spanColumns, spanKind, type SpanMark } from './spans';
 import { isWholeBarRest, type Layout } from './layout';
@@ -24,11 +25,11 @@ import { setLyric } from './lyrics';
 
 /** Every column of a bar, selected. */
 /**
- * What a press, a drag or Alt+← → on the drawn tab does: where the cursor goes, what is selected or
+ * What a press, a drag or Ctrl/⌘+Alt+← → on the drawn tab does: where the cursor goes, what is selected or
  * picked, and the notes a press enters in note input mode or a drag moves. Each is handed to `TabClip`
  * (or the keys); the page wires them up.
  */
-export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, setNotice, openWord, openLyric, openSignature, dropLine }: {
+export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, setNotice, openWord, openLyric, openSignature, dropLine, timeStep }: {
   /** The shown track as drawn, and its layout. */
   drawn: Part;
   layout: Layout;
@@ -43,6 +44,8 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
   openSignature: (kind: 'time' | 'key', bar: number, at: { x: number; y: number } | null) => void;
   /** Takes the playback line away. */
   dropLine: () => void;
+  /** How far one grid step moves a target in time (issue #473): the fixed grid's, else its first note's length. */
+  timeStep: (part: Part, target: Target) => number | null;
 }) {
   const {
     clip, dispatch, cursor, selection, columnOnly, staffPitch, picked, noteInputMode, inputLength,
@@ -147,7 +150,7 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
     editorRef.current?.focus();
   };
 
-  /** Alt+← → (issue #238): the next or last thing a press can pick, picked as a press would. */
+  /** Ctrl/⌘+Alt+← → (issue #238): the next or last thing a press can pick, picked as a press would. */
   const stepToElement = (step: 1 | -1) => {
     const list = elementsOf(drawn, layout);
     const index = indexOf(clip, cursor.bar, cursor.column);
@@ -378,6 +381,46 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
     if (moved && !drag.done) hearNote({ ...hit, string });
   };
 
+  /** A drag in time: the clip it started from, what moves (the pressed chord, or the selection it is in), and the last move that worked. */
+  const timeFrom = useRef<{ clip: Part; target: Target; good: TimeMove | null } | null>(null);
+
+  /**
+   * A note head or fret number dragged left or right in normal mode (issue #473): its chord, or the
+   * selection it is in, moves in time by whole grid steps as the pointer goes, written over what it lands
+   * on. Where it can't go, it stays at the last place that worked. Letting go makes it one undo step and
+   * leaves it picked; off the drawing it goes back.
+   */
+  const onDragTime = (drag: TimeDrag) => {
+    const { hit } = drag;
+    if (!timeFrom.current) {
+      const index = indexOf(clip, hit.bar, hit.column);
+      const range = selection ? selectedRange(selection) : null;
+      const carried = range && range[0] !== range[1] && index >= range[0] && index <= range[1] ? selection : null;
+      timeFrom.current = { clip, target: { cursor: hit, selection: carried }, good: null };
+      lastDigitRef.current = null;
+      editorRef.current?.focus();
+    }
+    const from = timeFrom.current;
+    const step = timeStep(from.clip, from.target);
+    const by = drag.cancelled || !step ? 0 : Math.round(drag.by / step) * step;
+    const before = from.good;
+    if (by === 0) from.good = null;
+    else from.good = moveInTime(from.clip, from.target, by) ?? from.good;
+    const shown = from.good;
+    if (drag.done) {
+      timeFrom.current = null;
+      if (shown) dispatch({ type: 'replacePart', part: shown.clip, from: from.clip });
+      else dispatch({ type: 'previewPart', part: from.clip });
+    } else dispatch({ type: 'previewPart', part: shown ? shown.clip : from.clip });
+    setPicked(null);
+    setNotice(null);
+    setStaffPitch(null);
+    setCursor(shown ? shown.cursor : hit);
+    setSelection(shown ? shown.selection : from.target.selection);
+    setColumnOnly(!(shown ? shown.selection : from.target.selection));
+    if (!drag.done && shown && shown !== before) hearNote(shown.cursor);
+  };
+
   /** A Span's Mark picked again where it now lies, its run selected for the tools as a press picks it (`onPickMark`). */
   const repickSpan = (shown: Part, hit: MarkHit, [from, to]: [number, number]) => {
     const [first, last] = spanAround(spanColumns(shown), hit.mark as SpanMark, from);
@@ -448,7 +491,7 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
   };
 
   return {
-    onPick, onPickRhythm, onPickStaff, onPickText, onPickMark, onPickRect, onDragStaff, onDragFret, onDragSpan, onDragRange,
+    onPick, onPickRhythm, onPickStaff, onPickText, onPickMark, onPickRect, onDragStaff, onDragFret, onDragTime, onDragSpan, onDragRange,
     stepToElement, editPicked, deletePicked, moveSpanEnd,
   };
 }

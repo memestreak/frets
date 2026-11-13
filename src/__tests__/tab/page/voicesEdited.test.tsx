@@ -2,7 +2,7 @@
  * Every Voice drawn and edited on the page (step 9, `docs/specs/2026-11-04-tab-voices-drawn-edited-design.md`):
  * the Active voice and the Rail's Voice row, Alt+1–4, a press on another Voice's note, the muted Voices,
  * typing into an absent Voice, the string clash refused, Move to voice, selections over every Voice, copy
- * and paste, Select only voice, Alt+← →, Export and the line under the clip. The pure edits are in
+ * and paste, Select only voice, Ctrl/⌘+Alt+← →, Export and the line under the clip. The pure edits are in
  * `../voicesDrawn.test.ts`.
  */
 import { act, fireEvent, screen, within } from '@testing-library/react';
@@ -286,15 +286,15 @@ describe('a selection over every Voice', () => {
   });
 });
 
-describe('Alt+← →', () => {
+describe('Ctrl/⌘+Alt+← →', () => {
   it('visit Voice 1\'s note, then Voice 2\'s at the same time', async () => {
     await open(MELODY);
     press(MELODY, 0, 0, 1);
-    keys({ key: 'ArrowRight', altKey: true });
+    keys({ key: 'ArrowRight', altKey: true, ctrlKey: true });
     expect(litVoices()).toEqual([2]);
-    keys({ key: 'ArrowRight', altKey: true });
+    keys({ key: 'ArrowRight', altKey: true, ctrlKey: true });
     expect(litVoices()).toEqual([1]);
-    keys({ key: 'ArrowLeft', altKey: true });
+    keys({ key: 'ArrowLeft', altKey: true, ctrlKey: true });
     expect(litVoices()).toEqual([2]);
   });
 });
