@@ -30,18 +30,22 @@ first line in `2026-10-26-tab-words-design.md` and
   a **Capo** section under Tuning and Strings: its header, then a
   dropdown under it: **None**, first and the default, then **1st fret** to **12th
   fret** (Jeremy, 2026-11-13, in place of a first − / field / + stepper).
-- With a capo on, a small neck appears under the dropdown, the panel
-  growing downward: the nut to fret 15, frets narrowing as a guitar's
+- A small neck is under the dropdown, whatever the capo: the nut to fret 15, frets narrowing as a guitar's
   do; the tuning's strings, named left of the nut, high e on top; the
   inlays at 3, 5, 7, 9, 12 and 15; the fret numbers under it; and the
-  capo as a bar across every string just behind its fret wire.
-- A press on the space of fret 1 to 12 moves the capo there, the
+  capo as a bar across every string just behind its fret wire; at None
+  no bar. (First shown only with a capo on, the panel growing downward
+  when one went on; always since 2026-11-13, Jeremy: "Can we leave the
+  fretboard diagram displayed regardless of what the capo setting
+  is?")
+- A press on the space of fret 1 to 12 puts the capo there, from None
+  too, the
   dropdown following; hovering one shows a faint capo there. Frets 13
   to 15 are drawn as the others but take no press and show no hover
   capo (Jeremy, 2026-11-13: "Whole neck selectable to 12 but showing
   frets up to 15", picked over a five-fret window round the capo). The
-  neck has no None: the dropdown takes the capo off, and the neck goes
-  with it.
+  neck has no None: the dropdown takes the capo off, the neck staying,
+  with no bar.
 - Every choice, in the dropdown or on the neck, applies at once and is
   one undo step, as a preset is. The dropdown lets go of the focus after
   a choice (let go after use).
@@ -95,9 +99,13 @@ first line in `2026-10-26-tab-words-design.md` and
 ## Tests
 
 - The Tuning panel's Capo dropdown lists None, first and chosen with no
-  capo, then 1st fret to 12th fret; with None there is no neck.
+  capo, then 1st fret to 12th fret; at None the neck shows with no
+  capo bar, and the panel is as wide and as tall as with a capo on.
 - Choosing a fret sets `\capo N`, shows the neck with the capo on that
-  fret, and the head reads it; None takes `\capo` and the neck away.
+  fret, and the head reads it; None takes `\capo` and the bar away,
+  the neck staying.
+- At None, a press on fret 5 on the neck sets `\capo 5`, the dropdown
+  reading 5th fret; hovering a fret shows the faint capo there.
 - A press on fret 7 on the neck sets `\capo 7` and the dropdown reads
   7th fret; every fret 1 to 12 can be pressed; the neck offers no None.
 - The neck draws frets 1 to 15; frets 13 to 15 have no button, show no

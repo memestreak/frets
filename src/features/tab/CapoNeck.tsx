@@ -6,7 +6,9 @@
  * guitar's do, the tuning's strings, the inlays, and the capo as a bar across every string just behind
  * its fret wire. A press on the space of fret 1 to 12 moves the capo there; hovering one shows a faint
  * capo there. Frets 13 to 15 are drawn but can't be picked (Jeremy, 2026-11-13: "Whole neck
- * selectable to 12 but showing frets up to 15"). None is set from the dropdown, not here.
+ * selectable to 12 but showing frets up to 15"). It shows with no capo too, with no bar, a press putting
+ * one on (Jeremy, 2026-11-13: "leave the fretboard diagram displayed regardless of what the capo setting
+ * is"); None is set from the dropdown, not here.
  */
 import { useState } from 'react';
 import { prettyNote } from '@/lib/theory/notes';
@@ -39,7 +41,7 @@ const MIDDLE = (BOARD_TOP + BOARD_BOTTOM) / 2;
 
 export function CapoNeck({ tuning, capo, onCapo }: {
   tuning: readonly string[];
-  /** 1 to 12: the picture is drawn only with a capo on. */
+  /** 0 for none (no bar), else 1 to 12. */
   capo: number;
   onCapo: (capo: number) => void;
 }) {
@@ -53,7 +55,7 @@ export function CapoNeck({ tuning, capo, onCapo }: {
   );
   return (
     <div className="tab-capo-neck">
-      <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label={`Capo on fret ${capo}`}>
+      <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img" aria-label={capo > 0 ? `Capo on fret ${capo}` : 'No capo'}>
         <rect x={NUT_X} y={BOARD_TOP} width={END_X - NUT_X} height={BOARD_BOTTOM - BOARD_TOP} rx={2} fill="var(--fretboard)" />
         {FRETS.map(f => INLAYS.includes(f) && (f === 12
           ? [-1, 1].map(k => <circle key={`${f}${k}`} cx={mid(f)} cy={MIDDLE + k * STRING_GAP * 1.5} r={2.5} fill="var(--inlay)" />)
@@ -73,7 +75,7 @@ export function CapoNeck({ tuning, capo, onCapo }: {
           );
         })}
         {hover !== null && hover !== capo && capoBar(hover, true)}
-        {capoBar(capo, false)}
+        {capo > 0 && capoBar(capo, false)}
         {FRETS.map(f => (
           <text key={f} x={mid(f)} y={NUMBER_Y} fontSize={7.5} textAnchor="middle" fill={f === capo ? 'var(--ink)' : 'var(--ink-muted)'} fontWeight={f === capo ? 700 : 400}>{f}</text>
         ))}

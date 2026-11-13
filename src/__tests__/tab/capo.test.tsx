@@ -3,6 +3,7 @@
  * (issue #463, docs/specs/2026-11-13-tab-capo-in-tuning-design.md).
  */
 import * as alphaTab from '@coderline/alphatab';
+import { vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { readAscii, writeAscii } from '@/features/tab/ascii';
 import { writeAlphaTex, writePart } from '@/features/tab/alphatex';
@@ -157,5 +158,16 @@ describe('the capo’s neck in the Tuning panel', () => {
     fireEvent.mouseEnter(screen.getByRole('button', { name: 'Capo on fret 9' }));
     expect(screen.getByTestId('capo-hover')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /fret 1[3-5]$/ })).toBeNull();
+  });
+  it('draws no capo at None, every fret 1 to 12 still pressed and hovered', () => {
+    const onCapo = vi.fn();
+    render(<CapoNeck tuning={STANDARD_TUNING} capo={0} onCapo={onCapo} />);
+    expect(screen.getByRole('img')).toHaveAccessibleName('No capo');
+    expect(screen.queryByTestId('capo-bar')).toBeNull();
+    expect(screen.getAllByRole('button').every(b => b.getAttribute('aria-pressed') === 'false')).toBe(true);
+    fireEvent.mouseEnter(screen.getByRole('button', { name: 'Capo on fret 5' }));
+    expect(screen.getByTestId('capo-hover')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Capo on fret 5' }));
+    expect(onCapo).toHaveBeenCalledWith(5);
   });
 });

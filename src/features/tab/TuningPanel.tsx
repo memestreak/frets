@@ -90,8 +90,8 @@ export function TuningPanel({ clip, x, y, onChange, onClose }: {
 }
 
 /**
- * The capo (issue #463): a dropdown, None first, then the 1st to the 12th fret; with a capo on, the
- * neck under it shows where, and a press on a fret moves it there. Each choice is one undo step.
+ * The capo (issue #463): a dropdown, None first, then the 1st to the 12th fret; the neck under it,
+ * always shown, draws where, and a press on a fret puts the capo there. Each choice is one undo step.
  */
 function CapoPicker({ tuning, capo, onCapo }: {
   tuning: readonly string[];
@@ -108,7 +108,7 @@ function CapoPicker({ tuning, capo, onCapo }: {
         <option value={0}>None</option>
         {Array.from({ length: MAX_CAPO }, (_, k) => k + 1).map(f => <option key={f} value={f}>{fretWords(f)}</option>)}
       </select>
-      {capo > 0 && <CapoNeck tuning={tuning} capo={capo} onCapo={set} />}
+      <CapoNeck tuning={tuning} capo={capo} onCapo={set} />
     </div>
   );
 }

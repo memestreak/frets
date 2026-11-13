@@ -15,7 +15,7 @@ const tuningGroup = () => within(head()).getByRole('group', { name: 'Tuning' });
 const tuningButton = () => within(tuningGroup()).getAllByRole('button')[0];
 const panel = () => screen.getByRole('dialog', { name: 'Tuning' });
 const pick = () => within(panel()).getByRole('combobox', { name: 'Capo' }) as HTMLSelectElement;
-const neck = () => within(panel()).queryByRole('img', { name: /^Capo on fret/ });
+const neck = () => within(panel()).queryByRole('img', { name: /^(Capo on fret|No capo)/ });
 const fretButton = (f: number) => within(panel()).getByRole('button', { name: `Capo on fret ${f}` });
 /** The open Track's capo as the page keeps it. */
 const capo = () => partOf(pageClip()).capo;
@@ -35,17 +35,30 @@ const OPEN = '(0.1 0.2 0.3 0.4 0.5 0.6).1 |';
 const DADGAD = '\\tuning (D4 A3 G3 D3 A2 D2)\n';
 
 describe('the Tuning panel’s Capo', () => {
-  it('is a dropdown, None first and chosen with no capo, then the 1st to the 12th fret; no picture at None', async () => {
+  it('is a dropdown, None first and chosen with no capo, then the 1st to the 12th fret; the neck shows at None with no bar', async () => {
     await open('', OPEN);
     expect([...pick().options].map(o => o.textContent)).toEqual([
       'None', '1st fret', '2nd fret', '3rd fret', '4th fret', '5th fret', '6th fret',
       '7th fret', '8th fret', '9th fret', '10th fret', '11th fret', '12th fret',
     ]);
     expect(pick().selectedOptions[0].textContent).toBe('None');
-    expect(neck()).toBeNull();
+    expect(neck()).toHaveAccessibleName('No capo');
+    expect(within(panel()).queryByTestId('capo-bar')).toBeNull();
   });
 
-  it('sets \\capo N on a choice, shows the neck with the capo on it, and None takes both away', async () => {
+  it('puts the capo on a fret pressed on the neck at None, one undo step', async () => {
+    await open('', OPEN);
+    fireEvent.mouseEnter(fretButton(5));
+    expect(within(panel()).getByTestId('capo-hover')).toBeInTheDocument();
+    fireEvent.click(fretButton(5));
+    expect(capo()).toBe(5);
+    expect(pick().value).toBe('5');
+    expect(neck()).toHaveAccessibleName('Capo on fret 5');
+    undo();
+    expect(capo()).toBeUndefined();
+  });
+
+  it('sets \\capo N on a choice, draws the capo on the neck, and None takes the capo and its bar away', async () => {
     await open('', OPEN);
     choose(4);
     expect(capo()).toBe(4);
@@ -56,7 +69,8 @@ describe('the Tuning panel’s Capo', () => {
     expect(capo()).toBe(12);
     choose(0);
     expect(capo()).toBeUndefined();
-    expect(neck()).toBeNull();
+    expect(neck()).toHaveAccessibleName('No capo');
+    expect(within(panel()).queryByTestId('capo-bar')).toBeNull();
     expect(tuningGroup()).toHaveTextContent(/^Standard tuning$/);
   });
 

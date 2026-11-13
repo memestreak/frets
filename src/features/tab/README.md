@@ -351,9 +351,9 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
   picked), and the Capo dropdown (None, 1st to 12th fret) —
   `2026-10-29-tab-credits-tuning-design.md`,
   `2026-11-13-tab-capo-in-tuning-design.md`.
-- `CapoNeck.tsx` — the small neck under the Capo dropdown: the capo drawn
-  behind its fret, the nut to fret 15, a press on fret 1 to 12 moving it
-  there.
+- `CapoNeck.tsx` — the small neck under the Capo dropdown, shown at None
+  too: the capo drawn behind its fret, the nut to fret 15, a press on
+  fret 1 to 12 putting it there.
 - `ViewOptions.tsx` — Colours, then only the shown view's own options —
   `2026-11-01-tab-view-options-per-view-design.md`.
 - `viewOptions.ts` — the view options' values and their parser (`laidOut`),
