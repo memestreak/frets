@@ -14,16 +14,15 @@ const head = () => screen.getByTestId('score-head');
 const tuningGroup = () => within(head()).getByRole('group', { name: 'Tuning' });
 const tuningButton = () => within(tuningGroup()).getAllByRole('button')[0];
 const panel = () => screen.getByRole('dialog', { name: 'Tuning' });
-const field = () => within(panel()).getByRole('textbox', { name: 'Capo' });
-const down = () => within(panel()).getByRole('button', { name: 'Capo down a fret' });
-const up = () => within(panel()).getByRole('button', { name: 'Capo up a fret' });
+const pick = () => within(panel()).getByRole('combobox', { name: 'Capo' }) as HTMLSelectElement;
+const neck = () => within(panel()).queryByRole('img', { name: /^Capo on fret/ });
+const fretButton = (f: number) => within(panel()).getByRole('button', { name: `Capo on fret ${f}` });
 /** The open Track's capo as the page keeps it. */
 const capo = () => partOf(pageClip()).capo;
 
-/** Types into the Capo field, then presses `end` if given. */
-function type(value: string, end?: string) {
-  fireEvent.change(field(), { target: { value } });
-  if (end) fireEvent.keyDown(field(), { key: end });
+/** Picks a choice in the Capo dropdown: 0 is None. */
+function choose(fret: number) {
+  fireEvent.change(pick(), { target: { value: String(fret) } });
 }
 
 async function open(tex: string, bars: string) {
@@ -36,90 +35,64 @@ const OPEN = '(0.1 0.2 0.3 0.4 0.5 0.6).1 |';
 const DADGAD = '\\tuning (D4 A3 G3 D3 A2 D2)\n';
 
 describe('the Tuning panel’s Capo', () => {
-  it('reads None with no capo, − greyed out; + from None sets 1', async () => {
+  it('is a dropdown, None first and chosen with no capo, then the 1st to the 12th fret; no picture at None', async () => {
     await open('', OPEN);
-    expect(field()).toHaveValue('None');
-    expect(down()).toBeDisabled();
-    expect(up()).toBeEnabled();
-    fireEvent.click(up());
-    expect(capo()).toBe(1);
-    expect(field()).toHaveValue('1');
-    expect(tuningGroup()).toHaveTextContent('Standard tuning · Capo 1st fret');
+    expect([...pick().options].map(o => o.textContent)).toEqual([
+      'None', '1st fret', '2nd fret', '3rd fret', '4th fret', '5th fret', '6th fret',
+      '7th fret', '8th fret', '9th fret', '10th fret', '11th fret', '12th fret',
+    ]);
+    expect(pick().selectedOptions[0].textContent).toBe('None');
+    expect(neck()).toBeNull();
   });
 
-  it('takes a typed fret on Enter; − at 1, a typed 0 and an empty field each take the capo away', async () => {
+  it('sets \\capo N on a choice, shows the neck with the capo on it, and None takes both away', async () => {
     await open('', OPEN);
-    type('4');
-    // Nothing changes while it is being typed.
-    expect(capo()).toBeUndefined();
-    expect(field()).toHaveValue('4');
-    fireEvent.keyDown(field(), { key: 'Enter' });
+    choose(4);
     expect(capo()).toBe(4);
     expect(tuningGroup()).toHaveTextContent('Standard tuning · Capo 4th fret');
-    type('1', 'Enter');
-    fireEvent.click(down());
+    expect(neck()).toHaveAccessibleName('Capo on fret 4');
+    expect(fretButton(4)).toHaveAttribute('aria-pressed', 'true');
+    choose(12);
+    expect(capo()).toBe(12);
+    choose(0);
     expect(capo()).toBeUndefined();
-    expect(field()).toHaveValue('None');
-    type('3', 'Enter');
-    type('0', 'Enter');
-    expect(capo()).toBeUndefined();
-    type('3', 'Enter');
-    type('', 'Enter');
-    expect(capo()).toBeUndefined();
-    expect(field()).toHaveValue('None');
+    expect(neck()).toBeNull();
     expect(tuningGroup()).toHaveTextContent(/^Standard tuning$/);
   });
 
-  it('applies a typed fret on leaving the field, and Esc leaves the capo as it was', async () => {
-    await open('\\capo 2\n', OPEN);
-    type('7');
-    fireEvent.blur(field());
-    expect(capo()).toBe(7);
-    expect(field()).toHaveValue('7');
-    type('9');
-    fireEvent.keyDown(field(), { key: 'Escape' });
-    expect(capo()).toBe(7);
-  });
-
-  it('takes 15 as 12, with + greyed out there; ↑ and ↓ step it at once, from a typed number', async () => {
+  it('moves the capo to a fret pressed on the neck, the dropdown following; the neck has no None', async () => {
     await open('', OPEN);
-    type('15', 'Enter');
-    expect(capo()).toBe(12);
-    expect(field()).toHaveValue('12');
-    expect(up()).toBeDisabled();
-    fireEvent.keyDown(field(), { key: 'ArrowDown' });
-    expect(capo()).toBe(11);
-    fireEvent.keyDown(field(), { key: 'ArrowUp' });
-    fireEvent.keyDown(field(), { key: 'ArrowUp' });
-    expect(capo()).toBe(12);
-    type('5');
-    fireEvent.keyDown(field(), { key: 'ArrowUp' });
-    expect(capo()).toBe(6);
-    expect(field()).toHaveValue('6');
+    choose(2);
+    fireEvent.click(fretButton(7));
+    expect(capo()).toBe(7);
+    expect(pick().value).toBe('7');
+    expect(neck()).toHaveAccessibleName('Capo on fret 7');
+    // Every fret from 1 to 12 is on the neck (look a); none takes the capo off.
+    for (let f = 1; f <= 12; f++) {
+      fireEvent.click(fretButton(f));
+      expect(capo()).toBe(f);
+    }
+    expect(within(panel()).queryByRole('button', { name: /None|fret 0/ })).toBeNull();
   });
 
-  it('is one undo step a change, typing 12 then Enter too; Undo puts the old capo back', async () => {
+  it('is one undo step a change, from the dropdown or the neck; Undo puts the old capo back', async () => {
     await open('\\capo 2\n', OPEN);
-    expect(field()).toHaveValue('2');
-    fireEvent.click(up());
-    expect(capo()).toBe(3);
-    // Typed a digit at a time, it is still one step.
-    type('1');
-    type('12', 'Enter');
-    expect(capo()).toBe(12);
+    expect(pick().value).toBe('2');
+    choose(12);
+    fireEvent.click(fretButton(5));
+    expect(capo()).toBe(5);
     undo();
-    expect(capo()).toBe(3);
-    expect(field()).toHaveValue('3');
+    expect(capo()).toBe(12);
+    expect(pick().value).toBe('12');
     undo();
     expect(capo()).toBe(2);
-    expect(field()).toHaveValue('2');
     undo();
     expect(capo()).toBe(2);
   });
 
   it('DADGAD with the capo on 4: the tuning stays, the open strings sound F♯2 C♯3 F♯3 B3 C♯4 F♯4, the tab keeps its 0s', async () => {
     await open(DADGAD, OPEN);
-    type('4', 'Enter');
+    choose(4);
     const strings = within(panel()).getByRole('group', { name: 'String' });
     expect(within(strings).getAllByRole('button').map(b => b.textContent?.slice(1))).toEqual(['D', 'A', 'D', 'G', 'A', 'D']);
     expect(within(panel()).getByText('Tuning: DADGAD')).toBeInTheDocument();
@@ -133,12 +106,12 @@ describe('the Tuning panel’s Capo', () => {
 
   it('keeps the capo when a preset is picked, and the tuning and every fret when the capo changes', async () => {
     await open(DADGAD, '0.6.4 2.5.4 3.4.4 5.1.4 |');
-    type('4', 'Enter');
+    choose(4);
     expect(partOf(pageClip()).tuning).toEqual(['D', 'A', 'D', 'G', 'A', 'D']);
     fireEvent.click(within(panel()).getByRole('button', { name: 'Drop D' }));
     expect(capo()).toBe(4);
     expect(tuningGroup()).toHaveTextContent(/^Drop D tuning · Capo 4th fret/);
-    fireEvent.click(up());
+    choose(5);
     expect(partOf(pageClip()).tuning).toEqual(['D', 'A', 'D', 'G', 'B', 'E']);
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(alphaTex()).toBe('0.6.4 2.5.4 3.4.4 5.1.4 |');

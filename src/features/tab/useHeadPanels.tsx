@@ -4,6 +4,7 @@ import { columnAt, indexOf, withRestsInEmptyBars, type Cursor } from './editing'
 import { setBarKey, setBarTime, setBeatGroups, setPickup, setBeatText, setChordName, setDynamic, setEnding, setRepeatTimes, setSection } from './barEdits';
 import { BarKeyPanel } from './BarKeyPanel';
 import { BarFixPanel } from './BarFixPanel';
+import type { CapoLook } from './CapoNeck';
 import { BarTimePanel } from './BarTimePanel';
 import { CreditsPanel, type HeadField } from './CreditsPanel';
 import { barTempoSpot, barTimeSpot, lyricSpot, PANEL_DROP, PANEL_LEAD, wordNow, wordSpot } from './fieldSpots';
@@ -33,7 +34,7 @@ type HeadPanel =
  * and from the score's head (title and credits, tuning, tempo): which one is open, where, and what
  * closing it keeps. `panels` draws the open one; the page puts it over the drawing.
  */
-export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown }: {
+export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown, capoLook = 'a' }: {
   /** The drawn clip's layout, and its width in the drawing's units. */
   layout: Layout;
   width: number;
@@ -41,6 +42,8 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
   zoom: number;
   /** Whether the drawn tab is shown (the Notation view), and has a width yet. */
   shown: { tab: boolean; drawn: boolean };
+  /** The Tuning panel's capo picture look, while Jeremy picks one (`CAPO_LOOK_MOCK`). */
+  capoLook?: CapoLook;
 }) {
   const { clip, cursor, commit, commitReBar, dispatch, editorRef, setNotice } = editor;
   /** The chord name, text, section, dynamic, ending or repeat count being typed, and where: the cursor's column or bar when it opened. */
@@ -269,7 +272,7 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
         />
       )}
       {tab && headPanel?.kind === 'tuning' && (
-        <TuningPanel clip={clip} x={headPanel.x} y={headPanel.y} onChange={commit} onClose={() => setHeadPanel(null)} />
+        <TuningPanel clip={clip} x={headPanel.x} y={headPanel.y} capoLook={capoLook} onChange={commit} onClose={() => setHeadPanel(null)} />
       )}
       {tab && fixBar !== null && fixText !== undefined && drawn && (
         <BarFixPanel clip={clip} bar={fixBar.bar} text={fixText} x={fixBar.x} y={fixBar.y} onFix={finishFix} onClose={closeFix} />

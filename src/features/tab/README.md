@@ -347,8 +347,11 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
   `2026-10-29-tab-tempo-button-design.md`.
 - `CreditsPanel.tsx` — title (needed), artist, words and music.
 - `TuningPanel.tsx` — the common tunings, each string on the
-  `KeyPicker`, and the Capo stepper (None, 1 to 12) —
+  `KeyPicker`, and the Capo dropdown (None, 1st to 12th fret) —
   `2026-11-13-tab-capo-in-tuning-design.md`.
+- `CapoNeck.tsx` — the small neck under the Capo dropdown: the capo drawn
+  behind its fret, a press on a fret moving it there (`CAPO_LOOK_MOCK`, two
+  looks while one is picked).
 - `ViewOptions.tsx` — Colours, then only the shown view's own options —
   `2026-11-01-tab-view-options-per-view-design.md`.
 - `viewOptions.ts` — the view options' values and their parser (`laidOut`),
@@ -470,7 +473,7 @@ The principles every editing spec since step 1 follows, with Dorico,
 MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
 
 - `docs/specs/2026-11-13-tab-capo-in-tuning-design.md`: the capo set by a
-  stepper in the Tuning panel and drawn beside the tuning's name in the
+  dropdown and a small neck in the Tuning panel and drawn beside the tuning's name in the
   score head; the Capo tool and the capo row over the first line go;
   ASCII Tab's `Capo:` header (issue #463)
 - `docs/specs/2026-11-09-tab-strums-rolled-chords-design.md`: Strums and

@@ -151,9 +151,14 @@ function ordinal(n: number): string {
   return `${n}${suffix}`;
 }
 
+/** A fret as the capo is set on it: "4th fret". */
+export function fretWords(fret: number): string {
+  return `${ordinal(fret)} fret`;
+}
+
 /** The capo as the score's head prints it (issue #463): "Capo 4th fret". */
 export function capoWords(capo: number): string {
-  return `Capo ${ordinal(capo)} fret`;
+  return `Capo ${fretWords(capo)}`;
 }
 
 /**

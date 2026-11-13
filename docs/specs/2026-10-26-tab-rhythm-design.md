@@ -113,7 +113,7 @@ picked a palette tool for it (option 1 of three). So:
 - The time signature is set from the drawn numbers or the Bars group's
   button (above).
 - The capo was first a **Capo** tool in the Text group, drawn as "Capo 3"
-  over the first line. Since issue #463 it is set by a stepper in the
+  over the first line. Since issue #463 it is set by a dropdown in the
   Tuning panel and drawn once, beside the tuning's name in the score head
   and in exported images ("Capo 3rd fret";
   `2026-11-13-tab-capo-in-tuning-design.md`).

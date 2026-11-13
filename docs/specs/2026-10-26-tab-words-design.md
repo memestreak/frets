@@ -62,7 +62,7 @@ nothing then has to be placed after text whose width is unknown.
 - **Capo:** first a raised button beside the time signature, which Jeremy
   found "very weird" (2026-10-26); then a **Capo** tool in the Text group,
   with "Capo 3" drawn over the first line. Since issue #463 it is set by a
-  stepper in the Tuning panel and drawn beside the tuning's name in the
+  dropdown in the Tuning panel and drawn beside the tuning's name in the
   score head (`2026-11-13-tab-capo-in-tuning-design.md`).
 - Each change is one undo step.
 

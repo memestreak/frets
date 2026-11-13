@@ -28,16 +28,22 @@ first line in `2026-10-26-tab-words-design.md` and
 
 - The Tuning panel (a Panel, not a Popover: see `GLOSSARY.md`) gains
   **Capo** under the presets, Strings and the piano: a caption, then a
-  number stepper, **−**, the field, **+**.
-- The field is typed into (0 to 12). What is typed applies on Enter or
-  on leaving the field, as one undo step (Jeremy, 2026-11-13: typing 12
-  is one change, not 1 then 12); Esc leaves the capo as it was, and
-  closes the panel, as the time signature's count and the Tempo panel
-  do. Empty or 0 is no capo, and the field then reads **None**. A typed
-  number past 12 is taken as 12.
-- **−**, **+**, and ↑ and ↓ in the field, step by one and apply at once,
-  each one undo step, as a preset is; ↑ and ↓ step from what is typed
-  when it is a number. **−** is greyed out at None, **+** at 12.
+  dropdown: **None**, first and the default, then **1st fret** to **12th
+  fret** (Jeremy, 2026-11-13, in place of a first − / field / + stepper).
+- With a capo on, a small neck appears under the dropdown, the panel
+  growing downward: the tuning's strings, named left of the nut, high e
+  on top; the inlays at 3, 5, 7, 9 and 12; the fret numbers under it; and
+  the capo as a bar across every string just behind its fret wire. A
+  press on a fret's space moves the capo there, the dropdown following;
+  hovering one shows a faint capo there. The neck has no None: the
+  dropdown takes the capo off, and the neck goes with it.
+- Two looks are offered while Jeremy picks (`?mock=a`, `?mock=b`): a, the
+  neck from the nut to fret 12, frets narrowing as a guitar's do; b, a
+  window of five even frets round the capo (the nut when it reaches
+  fret 1).
+- Every choice, in the dropdown or on the neck, applies at once and is
+  one undo step, as a preset is. The dropdown lets go of the focus after
+  a choice (let go after use).
 - The panel's other keys stay as they are; its caption still reads
   "Tuning: DADGAD" (the capo is not part of the tuning's name).
 - The panel does not show the pitches the strings sound with the capo
@@ -84,15 +90,16 @@ first line in `2026-10-26-tab-words-design.md` and
 
 ## Tests
 
-- The Tuning panel: + from None sets `\capo 1`; typing 4 then Enter sets
-  `\capo 4`; − at 1, typing 0 and clearing the field (then Enter) each
-  take `\capo` away; typing 15 then Enter sets 12; − is disabled at None
-  and + at 12; the field reads "None" with no capo.
-- A typed fret changes nothing until Enter or the field is left (blur),
-  which applies it; typing then Esc leaves the capo as it was. ↑ and ↓
-  apply at once, from the typed number when there is one.
-- A capo change is one undo step: typing 12 then Enter is one step;
-  Undo puts the old capo back.
+- The Tuning panel's Capo dropdown lists None, first and chosen with no
+  capo, then 1st fret to 12th fret; with None there is no neck.
+- Choosing a fret sets `\capo N`, shows the neck with the capo on that
+  fret, and the head reads it; None takes `\capo` and the neck away.
+- A press on fret 7 on the neck sets `\capo 7` and the dropdown reads
+  7th fret; every fret 1 to 12 can be pressed; the neck offers no None.
+- Look b shows five frets round the capo: 2 to 6 for a capo on 4, 1 to
+  5 on 1, 8 to 12 on 12.
+- A capo change, from the dropdown or the neck, is one undo step; Undo
+  puts the old capo back.
 - DADGAD with the capo on 4: the panel's tuning stays D A D G A D;
   playback's open strings sound F♯2 C♯3 F♯3 B3 C♯4 F♯4 (MIDI 42 49 54 59
   61 66);
@@ -113,8 +120,9 @@ first line in `2026-10-26-tab-words-design.md` and
 
 ## How
 
-- `TuningPanel.tsx`: the Capo stepper, its value through `setCapo`
-  (`barEdits.ts`), clamped to `MAX_CAPO`.
+- `TuningPanel.tsx` and `CapoNeck.tsx`: the Capo dropdown and the neck, the value through `setCapo`
+  (`barEdits.ts`), 1 to `MAX_CAPO`; the mock's look from `TabPage.tsx`
+  (`CAPO_LOOK_MOCK`), until one is picked.
 - `credits.ts`: the capo's words (`capoWords`, "Capo 4th fret") and the
   tuning's heading with them; `ScoreHead.tsx` and `exportTab.tsx` draw it.
 - `layout.ts` / `rows.ts`: a capo row only when asked for (show_tab's

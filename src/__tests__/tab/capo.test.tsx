@@ -15,6 +15,8 @@ import { layoutClip } from '@/features/tab/layout';
 import { writeMusicXml } from '@/features/tab/musicxml';
 import { readLink, shareLink } from '@/features/tab/shareLink';
 import { TabClip } from '@/features/tab/TabClip';
+import { CapoNeck } from '@/features/tab/CapoNeck';
+import { STANDARD_TUNING } from '@/features/tab/clip';
 import { TOOL_GROUPS } from '@/features/tab/tools';
 import { DEFAULT_VIEW } from '@/features/tab/viewOptions';
 
@@ -138,5 +140,20 @@ describe('the capo through the formats', () => {
     expect(writeMusicXml(clip)).toContain('<capo>4</capo>');
     const score = alphaTab.importer.ScoreLoader.loadScoreFromBytes(writeGuitarProWith(alphaTab, clip), new alphaTab.Settings());
     expect(score.tracks[0].staves[0].capo).toBe(4);
+  });
+});
+
+describe('the capo’s neck in the Tuning panel', () => {
+  const frets = () => screen.getAllByRole('button').map(b => b.getAttribute('aria-label'));
+  it('draws the nut to fret 12 (look a), or five frets round the capo (look b)', () => {
+    const { rerender } = render(<CapoNeck tuning={STANDARD_TUNING} capo={4} look="a" onCapo={() => {}} />);
+    expect(frets()).toEqual(Array.from({ length: 12 }, (_, k) => `Capo on fret ${k + 1}`));
+    expect(screen.getAllByTestId('capo-bar')).toHaveLength(1);
+    rerender(<CapoNeck tuning={STANDARD_TUNING} capo={4} look="b" onCapo={() => {}} />);
+    expect(frets()).toEqual([2, 3, 4, 5, 6].map(f => `Capo on fret ${f}`));
+    rerender(<CapoNeck tuning={STANDARD_TUNING} capo={1} look="b" onCapo={() => {}} />);
+    expect(frets()).toEqual([1, 2, 3, 4, 5].map(f => `Capo on fret ${f}`));
+    rerender(<CapoNeck tuning={STANDARD_TUNING} capo={12} look="b" onCapo={() => {}} />);
+    expect(frets()).toEqual([8, 9, 10, 11, 12].map(f => `Capo on fret ${f}`));
   });
 });
