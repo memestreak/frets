@@ -99,7 +99,7 @@ describe('the Tuning panel’s Capo', () => {
     choose(4);
     const strings = within(panel()).getByRole('group', { name: 'String' });
     expect(within(strings).getAllByRole('button').map(b => b.textContent?.slice(1))).toEqual(['D', 'A', 'D', 'G', 'A', 'D']);
-    expect(within(panel()).getByText('Tuning: DADGAD')).toBeInTheDocument();
+    expect(within(panel()).getByRole('combobox', { name: 'Tuning' })).toHaveValue('DADGAD');
     expect(tuningGroup()).toHaveTextContent(/^DADGAD tuning · Capo 4th fret/);
     const played = perform(alphaTab, partOf(pageClip()), DEFAULT_SOUND, { clicks: false });
     const keys = played.midi.events.filter(e => e instanceof alphaTab.midi.NoteOnEvent).map(e => (e as alphaTab.midi.NoteOnEvent).noteKey);
@@ -112,7 +112,7 @@ describe('the Tuning panel’s Capo', () => {
     await open(DADGAD, '0.6.4 2.5.4 3.4.4 5.1.4 |');
     choose(4);
     expect(partOf(pageClip()).tuning).toEqual(['D', 'A', 'D', 'G', 'A', 'D']);
-    fireEvent.click(within(panel()).getByRole('button', { name: 'Drop D' }));
+    fireEvent.change(within(panel()).getByRole('combobox', { name: 'Tuning' }), { target: { value: 'Drop D' } });
     expect(capo()).toBe(4);
     expect(tuningGroup()).toHaveTextContent(/^Drop D tuning · Capo 4th fret/);
     choose(5);

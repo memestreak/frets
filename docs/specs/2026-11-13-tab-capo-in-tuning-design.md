@@ -45,8 +45,11 @@ first line in `2026-10-26-tab-words-design.md` and
 - Every choice, in the dropdown or on the neck, applies at once and is
   one undo step, as a preset is. The dropdown lets go of the focus after
   a choice (let go after use).
-- The panel's other keys stay as they are; its caption still reads
-  "Tuning: DADGAD" (the capo is not part of the tuning's name).
+- The panel's other keys stay as they are. Capo's caption and dropdown
+  sit on one line, lined up with Tuning's above
+  (`2026-10-29-tab-credits-tuning-design.md`); the Tuning dropdown still
+  reads DADGAD with a capo on (the capo is not part of the tuning's
+  name).
 - The panel does not show the pitches the strings sound with the capo
   on: the Strings still name the tuning, and the staff shows what sounds.
 
@@ -101,7 +104,8 @@ first line in `2026-10-26-tab-words-design.md` and
   hover capo, and a press there leaves the capo as it was.
 - A capo change, from the dropdown or the neck, is one undo step; Undo
   puts the old capo back.
-- DADGAD with the capo on 4: the panel's tuning stays D A D G A D;
+- DADGAD with the capo on 4: the panel's tuning stays D A D G A D and its
+  dropdown reads DADGAD;
   playback's open strings sound F♯2 C♯3 F♯3 B3 C♯4 F♯4 (MIDI 42 49 54 59
   61 66);
   the tab still shows its `0`s.

@@ -346,8 +346,10 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 - `TempoPanel.tsx` — bpm, Tap (`src/lib/tapTempo.ts`) and a label —
   `2026-10-29-tab-tempo-button-design.md`.
 - `CreditsPanel.tsx` — title (needed), artist, words and music.
-- `TuningPanel.tsx` — the common tunings, each string on the
-  `KeyPicker`, and the Capo dropdown (None, 1st to 12th fret) —
+- `TuningPanel.tsx` — the common tunings in a dropdown, each string
+  (a picked one's note on the `KeyPicker`, shown only while one is
+  picked), and the Capo dropdown (None, 1st to 12th fret) —
+  `2026-10-29-tab-credits-tuning-design.md`,
   `2026-11-13-tab-capo-in-tuning-design.md`.
 - `CapoNeck.tsx` — the small neck under the Capo dropdown: the capo drawn
   behind its fret, the nut to fret 15, a press on fret 1 to 12 moving it
