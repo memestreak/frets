@@ -86,7 +86,8 @@ and in its spec.
   Export), held as page state so Settings and the page's own controls
   change the same values — `2026-10-29-settings-design.md`.
 - `editingPrefs.ts` — Tab › Editing (`frets.tab.editing`): note input mode's
-  grid — `2026-11-01-tab-note-input-grid-design.md`.
+  grid — `2026-11-01-tab-note-input-grid-design.md`; which name Chord from
+  notes writes under a capo — `2026-11-13-tab-chord-from-notes-design.md`.
 
 ## The clip and its formats
 
@@ -118,6 +119,9 @@ and in its spec.
 - `instrument.ts` — the clip's Sound as `\instrument`; one Frets has no
   sound for is kept and played by the nearest —
   `2026-10-29-tab-sound-and-fx-in-clip-design.md`.
+- `chordFromNotes.ts` — the picked notes (every Voice in their time) named as
+  one chord, its name over the first column and its shape in the Chord set —
+  `2026-11-13-tab-chord-from-notes-design.md`.
 - `chordSet.ts` — a track's Chord set: its `\chord` definitions
   (`Track.chords`, each a name and shape) and the names only typed over
   columns, each read by `readChordName` — `2026-11-05-tab-chord-set-design.md`;
@@ -477,6 +481,9 @@ MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
   note per Lyric line, read and written as alphaTex `lyrics`, drawn under
   the staff, between staff and tab, or under the tab; typed with Shift+L as
   in Dorico; MusicXML and ASCII carry them (issue #408)
+- `docs/specs/2026-11-13-tab-chord-from-notes-design.md`: a chord from picked
+  notes, even an arpeggio over several beats: its name over the first column,
+  its shape in the Chord set, counted from the capo (issue #464)
 - `docs/specs/2026-11-09-tab-palettes-design.md`: the rail gives way to one
   column listing every palette, several open at once, each folded from its
   header, moved by dragging it, its height dragged from the line under it;

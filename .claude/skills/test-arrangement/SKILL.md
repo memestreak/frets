@@ -60,10 +60,17 @@ arrangement that pins a guess is worse than none.
 ## 3. Word it
 
 A person must be able to follow the steps with no guessing. Text over
-this column (`{txt "..."}`) goes over the column it's about:
+this column (`{txt "..."}`) goes over the column it's about.
 
-- **The steps**, over the column to press. They name **the view**
-  first: "Tab view:", "Staff view:" or "Both view:". The Clip can't set
+**Every step's Text starts with its number in bold and a very short step
+name, alone on the first line**; what to do (and see) goes on the line
+under it (Jeremy, 2026-11-13). One step per Text:
+`{txt "**1.** Select Tab view\nTab, at the top left of the clip"}`,
+`{txt "**2.** Pick the arpeggio\nPress this 0, then Shift+Right arrow key 3 times"}`.
+A result Text with no step of its own has no number.
+
+- **The steps**, over the column to press. The first names **the view**:
+  "**1.** Select Tab view" (or Staff or Both view). The Clip can't set
   it (Staff | Tab | Both is a preference), so the text must. Pick the
   view the behaviour is about, or Tab when it's the same in all. Then
   **what to press**, pointing at the column the text sits over and naming

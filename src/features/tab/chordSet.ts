@@ -156,3 +156,8 @@ export function withRenamedChord(part: Part, from: string, to: string): Part {
     })),
   };
 }
+
+/** A name the set hasn't got, for a copy of `name`: "C 2", or "C 3" if that's taken. */
+export function freeName(name: string, taken: readonly string[]): string {
+  for (let n = 2; ; n++) if (!taken.includes(`${name} ${n}`)) return `${name} ${n}`;
+}

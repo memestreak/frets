@@ -14,7 +14,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent,
 import { ShapeMenu, type MenuItem } from '@/components/chords/export/ShapeMenu';
 import { menuSpot, useMenuTrigger } from '@/components/chords/export/useMenuTrigger';
 import { ChordDiagram } from '@/components/chords/ChordDiagram';
-import { chordDefOf, chordSet, withChordShape, withNewChord, withoutChord, withRenamedChord, type ChordEntry } from './chordSet';
+import { chordDefOf, chordSet, withChordShape, withNewChord, withoutChord, withRenamedChord, freeName, type ChordEntry } from './chordSet';
 import { chordToDraw, lowFirst, PLAIN_LOOK, shapeFor, toFrets, toShape } from './chordShapes';
 import { ticks, timeAt, WHOLE, type Column, type Duration, type Part, type Track } from './clip';
 import { columnAt, emptyColumn, withColumn, type Cursor } from './editing';
@@ -177,11 +177,6 @@ function useTileColumns() {
     return () => observer.disconnect();
   }, []);
   return [ref, columns] as const;
-}
-
-/** A name the set hasn't got, for a copy of `name`: "C 2", or "C 3" if that's taken. */
-export function freeName(name: string, taken: readonly string[]): string {
-  for (let n = 2; ; n++) if (!taken.includes(`${name} ${n}`)) return `${name} ${n}`;
 }
 
 const PARTS: Record<string, string> = { '0.25': '¼', '0.5': '½', '0.75': '¾' };
