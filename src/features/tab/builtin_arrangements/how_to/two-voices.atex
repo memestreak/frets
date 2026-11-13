@@ -1,0 +1,9 @@
+\title "10. Two voices"
+\ts (4 4)
+0.1.4{txt "Tab view. 1. Press this 0, then **N**."} 3.1.4 1.2.4 0.1.4 |
+0.1.4{txt "2. **Alt+2**: voice 2.\nVoice 1 turns grey."} 3.1.4 1.2.4 0.1.4 |
+0.1.4{txt "3. **Down arrow** 5 times:\nthe low E string."} 3.1.4 1.2.4 0.1.4 |
+0.1.4{txt "4. **Shift+6**, type **0**,\n**Shift+Space**, type **3**."} 3.1.4
+  1.2.4 0.1.4 |
+0.1.4{txt "5. **Alt+1**, then **Esc**."} 3.1.4 1.2.4 0.1.4 |
+

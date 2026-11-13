@@ -1,0 +1,8 @@
+\title "8. Triplets and other tuplets"
+\ts (4 4)
+r.1{txt "Tab view. 1. Press **N**,\nthen **Shift+4**."} |
+r.1{txt "2. Press **;** and pick **3**."} |
+r.1{txt "3. Type **0**, **2**, **3**,\na **Right arrow** after each."} |
+r.1{txt "4. Press **;** and pick **None**.\nThen **Esc**."} |
+5.3.4 7.3.4{txt "5. Press this 7, then **;**\nand pick **3**."} 5.3.4 7.3.4 |
+

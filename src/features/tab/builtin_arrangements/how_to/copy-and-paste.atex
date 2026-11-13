@@ -1,0 +1,7 @@
+\title "13. Copy and paste"
+\ts (4 4)
+5.3.8 7.3.8 5.3.8 7.3.8
+  r.2{txt "Tab view. 1. Press the first 5,\n**Shift+Right arrow** 3 times."} |
+r.1 | r.1{txt "2. **Ctrl/⌘+C** copies."} |
+r.1{txt "3. Press bar 2,\nthen **Ctrl/⌘+V**."} |
+

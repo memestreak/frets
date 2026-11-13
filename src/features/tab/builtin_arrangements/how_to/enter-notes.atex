@@ -1,0 +1,11 @@
+\title "1. Enter notes"
+\ts (4 4)
+r.1{txt "Tab view. 1. Press **N**.\nNote input mode starts."} |
+r.1{txt "2. Type **0**, then the **Right arrow** key.\nA quarter note goes in."} |
+r.1{txt "3. Type **3**, **5** and **7** the same way."} |
+r.1{txt "4. **Shift+4**:\neighths from now on."} |
+r.1{txt "5. **Down arrow** key:\nthe B string."} |
+r.1{txt "6. Type **1**, **Right arrow**,\n**3**, **Right arrow**."} |
+r.1{txt "7. **Esc** ends note input mode."} |
+r.1{txt "8. **Space** plays.\n**?** lists every key."} |
+

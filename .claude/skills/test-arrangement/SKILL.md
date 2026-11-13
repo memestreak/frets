@@ -89,10 +89,12 @@ A result Text with no step of its own has no number.
   takes the text with it. Put such a result on a column the edit leaves
   alone, and name the place by bar: "Bar 2 is now one whole rest".
 - One way to do it, the shortest, and the way you checked in the browser.
-- A long text wraps, and texts that would touch stack
-  (`docs/specs/2026-11-03-tab-text-wrap-design.md`), so length isn't a
-  problem, but keep each to a sentence or two. Use the glossary's words,
-  not those under `_Avoid_`.
+- Keep each Text short: one step or one result, about a line (60
+  characters or fewer), never a paragraph (Jeremy, 2026-11-09: "way too
+  much text in one note... a wall of words"). Break a longer walk-through
+  into numbered Texts over different columns or bars, one to a bar where
+  the bars are narrow, so none touch and stack out of order. Use the
+  glossary's words, not those under `_Avoid_`.
 
 `\title` names the behaviour as a statement of what happens: "A longer
 note writes over what follows", not "Lengthen test".

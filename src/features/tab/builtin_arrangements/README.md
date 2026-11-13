@@ -18,7 +18,9 @@ it back exactly as the file has it (with one newline at the end). A feature
 Frets learns to draw gets a file here. `samples/` is for trying things out:
 its files are not tests and may read with warnings. `editing_tests/` holds
 test arrangements, each showing one editing behaviour for a person to try
-(its README says how they are kept true).
+(its README says how they are kept true). `how_to/` holds lessons, one per
+feature, for people learning Frets (its README says how they are kept
+true).
 
 How they are served: the route `src/app/tab/builtin.json/route.ts` reads
 these folders and answers `/tab/builtin.json`. `npm run dev` reads them on
