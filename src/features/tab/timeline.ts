@@ -173,6 +173,13 @@ function tiedInto(items: Item[], index: number): Set<number> {
  */
 const MOVED = ['chord', 'text', 'fermata', 'wah', 'dynamic'] as const;
 
+/** `column` without the marks of its time (`MOVED`): what a moved Column leaves behind is a bare Gap. */
+export function withoutTimeMarks(column: Column): Column {
+  const next: Column = { ...column };
+  for (const key of MOVED) delete next[key];
+  return next;
+}
+
 /** Joins a moved text to the one already there, unless it is the same text. */
 const TEXT_JOIN = ' / ';
 

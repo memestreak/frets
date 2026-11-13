@@ -26,6 +26,7 @@ import { editorKeyDown, graceKey, restKey, writeAtInput, type EditorKeys } from 
 import { layoutClip, PARTS, type Parts } from './layout';
 import type { Lines } from './jumps';
 import { gridTicks, type GridValue } from './grid';
+import { ownStep } from './timeMoves';
 import { textBox, type TextHit } from './layoutText';
 import { writtenStrings } from './notation';
 import { dropShowParam, readShowParam } from './shareLink';
@@ -307,6 +308,7 @@ export default function TabPage() {
   const picking = useTabPicking(editor, {
     drawn, layout, hearNote, setNotice, openWord: head.openWord, openLyric: head.openLyric,
     openSignature: head.openSignature, dropLine,
+    timeStep: (part, target) => (fixedGrid ? gridStep : ownStep(part, target)),
   });
   const { deletePicked } = picking;
   // The Active voice picked, and the edits that cross Voices.
@@ -702,7 +704,7 @@ export default function TabPage() {
 
   /** The editor as the keys (and the Rest and Grace tools) find it. */
   const editorKeys = (): EditorKeys => ({
-    clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', tabShown: parts !== 'staff', lastDigit: lastDigitRef, accidental: accidentalRef, lines: drawnLines, noteInputMode, setNoteInputMode: enterNoteInput, inputLength, setInputLength, gridStep, cursorAt, setCursorAt, stepElement, moveSpanEnd: picking.moveSpanEnd,
+    clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', tabShown: parts !== 'staff', lastDigit: lastDigitRef, accidental: accidentalRef, lines: drawnLines, noteInputMode, setNoteInputMode: enterNoteInput, inputLength, setInputLength, gridStep, fixedGrid, cursorAt, setCursorAt, stepElement, moveSpanEnd: picking.moveSpanEnd,
     tupletEntry, graceEntry, tupletFrom, setTupletFrom, openTuplets, voiceKey, everyVoice,
     commit, toPitch, setColumnOnly, setStaffPitch, startRegion, setPicked, deletePicked, editPicked, addBar, onTool, hearNote, onNotice: setNotice,
     dropLine, leave: () => editorRef.current?.blur(),
@@ -849,7 +851,7 @@ export default function TabPage() {
   const clipHandlers = useStableHandlers({
     onPick: (...args: Parameters<typeof picking.onPick>) => { restOnStaff.current = null; picking.onPick(...args); },
     onPickStaff: (...args: Parameters<typeof picking.onPickStaff>) => { restOnStaff.current = null; picking.onPickStaff(...args); }, onDragStaff: picking.onDragStaff,
-    onDragFret: noteInputMode ? undefined : picking.onDragFret, onDragSpan: picking.onDragSpan, onDragRange: picking.onDragRange, onPickRect: picking.onPickRect,
+    onDragFret: noteInputMode ? undefined : picking.onDragFret, onDragTime: noteInputMode ? undefined : picking.onDragTime, onDragSpan: picking.onDragSpan, onDragRange: picking.onDragRange, onPickRect: picking.onPickRect,
     // A press that takes the caret away (blank space, the playback line's place above or below the staff, a
     // mark or a word picked) ends note input mode too, so the pencil is never lit without a caret.
     onMenuPress: setMenuPress,

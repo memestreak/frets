@@ -30,7 +30,7 @@ changes.
 - **← →** in normal mode skip a Column that holds only tied-on notes, as
   note input mode already does (step 4): the chain is one stop. A Column
   where something starts, a note on another string or a Column thing, is
-  still a stop. **Alt+← →** stops on a chain once, as a note; a Tied
+  still a stop. **Ctrl/⌘+Alt+← →** stops on a chain once, as a note; a Tied
   note's own marks stay stops of their own.
 - **Delete, cut, copy, Insert and Ctrl/⌘+Delete** on a picked chain act
   on all of it: Delete leaves one Gap for the chain's whole time, Insert

@@ -63,7 +63,7 @@ syllable a note. Frets kept both as written but drew neither.
     is orange until the field has set one.
 - **Picking.** A press on a syllable picks it (blue, its notes tinted).
   Enter, a double-click or the right-click menu's Edit opens the field on
-  it; Delete or the menu's Delete takes it away. Alt+← → step through
+  it; Delete or the menu's Delete takes it away. Ctrl/⌘+Alt+← → step through
   syllables after each column's notes and marks.
 - **alphaTex.** Written on each note: `lyrics "Hel-"` for line 1 alone,
   else `lyrics 0 "Hel-" lyrics 1 "Good-"` for each line that has one.
@@ -99,7 +99,7 @@ glossary yet; the PR says so.
 4. `rows.ts`: `Rows.lyrics` and `lyricCount`, per view as above;
    `widths.ts`: `minColumnWidth` takes the syllables' room.
 5. `ClipWords.tsx` draws them; `layoutText.ts` adds the `lyric` WordHit,
-   its box (`lyricBox`) and press; `elements.ts` its Alt+← → stop;
+   its box (`lyricBox`) and press; `elements.ts` its Ctrl/⌘+Alt+← → stop;
    `attachment.ts` its tint.
 6. `LyricField.tsx`, opened by `useHeadPanels` (`openLyric`), placed by
    `fieldSpots.lyricSpot`; the Lyrics tool and Shift+L in `tools.ts`;

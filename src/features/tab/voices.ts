@@ -289,7 +289,7 @@ export function selectionInVoice(part: Part, selection: Selection, voice: number
 }
 
 /**
- * Alt+← →'s next note or rest by time across every present Voice (Q13): the nearest after the cursor (or
+ * Ctrl/⌘+Alt+← →'s next note or rest by time across every present Voice (Q13): the nearest after the cursor (or
  * before it, `step` −1), Voice 1 first at the same time. Null when the Active voice's own next one comes first.
  */
 export function stepAcrossVoices(part: Part, cursor: Cursor, step: 1 | -1): { voice: number; bar: number; column: number } | null {

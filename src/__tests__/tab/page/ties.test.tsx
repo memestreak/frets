@@ -114,9 +114,9 @@ describe('a Tie chain is one note', () => {
     const CHAIN = '5.1.4 -.1.8 r.8 3.1.2 |';
     await open(CHAIN);
     press(CHAIN, 0, 0);
-    keys({ key: 'ArrowRight', altKey: true });
+    keys({ key: 'ArrowRight', altKey: true, ctrlKey: true });
     expect(tool('Tie to the next note')).toHaveAttribute('aria-pressed', 'true');
-    keys({ key: 'ArrowRight', altKey: true }, { key: 'ArrowRight', altKey: true });
+    keys({ key: 'ArrowRight', altKey: true, ctrlKey: true }, { key: 'ArrowRight', altKey: true, ctrlKey: true });
     keys('Delete');
     // The bar is written again by the meter: the chain on beat 1 becomes a dotted quarter.
     expect(alphaTex()).toBe('5.1.4{d} r.8 r.2 |');

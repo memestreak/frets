@@ -20,6 +20,7 @@ import { movedPitch, moveNotes, moveToString, notesToMove, stringAtPitch, type T
 import { applyCyclingKey, toolForKey, type ToolId } from './tools';
 import { jumpCursor, jumpFocus, jumpForKey, type Lines } from './jumps';
 import { advance } from './grid';
+import { moveInTime, ownStep } from './timeMoves';
 import { digitOfCode, nextInChord, pitchAt, selectedNotes, stepFrets, valueForDigit } from './normalMode';
 import { noteInputModeKeyDown, toStaff, toTab } from './noteInputModeKeys';
 
@@ -67,6 +68,8 @@ export interface EditorKeys {
   setInputLength: (length: Duration) => void;
   /** Note input mode's grid (`grid.ts`, issue #293), in ticks: where ← → stop inside a rest. */
   gridStep: number;
+  /** The fixed grid is on (Alt+G): Alt+← → move by `gridStep`; off, by the moved note's own length (issue #473). */
+  fixedGrid: boolean;
   /** How far into the cursor's rest note input mode's cursor is, in ticks: 0 at its start, and anywhere but a rest. */
   cursorAt: number;
   /** Puts note input mode's cursor that far into the rest at `at` (after a commit, which sets it back to 0). */
@@ -87,7 +90,7 @@ export interface EditorKeys {
    * selection holds only the Active voice's notes, and the key makes the edit itself.
    */
   everyVoice: (edit: (part: Part, selection: Selection) => Part) => boolean;
-  /** Alt+← →: picks the next or last note, rest, mark or word (`elements.ts`). */
+  /** Ctrl/⌘+Alt+← →: picks the next or last note, rest, mark or word (`elements.ts`). */
   stepElement: (step: 1 | -1) => void;
   /** A picked Span's end a column later (1) or earlier (−1): Alt+Shift+→ / ← (step 8). */
   moveSpanEnd: (step: 1 | -1) => void;
@@ -115,7 +118,7 @@ export interface EditorKeys {
 }
 
 /**
- * A key on the drawn tab. It tries, in turn: the keys every mode takes first (Alt+← →, Alt+1–4, a picked mark
+ * A key on the drawn tab. It tries, in turn: the keys every mode takes first (Alt+← →, Ctrl/⌘+Alt+← →, Alt+1–4, a picked mark
  * or word, an open panel's Esc); the mode's own keys (`noteInputModeKeyDown` in `noteInputModeKeys.ts`, or
  * `normalKeyDown`), with Space and N; then the keys every mode shares (`sharedKeyDown`).
  */
@@ -148,14 +151,21 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
 }
 
 /**
- * Alt+← → step through notes, rests, marks and words, as MuseScore's do (issue #238), from a picked one too;
- * Alt+1–4 make that Voice active, or move the picked or selected notes into it (step 9, Q8). True when the key
- * was one of them.
+ * Alt+← → move the picked chord (a picked note moves its chord) or selection a grid step earlier or later, as Dorico's do (issue #473;
+ * normal mode only). Ctrl/⌘+Alt+← → step through notes, rests, marks and words, from a picked one too (they
+ * were Alt+← →, MuseScore's, until #473). Alt+1–4 make that Voice active, or move the picked or selected
+ * notes into it (step 9, Q8). True when the key was one of them.
  */
 function stepOrVoiceKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys): boolean {
   const { key } = e;
-  if ((key === 'ArrowLeft' || key === 'ArrowRight') && e.altKey && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
-    editor.stepElement(key === 'ArrowRight' ? 1 : -1);
+  const arrow = key === 'ArrowLeft' || key === 'ArrowRight';
+  const step = key === 'ArrowRight' ? 1 : -1;
+  if (arrow && e.altKey && !e.shiftKey && (e.ctrlKey || e.metaKey)) {
+    editor.stepElement(step);
+    return true;
+  }
+  if (arrow && e.altKey && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+    moveInTimeKey(editor, step);
     return true;
   }
   // Read by the key's place, as Alt types another character on a Mac.
@@ -165,6 +175,22 @@ function stepOrVoiceKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edito
     return true;
   }
   return false;
+}
+
+/**
+ * Alt+← →: the picked chord, note or selection a grid step earlier or later, in normal mode (issue #473):
+ * the fixed grid's step when it is on, else the length of the note it starts with (`ownStep`). Nothing
+ * moves in note input mode, with a mark or word picked, or on a rest.
+ */
+function moveInTimeKey(editor: EditorKeys, step: 1 | -1) {
+  const { clip, target, picked, noteInputMode, fixedGrid, gridStep, commit } = editor;
+  if (noteInputMode || picked) return;
+  const by = fixedGrid ? gridStep : ownStep(clip, target);
+  if (!by) return;
+  const moved = moveInTime(clip, target, step * by);
+  if (!moved) return;
+  commit(moved.clip, moved.cursor, moved.selection);
+  editor.hearNote(moved.cursor);
 }
 
 /**

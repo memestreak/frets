@@ -45,7 +45,7 @@ right-click → Select similar to their own issue (#260).
   go, the columns drawn inside it, on any line whose staff or tab it crosses, become the selection, from
   the first to the last, as Shift+arrows select. A rectangle that takes in no column changes nothing.
   A Shift+press there that moves less than 4 pixels extends the selection as before.
-- **Alt+← →** step through everything a press can pick, in reading order: in each column, its bar's
+- **Ctrl/⌘+Alt+← →** (Alt+← →, MuseScore's, until issue #473 gave those keys Dorico's move in time: `2026-11-13-tab-move-in-time-design.md`) step through everything a press can pick, in reading order: in each column, its bar's
   words when it opens the bar (section, tempo, ending), its chord name and text, its notes from the
   high string down (or the rest), then its marks. Each is picked as a press picks it: a note selected
   (on the staff when the staff had the keys), a rest's column alone, a mark or word outlined with its
@@ -71,4 +71,4 @@ right-click → Select similar to their own issue (#260).
 `jumpKeyDown`, with the drawn lines' first and last columns from `TabPage.tsx` (`drawnLines`, laid out
 only when Shift+Home or End asks). `rectangle.ts` (pure: `columnsInRectangle`) and `TabClip.tsx`'s
 `onPickRect` draw and read the rectangle; `elements.ts` (pure: `elementsOf`, `stepElement`) lists what
-Alt+← → step through, and `TabPage.tsx`'s `stepToElement` picks it.
+Ctrl/⌘+Alt+← → step through, and `TabPage.tsx`'s `stepToElement` picks it.

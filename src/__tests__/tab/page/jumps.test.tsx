@@ -189,11 +189,11 @@ describe('TabPage: MuseScore’s jumps and keys (issue #238)', () => {
     expect(screen.queryByTestId('shadow-fret')).toBeNull();
   });
 
-  it('Alt+← → step through notes, rests, marks and words, picking each', async () => {
+  it('Ctrl/⌘+Alt+← → step through notes, rests, marks and words, picking each (Alt+← → until #473)', async () => {
     renderAt(`#tab=${encodeURIComponent('\\title "Steps"\n\\ts (4 4)\n5.1.4{ch "A"} 7.3{v}.4 r.4 3.4.4 |')}`);
     await screen.findByRole('heading', { name: 'Steps' }, SLOW);
     act(() => editor().focus());
-    const alt = (key: string) => keys({ key, altKey: true });
+    const alt = (key: string) => keys({ key, altKey: true, ctrlKey: true });
     const before = alphaTex();
     // From the first note: the next note, then its vibrato, picked as a press picks it.
     alt('ArrowRight');

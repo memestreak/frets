@@ -94,7 +94,7 @@ Jeremy, 2026-11-01 ("playback annotations"): in normal mode a press picks, as it
 - a hairpin, picked whole over the run of columns it spans; Delete takes it off them all. No palette
   tool sets one, so none lights.
 
-Alt+← → step to them too: a bar's repeat start before its columns, its repeat end, count and double bar
+Ctrl/⌘+Alt+← → step to them too: a bar's repeat start before its columns, its repeat end, count and double bar
 after them.
 
 Endings, tempos and fermatas were pickable already; they now light blue too.

@@ -1,5 +1,5 @@
 /**
- * Alt+← → (issue #238, as MuseScore's "next element"): every thing on the clip a press can pick, in
+ * Ctrl/⌘+Alt+← → (issue #238, as MuseScore's "next element", Alt+← → there; moved for #473): every thing on the clip a press can pick, in
  * reading order, so the keys step through marks and words as well as notes. In each column: its bar's
  * signatures and words first when it opens the bar (time, key, section, tempo, ending), then its chord name and text, then its
  * notes from the high string down (or the rest), then its marks; a bar's repeat start before its columns,

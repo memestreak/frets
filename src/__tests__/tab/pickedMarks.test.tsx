@@ -112,7 +112,7 @@ describe('bar lines a press can pick', () => {
     expect(setRepeatTimes(CLIP, 0, 3)).toBe(CLIP);
   });
 
-  it('are stepped to by Alt+← →: a repeat’s start before its bar’s columns, its end, count and a double bar after them', () => {
+  it('are stepped to by Ctrl/⌘+Alt+← →: a repeat’s start before its bar’s columns, its end, count and a double bar after them', () => {
     const kinds = elementsOf(CLIP, LAYOUT).map(e => e.kind);
     expect(kinds.indexOf('repeatStart')).toBeLessThan(kinds.indexOf('chord'));
     expect(kinds.indexOf('repeatEnd')).toBeLessThan(kinds.indexOf('repeatCount'));
