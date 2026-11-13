@@ -49,4 +49,6 @@ alphaTex. They are now set where they are drawn.
   sounds as fingered in the new tuning. Playback, the staff, ASCII Tab and exports follow.
 - Standard takes the `\tuning` tag away. Strings keep the octave nearest standard, as before; a guitar
   with all six strings tuned alike is still written on the staff as fingered.
-- The capo stays a Text tool.
+- Then **Capo**, a number stepper (None, 1 to 12), and the head draws the capo beside the tuning's
+  name: "DADGAD tuning · Capo 4th fret" (issue #463, `2026-11-13-tab-capo-in-tuning-design.md`;
+  until then the capo was a Text tool).

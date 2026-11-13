@@ -110,7 +110,7 @@ picked Span the keys do what they do now.
   P.H. and AH, mordents, tremolo slashes, tuplet numbers, the whammy bar,
   and every Span. Marks that touch their note already (bends,
   slide-outs, taps, slides, tie and hammer-on arcs) have none; nor do
-  what belongs to a bar (sections, tempos, the capo, endings,
+  what belongs to a bar (sections, tempos, endings,
   signatures, bar lines).
 - It is a thin dotted line in `--select`, straight from the edge of the
   Mark nearest the note to the note's fret number, or to its note head

@@ -464,6 +464,10 @@ or saved. Standard tuning only.
 The principles every editing spec since step 1 follows, with Dorico,
 MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
 
+- `docs/specs/2026-11-13-tab-capo-in-tuning-design.md`: the capo set by a
+  stepper in the Tuning panel and drawn beside the tuning's name in the
+  score head; the Capo tool and the capo row over the first line go;
+  ASCII Tab's `Capo:` header (issue #463)
 - `docs/specs/2026-11-09-tab-strums-rolled-chords-design.md`: Strums and
   Rolled chords (alphaTex `bd` `bu` `ad` `au`) drawn as an arrow or a wavy
   arrow left of the chord on the staff and the tab, set by four palette

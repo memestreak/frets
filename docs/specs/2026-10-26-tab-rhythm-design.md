@@ -112,11 +112,11 @@ picked a palette tool for it (option 1 of three). So:
   standard, and "Example: edits aren't saved".
 - The time signature is set from the drawn numbers or the Bars group's
   button (above).
-- **Capo** joins the Text group. It opens the word field ("Capo on fret,
-  1 to 12"; empty or 0 takes it off), and the tab draws "Capo 3" over the
-  start of its first line in a row of its own. A press there edits it.
-  Exported images draw it the same way, so the export no longer adds its
-  own capo line.
+- The capo was first a **Capo** tool in the Text group, drawn as "Capo 3"
+  over the first line. Since issue #463 it is set by a stepper in the
+  Tuning panel and drawn once, beside the tuning's name in the score head
+  and in exported images ("Capo 3rd fret";
+  `2026-11-13-tab-capo-in-tuning-design.md`).
 
 ## Elsewhere
 

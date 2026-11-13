@@ -17,7 +17,7 @@ once, bends held over the bar line into double stops, quarter-step bends and dea
 
 - **The wah's signs go under the chord names.** Round 6 put the wah's row over the chord names, as
   the book's page 6 does; page 7 prints it under them. Jeremy, 2026-10-28: the wah goes under the chord
-  names, and no articulation goes over them. The rows over the music now run capo, tempo, section,
+  names, and no articulation goes over them. The rows over the music now run tempo, section,
   endings, chord names, text, then the wah, nearest the music; nothing over the chord names is a mark
   on the notes.
 

@@ -13,7 +13,10 @@ Tailwind 4, Vitest, tonal.
 The app has no users yet (`docs/adr/2026-11-02-no-users-yet.md`).
 
 Every feature has a design spec in `docs/specs/`, named by date and topic;
-it rides in the same PR as the code. A spec wins over the prototypes in
+it rides in the same PR as the code. Specs are living documents
+(`docs/adr/2026-11-13-specs-are-living-documents.md`): a change that
+alters behaviour an older spec describes rewrites that spec to say what
+is true now, linking the newer one. A spec wins over the prototypes in
 `design_handoff/prototypes/`, and Fretwood, not the prototypes, sets the
 look (`docs/adr/2026-11-02-spec-over-prototype.md`).
 `docs/pedagogy/` holds research on what to teach next (ideas, not specs).

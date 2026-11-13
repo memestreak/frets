@@ -62,7 +62,7 @@ note is, with no box round it, and nothing is drawn beside it: the pencil (Edit)
 (Delete) that stood to its right are gone. This reverses his earlier taste for visible icon buttons over
 right-click menus, for these. What lights:
 
-- the words: chord names, text, sections, tempos, the capo, ending brackets;
+- the words: chord names, text, sections, tempos, ending brackets;
 - the technique marks (`marks.ts`): bends, slides, ties, hammer-on arcs, vibrato, accents, harmonics,
   strokes, wah, tremolo, tuplets, octave lines, fermatas, the whammy bar, hairpins. A mark drawn on both
   the staff and the tab lights where it was pressed (where it is drawn, when only once);

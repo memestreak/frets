@@ -6,7 +6,8 @@ This is the second of the three "Next" PRs from the alphaTex triage
 were kept as written but not drawn; now they are drawn and can be set. Jeremy
 said "proceed" on 2026-10-26. Chord names are free text, as recommended. Where
 they are set is option 1 of the choice put to him: a palette group plus a field
-at the spot each is drawn, and the capo beside the time signature.
+at the spot each is drawn. The capo, first set beside the time signature, is
+now set in the Tuning panel (`2026-11-13-tab-capo-in-tuning-design.md`).
 
 ## What is drawn
 
@@ -15,9 +16,10 @@ at the spot each is drawn, and the capo beside the time signature.
 | Chord name | `ch "Am7"` on a beat | bold, centred over its column |
 | Section | `\section "Verse"`, `\section ("A" "Chorus")` on a bar | its name in a box at the bar's start; a rehearsal mark in a filled box before it |
 | Tempo | `\tempo 90`, `\tempo (90 "Slowly")` on a bar | a quarter note, "= 90", then the word, at the bar's start |
-| Capo | `\capo 3` | "Capo 3" over the start of the first line, its own row (changed in `2026-10-26-tab-rhythm-design.md`) |
+| Capo | `\capo 3` | "Capo 3rd fret" beside the tuning's name in the score head (`2026-11-13-tab-capo-in-tuning-design.md`); show_tab, with no head, draws "Capo 3" over its first line in a row of its own |
 
-Each gets its own row over the staff, only when the clip uses it (`rowsFor`).
+Chord names, sections and tempos each get their own row over the staff, only
+when the clip uses them (`rowsFor`).
 From the top, the rows are: tempo, section, endings, chord names, then the note
 marks' rows. The section row has 5px more room above and below than the
 others, so its box stands clear of the words beside it (Jeremy, 2026-10-27).
@@ -37,8 +39,8 @@ nothing then has to be placed after text whose width is unknown.
   - Enter, or leaving the field, sets what was typed. An empty field clears
     it. Esc leaves it as it was.
   - After Enter or Esc, the keys go back to the tab.
-- **Click to pick:** a press on a drawn chord name, text, section, tempo or
-  capo moves the cursor to its column or bar and picks the word (Jeremy,
+- **Click to pick:** a press on a drawn chord name, text, section or tempo
+  moves the cursor to its column or bar and picks the word (Jeremy,
   2026-10-27; a press had opened its field at once): it is outlined like the
   cursor, with two small buttons to its right, Edit (a pencil) and Delete (a
   bin) (Jeremy picked the right over the left after trying both); at the
@@ -54,14 +56,14 @@ nothing then has to be placed after text whose width is unknown.
   has two boxes (Jeremy, 2026-10-27; it had been one box taking "100 A little
   faster"): "Tempo (bpm)", digits only, and "Label (optional)". Tab moves
   between them; Enter in either, or leaving both, sets the tempo. An empty
-  label drops the label; an empty bpm clears the tempo. A number's box (bpm,
-  capo) is 7 digits wide (Jeremy, 2026-10-27), and the capo's field fits round
-  it. A section's rehearsal mark is kept when its
+  label drops the label; an empty bpm clears the tempo. The bpm box is 7
+  digits wide (Jeremy, 2026-10-27). A section's rehearsal mark is kept when its
   name changes; it is set only in the text, for now.
-- **Capo:** first a raised button beside the time signature. Jeremy found it
-  "very weird" (2026-10-26) and picked option 1 of three: a **Capo** tool in
-  the Text group opening the same field as a tempo (1 to 12; empty or 0 takes
-  it off), with "Capo 3" drawn over the first line, which a press also edits.
+- **Capo:** first a raised button beside the time signature, which Jeremy
+  found "very weird" (2026-10-26); then a **Capo** tool in the Text group,
+  with "Capo 3" drawn over the first line. Since issue #463 it is set by a
+  stepper in the Tuning panel and drawn beside the tuning's name in the
+  score head (`2026-11-13-tab-capo-in-tuning-design.md`).
 - Each change is one undo step.
 
 ## Reading
