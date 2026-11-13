@@ -7,6 +7,7 @@ import { elementsOf, stepElement } from './elements';
 import { chainStart, isChained } from './ties';
 import { PANEL_DROP, PANEL_LEAD } from './fieldSpots';
 import { splitRestAt } from './grid';
+import { enterTupletNote } from './tuplets';
 import type { FretDrag, Hit, SpanDrag, StaffDrag, StaffHit } from './hitTest';
 import { draggedRange, type RangeDrag } from './rangeBox';
 import { clampSpan, isSpan, moveSpan, spanAround, spanColumns, spanKind, type SpanMark } from './spans';
@@ -45,7 +46,7 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
   dropLine: () => void;
 }) {
   const {
-    clip, dispatch, cursor, selection, columnOnly, staffPitch, picked, noteInputMode, inputLength,
+    clip, dispatch, cursor, selection, columnOnly, staffPitch, picked, noteInputMode, inputLength, tupletEntry, tupletFrom, setTupletFrom, graceEntry,
     setCursor, setSelection, setColumnOnly, setStaffPitch, setPicked, setAlone, setCursorAt, editorRef, lastDigitRef, commit, commitReBar, startRegion, toPitch,
   } = editor;
 
@@ -182,6 +183,18 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
     }
   };
 
+  /** An open string entered by a press on the tab in note input mode, as a 0 typed there is; `note` is where it went. */
+  const openStringAt = (hit: Cursor, into: number): { clip: Part; cursor: Cursor; note: Cursor } | { problem: string | null } => {
+    const typed = enterTupletNote(clip, hit, into, 0, inputLength, { n: tupletEntry, from: tupletFrom });
+    if (typed && 'problem' in typed) return typed;
+    if (typed) {
+      if (typed.started) setTupletFrom(null);
+      return { clip: typed.clip, cursor: typed.cursor, note: typed.cursor };
+    }
+    const here = splitRestAt(clip, hit, into);
+    return { clip: setFret(here.clip, here.cursor, 0, inputLength), cursor: here.cursor, note: here.cursor };
+  };
+
   /** A press on the tab: the cursor there, a note entered (note input mode) or a bar selected (normal mode); with Shift, the selection grows. */
   const onPick = ({ at: into = 0, ...hit }: Hit, extend: boolean, alone = false, menu = false) => {
     lastDigitRef.current = null;
@@ -198,10 +211,15 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
       // A right-click only moves the caret, for the bar menu (Jeremy, 2026-11-09).
       if (noteInputMode && hasColumn && !there && !menu) {
         // In note input mode a press on a string enters an open string there, as MuseScore's does; digits then change it.
-        // Inside a rest it goes at the grid line pressed (issue #293).
-        const here = splitRestAt(clip, hit, into);
-        commit(setFret(here.clip, here.cursor, 0, inputLength), here.cursor, null);
-        hearNote(here.cursor);
+        // Inside a rest it goes at the grid line pressed (issue #293); in a tuplet's Gap, or with Tuplet entry on, it
+        // is a tuplet note, as a typed 0 is (issue #469).
+        const entered = openStringAt(hit, into);
+        if ('problem' in entered) {
+          if (entered.problem) setNotice({ tone: 'error', lines: [entered.problem] });
+          return;
+        }
+        commit(entered.clip, entered.cursor, null);
+        hearNote(entered.note);
       } else if (!noteInputMode && !there && hasColumn) {
         // In normal mode a press beside the notes selects the bar, as MuseScore's does (Jeremy, 2026-10-31, issue #238).
         commit(clip, hit, barSelection(clip, hit.bar));
@@ -283,7 +301,9 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
       // In note input mode a press on a line or space enters the shadow note's pitch there (issue #238), inside a rest at
       // the grid line pressed (issue #293).
       // The caret goes on past the note by its length, as with A–G and Enter (Jeremy, 2026-11-07, issue #396).
-      const edit = enterOnStaff(clip, at, hit.at ?? 0, pitch, inputLength, false);
+      const modes = { tuplet: { n: tupletEntry, from: tupletFrom }, grace: graceEntry };
+      const edit = enterOnStaff(clip, at, hit.at ?? 0, pitch, inputLength, false, modes);
+      if (edit.tupletStarted) setTupletFrom(null);
       toPitch(edit.clip, edit.cursor, pitch);
       setCursorAt(edit.cursor, edit.at);
       if (edit.note) hearNote(edit.note);
