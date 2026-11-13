@@ -358,7 +358,7 @@ export default function TabPage() {
     setPicked(null);
     setChordsAt({ name: columnAt(clip, { ...cursor, ...place })?.chord ?? null });
     palettes.show('chords');
-    editorRef.current?.focus();
+    editorRef.current?.focus({ preventScroll: true });
   };
   /** A Chord chart chord's Edit: its track shown, if another's, and the Chords panel open at it. */
   const editChartChord = (chord: ChartChord) => {
@@ -478,7 +478,7 @@ export default function TabPage() {
       // the staff picked (Jeremy, 2026-11-07, issue #396).
       const rest = restOnStaff.current;
       if (!onNote && parts !== 'tab' && rest && rest.bar === at.bar && rest.column === at.column) toPitch(part, at, pitchAtStep(part, at.bar, 4), null, part !== clip);
-      editorRef.current?.focus();
+      editorRef.current?.focus({ preventScroll: true });
     }
   };
 
@@ -520,7 +520,7 @@ export default function TabPage() {
       setColumnOnly(!hit && parts === 'staff');
       setStaffPitch(null);
     }
-    editorRef.current?.focus();
+    editorRef.current?.focus({ preventScroll: true });
   };
 
 
@@ -627,7 +627,7 @@ export default function TabPage() {
   };
   const closeTuplets = (byKey: boolean) => {
     setTupletPanel(null);
-    if (byKey) editorRef.current?.focus();
+    if (byKey) editorRef.current?.focus({ preventScroll: true });
   };
 
   /** A choice in the Bend, Tuplet, Octave line or Whammy bar panel: like a palette button, nothing off the tab. */
@@ -877,7 +877,7 @@ export default function TabPage() {
   /** The Rail's Voice row (Q5): that Voice made active at the cursor's time, the keys back on the tab. */
   const pressVoice = (v: number) => {
     if (view !== 'tab') return;
-    editorRef.current?.focus();
+    editorRef.current?.focus({ preventScroll: true });
     chooseVoice(v);
   };
   /** The symbol palette, with only `groups` (all when left out); the pencil first when `input`. */
@@ -1115,7 +1115,7 @@ export default function TabPage() {
         <ShapeMenu
           x={menu.x} y={menu.y} label={menu.hit ? 'Selected' : menu.onNote ? 'Note' : 'Bar'}
           onClose={refocus => {
-            if (refocus) editorRef.current?.focus();
+            if (refocus) editorRef.current?.focus({ preventScroll: true });
             else {
               // A press away from the menu: the tab lets the keys go, as its blur would have when the menu opened.
               setTabFocused(false);
