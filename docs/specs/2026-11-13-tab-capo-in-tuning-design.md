@@ -29,11 +29,15 @@ first line in `2026-10-26-tab-words-design.md` and
 - The Tuning panel (a Panel, not a Popover: see `GLOSSARY.md`) gains
   **Capo** under the presets, Strings and the piano: a caption, then a
   number stepper, **−**, the field, **+**.
-- The field is typed into (0 to 12); ↑ and ↓ in it step by one. Empty or
-  0 is no capo, and the field then reads **None**. A typed number past 12
-  is taken as 12.
-- **−** is greyed out at None, **+** at 12.
-- Every change applies at once and is one undo step, as a preset is.
+- The field is typed into (0 to 12). What is typed applies on Enter or
+  on leaving the field, as one undo step (Jeremy, 2026-11-13: typing 12
+  is one change, not 1 then 12); Esc leaves the capo as it was, and
+  closes the panel, as the time signature's count and the Tempo panel
+  do. Empty or 0 is no capo, and the field then reads **None**. A typed
+  number past 12 is taken as 12.
+- **−**, **+**, and ↑ and ↓ in the field, step by one and apply at once,
+  each one undo step, as a preset is; ↑ and ↓ step from what is typed
+  when it is a number. **−** is greyed out at None, **+** at 12.
 - The panel's other keys stay as they are; its caption still reads
   "Tuning: DADGAD" (the capo is not part of the tuning's name).
 - The panel does not show the pitches the strings sound with the capo
@@ -80,11 +84,15 @@ first line in `2026-10-26-tab-words-design.md` and
 
 ## Tests
 
-- The Tuning panel: + from None sets `\capo 1`; typing 4 sets `\capo 4`;
-  − at 1, typing 0 and clearing the field each take `\capo` away; typing
-  15 sets 12; − is disabled at None and + at 12; the field reads "None"
-  with no capo.
-- A capo change is one undo step; Undo puts the old capo back.
+- The Tuning panel: + from None sets `\capo 1`; typing 4 then Enter sets
+  `\capo 4`; − at 1, typing 0 and clearing the field (then Enter) each
+  take `\capo` away; typing 15 then Enter sets 12; − is disabled at None
+  and + at 12; the field reads "None" with no capo.
+- A typed fret changes nothing until Enter or the field is left (blur),
+  which applies it; typing then Esc leaves the capo as it was. ↑ and ↓
+  apply at once, from the typed number when there is one.
+- A capo change is one undo step: typing 12 then Enter is one step;
+  Undo puts the old capo back.
 - DADGAD with the capo on 4: the panel's tuning stays D A D G A D;
   playback's open strings sound F♯2 C♯3 F♯3 B3 C♯4 F♯4 (MIDI 42 49 54 59
   61 66);

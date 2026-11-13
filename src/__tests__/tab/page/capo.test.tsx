@@ -20,6 +20,12 @@ const up = () => within(panel()).getByRole('button', { name: 'Capo up a fret' })
 /** The open Track's capo as the page keeps it. */
 const capo = () => partOf(pageClip()).capo;
 
+/** Types into the Capo field, then presses `end` if given. */
+function type(value: string, end?: string) {
+  fireEvent.change(field(), { target: { value } });
+  if (end) fireEvent.keyDown(field(), { key: end });
+}
+
 async function open(tex: string, bars: string) {
   renderAt(`#tab=${encodeURIComponent(`\\ts (4 4)\n${tex}${bars}`)}`);
   await waitFor(() => expect(tuningGroup()).toBeInTheDocument(), SLOW);
@@ -41,29 +47,43 @@ describe('the Tuning panel’s Capo', () => {
     expect(tuningGroup()).toHaveTextContent('Standard tuning · Capo 1st fret');
   });
 
-  it('takes a typed fret at once; − at 1, a typed 0 and an empty field each take the capo away', async () => {
+  it('takes a typed fret on Enter; − at 1, a typed 0 and an empty field each take the capo away', async () => {
     await open('', OPEN);
-    fireEvent.change(field(), { target: { value: '4' } });
+    type('4');
+    // Nothing changes while it is being typed.
+    expect(capo()).toBeUndefined();
+    expect(field()).toHaveValue('4');
+    fireEvent.keyDown(field(), { key: 'Enter' });
     expect(capo()).toBe(4);
     expect(tuningGroup()).toHaveTextContent('Standard tuning · Capo 4th fret');
-    fireEvent.change(field(), { target: { value: '1' } });
+    type('1', 'Enter');
     fireEvent.click(down());
     expect(capo()).toBeUndefined();
     expect(field()).toHaveValue('None');
-    fireEvent.change(field(), { target: { value: '3' } });
-    fireEvent.change(field(), { target: { value: '0' } });
+    type('3', 'Enter');
+    type('0', 'Enter');
     expect(capo()).toBeUndefined();
-    fireEvent.change(field(), { target: { value: '3' } });
-    fireEvent.change(field(), { target: { value: '' } });
+    type('3', 'Enter');
+    type('', 'Enter');
     expect(capo()).toBeUndefined();
-    fireEvent.keyDown(field(), { key: 'Enter' });
     expect(field()).toHaveValue('None');
     expect(tuningGroup()).toHaveTextContent(/^Standard tuning$/);
   });
 
-  it('takes 15 as 12, with + greyed out there; ↑ and ↓ step it', async () => {
+  it('applies a typed fret on leaving the field, and Esc leaves the capo as it was', async () => {
+    await open('\\capo 2\n', OPEN);
+    type('7');
+    fireEvent.blur(field());
+    expect(capo()).toBe(7);
+    expect(field()).toHaveValue('7');
+    type('9');
+    fireEvent.keyDown(field(), { key: 'Escape' });
+    expect(capo()).toBe(7);
+  });
+
+  it('takes 15 as 12, with + greyed out there; ↑ and ↓ step it at once, from a typed number', async () => {
     await open('', OPEN);
-    fireEvent.change(field(), { target: { value: '15' } });
+    type('15', 'Enter');
     expect(capo()).toBe(12);
     expect(field()).toHaveValue('12');
     expect(up()).toBeDisabled();
@@ -72,13 +92,24 @@ describe('the Tuning panel’s Capo', () => {
     fireEvent.keyDown(field(), { key: 'ArrowUp' });
     fireEvent.keyDown(field(), { key: 'ArrowUp' });
     expect(capo()).toBe(12);
+    type('5');
+    fireEvent.keyDown(field(), { key: 'ArrowUp' });
+    expect(capo()).toBe(6);
+    expect(field()).toHaveValue('6');
   });
 
-  it('is one undo step a change; Undo puts the old capo back', async () => {
+  it('is one undo step a change, typing 12 then Enter too; Undo puts the old capo back', async () => {
     await open('\\capo 2\n', OPEN);
     expect(field()).toHaveValue('2');
     fireEvent.click(up());
     expect(capo()).toBe(3);
+    // Typed a digit at a time, it is still one step.
+    type('1');
+    type('12', 'Enter');
+    expect(capo()).toBe(12);
+    undo();
+    expect(capo()).toBe(3);
+    expect(field()).toHaveValue('3');
     undo();
     expect(capo()).toBe(2);
     expect(field()).toHaveValue('2');
@@ -88,7 +119,7 @@ describe('the Tuning panel’s Capo', () => {
 
   it('DADGAD with the capo on 4: the tuning stays, the open strings sound F♯2 C♯3 F♯3 B3 C♯4 F♯4, the tab keeps its 0s', async () => {
     await open(DADGAD, OPEN);
-    fireEvent.change(field(), { target: { value: '4' } });
+    type('4', 'Enter');
     const strings = within(panel()).getByRole('group', { name: 'String' });
     expect(within(strings).getAllByRole('button').map(b => b.textContent?.slice(1))).toEqual(['D', 'A', 'D', 'G', 'A', 'D']);
     expect(within(panel()).getByText('Tuning: DADGAD')).toBeInTheDocument();
@@ -102,7 +133,7 @@ describe('the Tuning panel’s Capo', () => {
 
   it('keeps the capo when a preset is picked, and the tuning and every fret when the capo changes', async () => {
     await open(DADGAD, '0.6.4 2.5.4 3.4.4 5.1.4 |');
-    fireEvent.change(field(), { target: { value: '4' } });
+    type('4', 'Enter');
     expect(partOf(pageClip()).tuning).toEqual(['D', 'A', 'D', 'G', 'A', 'D']);
     fireEvent.click(within(panel()).getByRole('button', { name: 'Drop D' }));
     expect(capo()).toBe(4);

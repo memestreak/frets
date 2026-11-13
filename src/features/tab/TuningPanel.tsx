@@ -7,7 +7,7 @@
  * `docs/specs/2026-11-13-tab-capo-in-tuning-design.md`). Every change is one undo step and keeps the
  * frets (`tuning.ts`); a capo change keeps the tuning, and the tuning keeps the capo.
  */
-import { useState, type KeyboardEvent } from 'react';
+import { useRef, useState, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { KeyPicker } from '@/components/KeyPicker';
 import { prettyNote } from '@/lib/theory/notes';
@@ -68,32 +68,43 @@ export function TuningPanel({ clip, x, y, onChange, onClose }: {
 
 /**
  * The capo as a − / + stepper round a field (issue #463): 0 is no capo, and the field then reads None.
- * What is typed applies at once (past 12 is 12, empty is none); ↑ and ↓ step it.
+ * − and +, and ↑ ↓ in the field, apply at once. A typed fret applies on Enter or on leaving the field,
+ * as one undo step (past 12 is 12, empty or 0 is none); Esc leaves the capo as it was, as the time
+ * signature's count does.
  */
 function CapoStepper({ capo, onCapo }: { capo: number; onCapo: (capo: number) => void }) {
-  // What is being typed; null when the field shows the clip's own capo.
-  const [draft, setDraft] = useState<string | null>(null);
+  // What is being typed; null when the field shows the clip's own capo. The ref sees it at once, so a
+  // blur right after Enter or Esc (the panel closing) doesn't apply it again.
+  const [draft, setDraftState] = useState<string | null>(null);
+  const pending = useRef<string | null>(null);
+  const setDraft = (value: string | null) => {
+    pending.current = value;
+    setDraftState(value);
+  };
   const set = (next: number) => {
     const clamped = Math.min(MAX_CAPO, Math.max(0, next));
     if (clamped !== capo) onCapo(clamped);
   };
-  const onType = (typed: string) => {
-    const digits = typed.replace(/\D/g, '');
-    const next = digits === '' ? 0 : Math.min(MAX_CAPO, Number(digits));
-    setDraft(digits === '' ? '' : String(next));
-    set(next);
+  const settle = () => {
+    const typed = pending.current;
+    if (typed === null) return;
+    setDraft(null);
+    set(typed === '' ? 0 : Number(typed));
   };
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') setDraft(null);
+    if (e.key === 'Enter') settle();
+    // Esc goes on to close the panel too, as in the panel's other fields.
+    else if (e.key === 'Escape') setDraft(null);
     else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
       e.preventDefault();
+      // From what is typed, if it is a number, as the time signature's count steps.
+      const typed = pending.current;
+      const from = typed !== null && /^\d+$/.test(typed) ? Math.min(MAX_CAPO, Number(typed)) : capo;
       setDraft(null);
-      set(capo + (e.key === 'ArrowUp' ? 1 : -1));
+      set(from + (e.key === 'ArrowUp' ? 1 : -1));
     }
   };
-  // What is typed stays while it is the capo; a change from elsewhere (a button, Undo) shows the capo.
-  const typed = draft !== null && (draft === '' ? capo === 0 : Number(draft) === capo);
-  const shown = typed ? draft : capo === 0 ? 'None' : String(capo);
+  const shown = draft ?? (capo === 0 ? 'None' : String(capo));
   return (
     <>
       <span className="tab-time-caption">Capo</span>
@@ -103,8 +114,8 @@ function CapoStepper({ capo, onCapo }: { capo: number; onCapo: (capo: number) =>
           type="text" inputMode="numeric" aria-label="Capo"
           value={shown}
           onFocus={e => e.currentTarget.select()}
-          onChange={e => onType(e.target.value)}
-          onBlur={() => setDraft(null)} onKeyDown={onKeyDown}
+          onChange={e => setDraft(e.target.value.replace(/\D/g, '').slice(0, 2))}
+          onBlur={settle} onKeyDown={onKeyDown}
         />
         <button type="button" aria-label="Capo up a fret" disabled={capo === MAX_CAPO} onClick={() => set(capo + 1)}>+</button>
       </span>
