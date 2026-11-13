@@ -224,7 +224,8 @@ and in its spec.
 - `tuplets.ts` — tuplets and grace notes that keep bars full: a tuplet over
   one note (`tupletOver`), a selection squeezed (`squeezeTuplet`), a tuplet
   taken away (`untuplet`), lengths and frets inside one (`lengthInTuplet`,
-  `typeInTuplet`), Tuplet entry's first note (`startTuplet`), and a grace
+  `typeInTuplet`), Tuplet entry's first note (`startTuplet`), a note entered
+  where a tuplet takes it, from the tab or the staff (`enterTupletNote`), and a grace
   note added or removed (`addGrace`, `enterGrace`, `removeGrace`) —
   `2026-11-04-tab-tuplets-grace-rest-design.md`.
 - `ties.ts` — a Tie chain as one note: where it starts and ends
@@ -262,7 +263,8 @@ and in its spec.
 - `jumps.ts` — Ctrl/⌘+← → a bar, Home / End, with Shift growing the
   selection — `2026-10-30-tab-musescore-selection-design.md`.
 - `staffEntry.ts` — the staff's own cursor, the string and fret chosen for
-  a note entered on the staff, `moveNotes` —
+  a note entered on the staff (`enterOnStaff`, following Tuplet entry and
+  Grace entry, issue #469), `moveNotes` —
   `2026-10-27-tab-staff-entry-design.md`,
   `2026-10-28-tab-staff-drag-design.md`.
 - `tools.ts` — the palette's table (name, key, edit, whether lit), shared

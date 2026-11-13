@@ -7,8 +7,8 @@
  */
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react';
 import { ticks } from './clip';
-import { placeAtTime, SPLITS_TUPLET } from './timeline';
-import { enterGrace, groupAt, isProblem, lengthInTuplet, startTuplet, tupletSpanTicks, typeInTuplet } from './tuplets';
+import { SPLITS_TUPLET } from './timeline';
+import { enterGrace, enterTupletNote, groupAt, lengthInTuplet } from './tuplets';
 import { columnAt, cursorTime, insertTime, MAX_FRET, moveColumn, noteAt, setFret } from './editing';
 import { chainStart, overTiedOn } from './ties';
 import { enterOnStaff, moveNotes, moveToString, movedPitch, notesToMove, pitchAtStep, pitchOf, pitchOfLetter, stepPitch, stringAtPitch } from './staffEntry';
@@ -172,17 +172,7 @@ function typeEntered(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys, 
   // A second digit joins the first on the note it typed, as anywhere.
   if (soon(spot) && before!.digit * 10 + digit <= MAX_FRET) return false;
   const group = column && !column.grace ? groupAt(clip, cursor) : null;
-  if (group && !column!.notes.some(Boolean)) {
-    // In a tuplet's Gap: a tuplet note of the Input length in its ratio, when it fits.
-    const typed = typeInTuplet(clip, cursor, editor.cursorAt, digit, inputLength);
-    if (typed) {
-      lastDigit.current = { spot: `${typed.cursor.bar}:${typed.cursor.column}:${typed.cursor.string}`, digit, at: e.timeStamp };
-      commit(typed.clip, typed.cursor);
-      editor.hearNote(typed.cursor);
-    }
-    return true;
-  }
-  if (group) {
+  if (group && column!.notes.some(Boolean)) {
     // On a tuplet note: its fret, and its length the Input length in the tuplet's ratio when that fits.
     const fretted = setFret(clip, cursor, digit);
     const lengthened = column!.duration.value === inputLength.value && column!.duration.dots === inputLength.dots
@@ -193,24 +183,17 @@ function typeEntered(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys, 
     editor.hearNote(cursor);
     return true;
   }
-  const n = editor.tupletEntry;
-  if (n === null) return false;
-  // Tuplet entry: a new tuplet from where its first rest began, or from the cursor.
-  const t = cursorTime(clip, cursor) + editor.cursorAt;
-  const span = tupletSpanTicks(n, inputLength);
-  const unit = span / n;
-  const from = editor.tupletFrom;
-  const start = from !== null && t >= from && t < from + span && Number.isInteger((t - from) / unit) ? from : t;
-  const made = startTuplet(clip, start, Math.round((t - start) / unit), n, inputLength, cursor.string, digit);
-  if (isProblem(made)) {
-    editor.onNotice({ tone: 'error', lines: [made.problem] });
+  // In a tuplet's Gap, or with Tuplet entry on: a tuplet note.
+  const typed = enterTupletNote(clip, cursor, editor.cursorAt, digit, inputLength, { n: editor.tupletEntry, from: editor.tupletFrom });
+  if (!typed) return false;
+  if ('problem' in typed) {
+    if (typed.problem) editor.onNotice({ tone: 'error', lines: [typed.problem] });
     return true;
   }
-  editor.setTupletFrom(null);
-  const at = { ...cursor, ...placeAtTime(made, t) };
-  lastDigit.current = { spot: `${at.bar}:${at.column}:${at.string}`, digit, at: e.timeStamp };
-  commit(made, at, null);
-  editor.hearNote(at);
+  if (typed.started) editor.setTupletFrom(null);
+  lastDigit.current = { spot: `${typed.cursor.bar}:${typed.cursor.column}:${typed.cursor.string}`, digit, at: e.timeStamp };
+  commit(typed.clip, typed.cursor, typed.started ? null : undefined);
+  editor.hearNote(typed.cursor);
   return true;
 }
 
@@ -317,9 +300,14 @@ function letterKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys
   return true;
 }
 
-/** A note entered on the staff at the caret, which goes on past it by its length (Jeremy, 2026-11-07, issue #396). */
+/**
+ * A note entered on the staff at the caret, which goes on past it by its length (Jeremy, 2026-11-07, issue #396),
+ * following Tuplet entry and Grace entry as a typed fret does (issue #469).
+ */
 function enterAtCaret(editor: EditorKeys, pitch: number, toggle: boolean) {
-  const edit = enterOnStaff(editor.clip, editor.cursor, editor.cursorAt, pitch, editor.inputLength, toggle);
+  const modes = { tuplet: { n: editor.tupletEntry, from: editor.tupletFrom }, grace: editor.graceEntry };
+  const edit = enterOnStaff(editor.clip, editor.cursor, editor.cursorAt, pitch, editor.inputLength, toggle, modes);
+  if (edit.tupletStarted) editor.setTupletFrom(null);
   editor.toPitch(edit.clip, edit.cursor, pitch, null);
   editor.setCursorAt(edit.cursor, edit.at);
   if (edit.note) editor.hearNote(edit.note);

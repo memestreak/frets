@@ -74,7 +74,8 @@ make it flat, sharp or natural from the plain letter, for that one letter only (
 input, lets the sign go; a second sign replaces the first) (Jeremy, 2026-11-07, issue #396; # and b moved the ghost a semitone before, and
 - and = there were Shorter and Longer). Every note made on the staff, by a letter, Enter or a press, moves the
 caret on past it by its length, as Dorico's does; a fret typed on the tab leaves the caret where it is, for a
-second digit or a chord. Alt+↑ ↓ move the note at the caret's pitch, or with none there its ghost; Enter on
+second digit or a chord. Notes made on the staff follow Tuplet entry and Grace entry as typed frets do
+(issue #469; `2026-11-04-tab-tuplets-grace-rest-design.md`). Alt+↑ ↓ move the note at the caret's pitch, or with none there its ghost; Enter on
 the staff adds a note or takes away the one there; → past a short bar
 adds a rest to type on. The tab's cursor is outlined, as before; on a string with no note it holds a
 faint 0, the tab's ghost note, as MuseScore's tab shadow note does (Jeremy, 2026-11-08, issue #396). The staff's is Dorico's caret, an upright

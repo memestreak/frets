@@ -1,0 +1,10 @@
+\title "Tuplet entry follows A–G and Enter on the staff"
+\ts (4 4)
+0.6.4{txt "**1.** Select Staff view\nStaff, at the top left of the clip"}
+  3.6.4{txt "**2.** Start note input\nPress the whole rest in bar 2, then N"}
+  5.6.4{txt "**3.** Pick quarter triplets\nPress the 5 key (a quarter note), then the ; key, then 3 in the Tuplet panel. The Quarter note and Tuplet buttons light"}
+  7.6.4{txt "**4.** Type G, A, B"} |
+r.1 |
+0.6.2{txt "Bar 2 now starts with a quarter-note triplet, G A B, with a 3 over it. The Tuplet button shows 3"}
+  0.6.2{txt "**5.** Press Enter\nA second triplet starts on beat 3, on B"} |
+

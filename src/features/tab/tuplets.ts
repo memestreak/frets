@@ -8,10 +8,10 @@ import {
   STRING_COUNT, ticks, tupletGroups, TUPLET_SPANS,
   type Bar, type Column, type Duration, type NoteValue, type Part,
 } from './clip';
-import { columnAt, emptyColumn, normalize, placeOf, replaceBar, selectedRange, without, type Cursor, type Target } from './editing';
+import { columnAt, cursorTime, emptyColumn, normalize, placeOf, replaceBar, selectedRange, without, type Cursor, type Target } from './editing';
 import { chainDuration, chainTicks, lengthAnchor, type Place } from './ties';
 import { graceValues, isBareRest, tupletKind as kindOf, tupletRests } from './sounding';
-import { SPLITS_TUPLET, timeOf, writeOver } from './timeline';
+import { placeAtTime, SPLITS_TUPLET, timeOf, writeOver } from './timeline';
 import { unbeamed } from './beams';
 
 /* — what the page says when a tuplet can't be made — */
@@ -359,6 +359,46 @@ export function startTuplet(part: Part, start: number, offset: number, n: number
   const columns = [...before.map(emptyColumn), { duration: unit, notes }, ...after.map(emptyColumn)];
   const written = writeOver(part, start, columns, start + unitTicks * n);
   return written ? normalize(written) : { problem: SPLITS_TUPLET };
+}
+
+/** Tuplet entry as note input mode has it: the tuplet picked (null when off), and where its first rest began. */
+export interface TupletEntry {
+  n: number | null;
+  from: number | null;
+}
+
+/** A note entered as a tuplet note: the Part, the cursor on the note, and whether it started a new tuplet. */
+export interface TupletEntered {
+  clip: Part;
+  cursor: Cursor;
+  started: boolean;
+}
+
+/**
+ * A note entered in note input mode where a tuplet takes it (spec Q6, Q7), whether a fret typed on the tab, a
+ * letter, Enter or a press on the staff: in a tuplet's Gap, a tuplet note of `length` in its ratio; with Tuplet
+ * entry on and the cursor in no tuplet, the first note of a new one. The note is `fret` on the cursor's string,
+ * `at` ticks into the cursor's Column. Null when neither applies, and the note goes in as usual; `problem` null
+ * when it doesn't fit before the tuplet's end and nothing happens.
+ */
+export function enterTupletNote(part: Part, cursor: Cursor, at: number, fret: number, length: Duration, entry: TupletEntry): TupletEntered | { problem: string | null } | null {
+  const column = columnAt(part, cursor);
+  const group = column && !column.grace ? groupAt(part, cursor) : null;
+  if (group) {
+    if (column!.notes.some(Boolean)) return null;
+    const typed = typeInTuplet(part, cursor, at, fret, length);
+    return typed ? { ...typed, started: false } : { problem: null };
+  }
+  const { n, from } = entry;
+  if (n === null) return null;
+  // A new tuplet from where Tuplet entry's rest began, or from the cursor.
+  const t = cursorTime(part, cursor) + at;
+  const span = tupletSpanTicks(n, length);
+  const unit = span / n;
+  const start = from !== null && t >= from && t < from + span && Number.isInteger((t - from) / unit) ? from : t;
+  const made = startTuplet(part, start, Math.round((t - start) / unit), n, length, cursor.string, fret);
+  if (isProblem(made)) return made;
+  return { clip: made, cursor: { ...cursor, ...placeAtTime(made, t) }, started: true };
 }
 
 /** The tuplet's span in ticks for `n` notes of `length`: what Tuplet entry starts. */

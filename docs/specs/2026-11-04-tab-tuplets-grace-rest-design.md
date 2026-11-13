@@ -77,6 +77,13 @@ length keys do nothing on a note inside a tuplet".)
   eighths over a quarter. The cursor then moves through the tuplet one
   tuplet note at a time. Past its end, the next note typed starts a new
   tuplet.
+- **Every way of entering a note follows it** (issue #469): a fret typed on
+  the tab, a press on a string (its open string, as a typed 0), and on the
+  staff A–G, Enter and a press on a line or space. On the staff the caret
+  goes on by the tuplet note's length, as it goes on past any note entered
+  there (`2026-10-30-tab-note-input-mode-design.md`). Enter on a note
+  already at the caret's pitch still takes it away, and a note entered on
+  the staff at a tuplet note's place joins it as a chord.
 - **Another Input length inside a tuplet** makes a note of that length in
   the tuplet's ratio when it fits before the tuplet's end; otherwise
   nothing happens.
@@ -106,7 +113,8 @@ Grace button stays lit until `/` again or note input mode is left. Each fret
 typed adds a grace note before the time at the cursor, after any already
 there; the cursor stays at that time, so with Grace entry off the next
 fret typed is the main note. Two-digit frets join as usual. With Tuplet
-entry on too, Grace entry wins for the typed note.
+entry on too, Grace entry wins for the typed note. On the staff, A–G and
+Enter add a grace note the same way, at the pitch named (issue #469).
 
 ## Rests (Q12, Q13, Q18)
 
@@ -197,6 +205,16 @@ Grace entry and Delete on a picked tuplet number.
   turns it off. A sixteenth Input length inside an eighth triplet types a
   triplet sixteenth.
 - In a triplet's Gap, → stops at each triplet eighth, Tuplet entry off.
+- On the staff (issue #469), Input length a quarter, triplet picked: G, A,
+  B make a quarter-note triplet then a half Gap; Enter then starts a new
+  triplet; past a tuplet's end the next letter starts another; eighths make
+  an eighth triplet over a quarter. In a triplet's Gap, Tuplet entry off, A
+  is a triplet quarter; a whole there changes nothing. Enter on a tuplet
+  note at the caret's pitch takes it away; a letter on a tuplet note adds
+  a chord note, no new tuplet. With Grace entry on, a letter is a grace
+  note before the caret's Column and the caret stays. With neither on,
+  letters enter plain notes as before. A press on the tab with Tuplet
+  entry on starts a tuplet with the open string; a digit then changes it.
 - `/` on a picked note: a grace note at the same fret before it, bar time
   unchanged, cursor on the grace note; `/` on that grace note adds a
   second, and both are written as sixteenths, a third makes them
