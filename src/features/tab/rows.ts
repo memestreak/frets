@@ -17,7 +17,7 @@ import { LYRIC_LINE, lyricLines } from './lyrics';
  * has no room left for them (Jeremy, 2026-10-28: "way too much vertical white space").
  */
 export interface Rows {
-  /** "Capo 3" over the start of the first line. */
+  /** "Capo 3" over the start of show_tab's first line (`layoutClip`'s `capoRow`); the Tab page draws it in the score head. */
   capo: number | null;
   /** A tempo over the bar it starts at. */
   tempo: number | null;

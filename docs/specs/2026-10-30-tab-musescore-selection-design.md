@@ -46,7 +46,7 @@ right-click → Select similar to their own issue (#260).
   the first to the last, as Shift+arrows select. A rectangle that takes in no column changes nothing.
   A Shift+press there that moves less than 4 pixels extends the selection as before.
 - **Alt+← →** step through everything a press can pick, in reading order: in each column, its bar's
-  words when it opens the bar (capo, section, tempo, ending), its chord name and text, its notes from the
+  words when it opens the bar (section, tempo, ending), its chord name and text, its notes from the
   high string down (or the rest), then its marks. Each is picked as a press picks it: a note selected
   (on the staff when the staff had the keys), a rest's column alone, a mark or word outlined with its
   Delete (and Edit). From a column with no string picked, → goes to its first note. Nothing is past

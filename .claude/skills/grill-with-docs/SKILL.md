@@ -122,9 +122,12 @@ understanding before you write anything further.
 
 - **Which file.** The existing spec for the feature, edited, is the
   default. A new spec only for a new feature, or a redesign too large to
-  rewrite the old one cleanly. When a new spec takes over part of an old
-  one, leave a line in the old spec where that part was, pointing to the
-  new one; don't mark the old spec superseded as a whole. A rule every
+  rewrite the old one cleanly. Specs are living documents
+  (`docs/adr/2026-11-13-specs-are-living-documents.md`): when a new spec
+  takes over part of an old one, rewrite that part of the old spec to say
+  what is true now, keeping only the history that explains a decision,
+  and link the new spec from it; search every spec for statements the
+  change makes untrue and fix them too. A rule every
   page follows goes in the product-wide spec for that concern, or a new
   one if there isn't one yet.
 - **Shape.** Match the repo's recent specs: read two or three first.

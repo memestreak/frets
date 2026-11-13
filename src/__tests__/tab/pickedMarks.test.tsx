@@ -79,7 +79,7 @@ describe('bar lines a press can pick', () => {
       expect(barLineAt(LAYOUT, clientX, clientY)).toEqual(box.hit);
       // The words' hit test finds it too, so a press picks it as it picks a chord name.
       expect(textAt(LAYOUT, clientX, clientY)).toEqual(box.hit);
-      expect(textBox(LAYOUT, box.hit, null)).not.toBeNull();
+      expect(textBox(LAYOUT, box.hit)).not.toBeNull();
     }
     expect(barLine('repeatStart').hit.bar).toBe(0);
     expect(barLine('repeatEnd').hit.bar).toBe(1);
@@ -178,7 +178,7 @@ describe('picking on the page (issue #276)', () => {
 
   it('gives a word’s menu Edit and Delete, and lights the word, not a box round it', async () => {
     await open();
-    const box = textBox(LAYOUT, { kind: 'chord', index: 0 }, null)!;
+    const box = textBox(LAYOUT, { kind: 'chord', index: 0 })!;
     press(middleOf(box), 2);
     expect(isLit(screen.getByTestId('chord-name'))).toBe(true);
     expect(menuItems()).toEqual(['Edit', 'Delete']);

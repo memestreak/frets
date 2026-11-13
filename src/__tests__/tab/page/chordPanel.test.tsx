@@ -50,7 +50,7 @@ function written(): string {
 const definitions = () => written().split('\n').filter(l => l.startsWith('\\chord'));
 
 function pressWord(layout: Layout, hit: WordHit, button = 0) {
-  const box = textBox(layout, hit, null)!;
+  const box = textBox(layout, hit)!;
   const at = { clientX: box.x + box.width / 2, clientY: box.y + box.height / 2 };
   fireEvent.pointerDown(drawing(), { ...at, button });
   if (button === 2) fireEvent.contextMenu(editor(), at);

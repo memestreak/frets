@@ -1,0 +1,148 @@
+# Tab: the capo in the Tuning panel
+
+Issue #463 (Jeremy, 2026-11-13): set a capo from the Tuning panel, below
+the tuning presets and Strings, so a clip can be DADGAD with a capo on the
+4th fret. Settled with Jeremy the same day.
+
+This takes over "The capo stays a Text tool" in
+`2026-10-29-tab-credits-tuning-design.md`, and the capo's place over the
+first line in `2026-10-26-tab-words-design.md` and
+`2026-10-26-tab-rhythm-design.md`, for the Tab page.
+
+## What a capo is
+
+- The capo is the Track's existing one (`capo`, alphaTex `\capo N`, 1 to
+  12), one per Track, as before. Nothing new is stored.
+- It goes on **after** the tuning: the strings are tuned first, then the
+  capo raises every open string by its fret. DADGAD with a capo on 4
+  sounds F♯ C♯ F♯ B C♯ F♯.
+- Like a transposition, it changes what sounds, not the fingering. Frets
+  stay counted from the capo, as tab is written: a `0` is the capoed open
+  string, a `2` two frets above the capo. Playback, MIDI out, the staff,
+  note names, Hear notes and the chord names follow; the tab's numbers
+  don't.
+- Changing the tuning keeps the capo; changing the capo keeps the tuning
+  and every fret.
+
+## The Tuning panel
+
+- The Tuning panel (a Panel, not a Popover: see `GLOSSARY.md`) gains
+  a **Capo** section under Tuning and Strings: its header, then a
+  dropdown under it: **None**, first and the default, then **1st fret** to **12th
+  fret** (Jeremy, 2026-11-13, in place of a first − / field / + stepper).
+- A small neck is under the dropdown, whatever the capo: the nut to fret 15, frets narrowing as a guitar's
+  do; the tuning's strings, named left of the nut, high e on top; the
+  inlays at 3, 5, 7, 9, 12 and 15; the fret numbers under it; and the
+  capo as a bar across every string just behind its fret wire; at None
+  no bar. (First shown only with a capo on, the panel growing downward
+  when one went on; always since 2026-11-13, Jeremy: "Can we leave the
+  fretboard diagram displayed regardless of what the capo setting
+  is?")
+- A press on the space of fret 1 to 12 puts the capo there, from None
+  too, the
+  dropdown following; hovering one shows a faint capo there. Frets 13
+  to 15 are drawn as the others but take no press and show no hover
+  capo (Jeremy, 2026-11-13: "Whole neck selectable to 12 but showing
+  frets up to 15", picked over a five-fret window round the capo). The
+  neck has no None: the dropdown takes the capo off, the neck staying,
+  with no bar.
+- Every choice, in the dropdown or on the neck, applies at once and is
+  one undo step, as a preset is. The dropdown lets go of the focus after
+  a choice (let go after use).
+- The panel's other keys stay as they are. Capo's header is on a line
+  of its own over its dropdown, as Tuning's and Strings' are
+  (`2026-10-29-tab-credits-tuning-design.md`); the Tuning dropdown still
+  reads DADGAD with a capo on (the capo is not part of the tuning's
+  name).
+- The panel does not show the pitches the strings sound with the capo
+  on: the Strings still name the tuning, and the staff shows what sounds.
+
+## One way in
+
+- The **Capo** tool leaves the Text group (one way to do a thing, as for
+  the title, 2026-10-29). Its word field ("Capo on fret, 1 to 12") goes
+  with it.
+- The capo is no longer drawn over the first line on the Tab page, so it
+  can't be picked there; Alt+← → no longer stops on it.
+- A capo is taken off only in the Tuning panel (None). Delete on the
+  picked tuning still does nothing.
+
+## Drawn in the score head
+
+- The capo is drawn once, in the head, beside the tuning's name, after a
+  middle dot: "DADGAD tuning · Capo 4th fret". The fret is an ordinal:
+  1st, 2nd, 3rd, 4th … 11th, 12th.
+- In standard tuning the page reads "Standard tuning · Capo 4th fret". The
+  exported picture leaves standard tuning unsaid, as before, so it prints
+  "Capo 4th fret" alone.
+- A collapsed tuning keeps the capo: "DADGAD tuning · Capo 4th fret" with
+  the strings hidden.
+- The capo is part of the tuning's button: a press on it picks the
+  tuning, and Edit, Enter or a double-click opens the Tuning panel.
+- The "Capo 4" row over the first line goes from the page and from PNG
+  and SVG exports, and the first line moves up into its room.
+- **show_tab** has no head, so it still draws "Capo 2" over its first
+  line, as now.
+
+## Formats
+
+- alphaTex, the share link, MusicXML (`<capo>` in the tab staff's
+  details, notes at the pitch they sound) and Guitar Pro (the track's
+  capo) carry it as they do now.
+- **ASCII Tab** gains a `Capo: 4` header line, after `Tuning:`, written
+  only when there is a capo. It is read back: `Capo: 0` is no capo, a
+  capo past 12 is read as 12 with a message ("Read capo 15 as 12, the
+  highest Frets offers."), and anything else that isn't a whole number is
+  left out with a message. `public/tab-ascii.txt` lists it with the other
+  header lines.
+
+## Tests
+
+- The Tuning panel's Capo dropdown lists None, first and chosen with no
+  capo, then 1st fret to 12th fret; at None the neck shows with no
+  capo bar, and the panel is as wide and as tall as with a capo on.
+- Choosing a fret sets `\capo N`, shows the neck with the capo on that
+  fret, and the head reads it; None takes `\capo` and the bar away,
+  the neck staying.
+- At None, a press on fret 5 on the neck sets `\capo 5`, the dropdown
+  reading 5th fret; hovering a fret shows the faint capo there.
+- A press on fret 7 on the neck sets `\capo 7` and the dropdown reads
+  7th fret; every fret 1 to 12 can be pressed; the neck offers no None.
+- The neck draws frets 1 to 15; frets 13 to 15 have no button, show no
+  hover capo, and a press there leaves the capo as it was.
+- A capo change, from the dropdown or the neck, is one undo step; Undo
+  puts the old capo back.
+- DADGAD with the capo on 4: the panel's tuning stays D A D G A D and its
+  dropdown reads DADGAD;
+  playback's open strings sound F♯2 C♯3 F♯3 B3 C♯4 F♯4 (MIDI 42 49 54 59
+  61 66);
+  the tab still shows its `0`s.
+- Picking a preset with a capo on keeps the capo; changing the capo keeps
+  the tuning and every fret.
+- The Text group has no Capo tool.
+- The head reads "DADGAD tuning · Capo 4th fret", "Standard tuning · Capo
+  4th fret" on the page, "Capo 4th fret" alone in an export in standard
+  tuning, and keeps the capo collapsed; ordinals 1st, 2nd, 3rd, 4th,
+  11th, 12th.
+- The Tab page's layout has no capo row; show_tab's layout keeps it.
+- ASCII Tab: a clip with `\capo 4` writes `Capo: 4` after `Tuning:`, and
+  none without a capo; `Capo: 4` reads as capo 4, `Capo: 0` as none,
+  `Capo: 15` as 12 with its message, `Capo: x` left out with a message.
+- The capo round-trips through the share link, alphaTex, MusicXML
+  (`<capo>4</capo>`) and Guitar Pro (`staff.capo` 4).
+
+## How
+
+- `TuningPanel.tsx` and `CapoNeck.tsx`: the Capo dropdown and the neck, the value through `setCapo`
+  (`barEdits.ts`), 1 to `MAX_CAPO`.
+- `credits.ts`: the capo's words (`capoWords`, "Capo 4th fret") and the
+  tuning's heading with them; `ScoreHead.tsx` and `exportTab.tsx` draw it.
+- `layout.ts` / `rows.ts`: a capo row only when asked for (show_tab's
+  `ChatTab.tsx`); `layoutText.ts`, `elements.ts`, `fieldSpots.ts`,
+  `useTabPicking.ts`, `useHeadPanels.tsx` and `WordField.tsx` lose the
+  capo's word on the Tab page.
+- `tools.ts` and `TabPalette.tsx`: the Capo tool and its icon go.
+- `ascii.ts`: the `Capo:` header, read and written;
+  `public/tab-ascii.txt`.
+- `docs/specs/2026-10-29-tab-credits-tuning-design.md`: its capo line
+  points here.

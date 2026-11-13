@@ -19,7 +19,7 @@ export type ToolId =
   | 'vibrato' | 'mordent' | 'lowerMordent' | 'palmMute' | 'letRing' | 'dead' | 'ghost' | 'harmonic' | 'pinchHarmonic' | 'tap'
   | 'strokeDown' | 'strokeUp' | 'strumDown' | 'strumUp' | 'rolledDown' | 'rolledUp' | 'wah' | 'whammy' | 'accent' | 'heavyAccent' | 'staccato' | 'ottava' | 'dynamic'
   | 'insertBarBefore' | 'insertBar' | 'barTime' | 'barKey' | 'repeatStart' | 'repeatEnd' | 'doubleBar' | 'ending'
-  | 'chordName' | 'beatText' | 'lyrics' | 'section' | 'tempo' | 'capo';
+  | 'chordName' | 'beatText' | 'lyrics' | 'section' | 'tempo';
 
 export interface Tool {
   id: ToolId;
@@ -133,7 +133,6 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
       { id: 'lyrics', label: 'Lyrics under this note', key: 'Shift+L' },
       { id: 'section', label: 'Section starting at this bar', key: '' },
       { id: 'tempo', label: 'Tempo from this bar on', key: '' },
-      { id: 'capo', label: 'Capo', key: '' },
     ],
   },
 ];
@@ -202,12 +201,12 @@ function chainColumns(clip: Part, target: Target): Target {
 }
 
 /** Tools that open a field over the tab for words (`TabPage` handles them); they don't change the clip themselves. */
-export const WORD_TOOLS = { chordName: 'chord', beatText: 'text', section: 'section', tempo: 'tempo', capo: 'capo', dynamic: 'dynamic' } as const;
+export const WORD_TOOLS = { chordName: 'chord', beatText: 'text', section: 'section', tempo: 'tempo', dynamic: 'dynamic' } as const;
 export type WordKind = (typeof WORD_TOOLS)[keyof typeof WORD_TOOLS];
 
 /** The palette tool that sets each kind of word: `WORD_TOOLS` the other way round. */
 export const WORD_TOOL: Record<WordKind, keyof typeof WORD_TOOLS> = {
-  chord: 'chordName', text: 'beatText', section: 'section', tempo: 'tempo', capo: 'capo', dynamic: 'dynamic',
+  chord: 'chordName', text: 'beatText', section: 'section', tempo: 'tempo', dynamic: 'dynamic',
 };
 
 /** The clip after a palette press. */
@@ -353,7 +352,6 @@ export function isOn(clip: Part, cursor: Target['cursor'], id: ToolId, columnOnl
     case 'dynamic': return !!column?.dynamic;
     case 'section': return !!bar?.section;
     case 'tempo': return !!bar?.tempo;
-    case 'capo': return !!clip.capo;
     default: return false;
   }
 }

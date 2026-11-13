@@ -35,8 +35,8 @@ still be able to create regions with shift arrow."
 - **Moving the cursor lets go** (Jeremy, 2026-10-28: "Moving the cursor
   should deselect any selected notes or annotations"): a plain press, ← →,
   ↑ ↓ (which kept the selection before), and on the staff ↑ ↓, # and b
-  drop any selection and any picked chord name, text, section, tempo, capo
-  or mark. Edits that keep the cursor where it is (Alt+↑ ↓ moving a note
+  drop any selection and any picked chord name, text, section, tempo or
+  mark. Edits that keep the cursor where it is (Alt+↑ ↓ moving a note
   to another string, Enter on the staff, the palette) leave the selection,
   so they still work on it.
 - **Placing the playback line lets go of the tab** (Jeremy, 2026-10-28:

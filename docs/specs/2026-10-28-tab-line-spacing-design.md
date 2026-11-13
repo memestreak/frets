@@ -15,8 +15,9 @@ The notation staff did the same with its room for high notes and ledger lines.
 
 - Each line (system) works out its own rows from its own bars (`rowsFor` on
   `lineClip`), and its own staff reach. A line with no bends has no bend room;
-  a line with no chord names has no chord row. The capo's row is on the first
-  line only.
+  a line with no chord names has no chord row. (show_tab's capo row is on its
+  first line only; the Tab page draws the capo in the score head,
+  `2026-11-13-tab-capo-in-tuning-design.md`.)
 - Lines stack one under another: `System.rows` and `System.top`; the layout's
   height is their sum. `lineAt(layout, y)` finds the line under a press, for
   every hit test.

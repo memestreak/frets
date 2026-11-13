@@ -8,7 +8,7 @@
  */
 import { NumberField } from '@/components/NumberField';
 import { OptionCheck } from './PlaybackOptions';
-import { usePopover } from './usePopover';
+import { usePanel } from './usePanel';
 import { MAX_COUNT_IN_BARS } from './playback';
 
 export function ClickOptions({ x, y, countIn, onCountIn, bars, onBars, volume, onVolume, onClose }: {
@@ -26,7 +26,7 @@ export function ClickOptions({ x, y, countIn, onCountIn, bars, onBars, volume, o
   onVolume: (volume: number) => void;
   onClose: () => void;
 }) {
-  const { ref, style } = usePopover({ x, y, focus: '[role="menuitemcheckbox"]', onClose: () => onClose() });
+  const { ref, style } = usePanel({ x, y, focus: '[role="menuitemcheckbox"]', onClose: () => onClose() });
   return (
     <div
       ref={ref} role="menu" aria-label="Metronome options" className="shape-menu tab-options" style={style}

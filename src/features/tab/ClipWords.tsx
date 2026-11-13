@@ -42,11 +42,11 @@ export function SystemWords({ system, rows, clip, look: plain, word, typing = nu
     );
   });
 
-  // The capo, over the start of the first line, as printed tab has it.
+  // The capo, over the start of show_tab's first line, as printed tab has it; the Tab page has no capo row, and
+  // draws it in the score's head instead (issue #463). It can't be picked.
   if (system.first && clip.capo && rows.capo !== null) {
-    const look = lookOf({ kind: 'capo', bar: 0 });
     parts.push(
-      <text key="capo" x={system.lineStart} y={rows.capo + 4} fontSize={CAPO_SIZE} fontWeight={700} fill={look.ink} data-testid="capo">
+      <text key="capo" x={system.lineStart} y={rows.capo + 4} fontSize={CAPO_SIZE} fontWeight={700} fill={plain.ink} data-testid="capo">
         {capoText(clip.capo)}
       </text>,
     );

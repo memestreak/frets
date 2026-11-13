@@ -49,8 +49,8 @@ widens its column. Sections and Text now make room by one rule.
   one over it. A level is as tall as its tallest name, and each section
   sits on its level's bottom row, next to the music, as a Text does. Only
   the first line has the rehearsal mark's box in front of it.
-- The section row's top stays where it was: the rows over it (capo, tempo)
-  don't move; each extra row pushes everything under it down (endings,
+- The section row's top stays where it was: the row over it (tempo)
+  doesn't move; each extra row pushes everything under it down (endings,
   chord names, Text, the staff, the tab). Only the line (system) holding
   them grows.
 

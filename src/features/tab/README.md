@@ -76,7 +76,7 @@ and in its spec.
 - `notice.ts` — what the line under the clip says (an import's guesses, a
   failure, a copy).
 - `useWidth.ts` — an element's width, kept up to date.
-- `usePopover.ts` — places and closes the small panels opened at a press or
+- `usePanel.ts` — places and closes the small panels opened at a press or
   under a button.
 - `shortcuts.ts` — the page's keys for the `?` overlay: the palette's from
   `tools.ts`, the rest listed by hand from `editorKeys.ts`, `usePageKeys.ts`
@@ -109,12 +109,15 @@ and in its spec.
   the comments are, and which line a spot in the text is on —
   `2026-10-27-tab-alphatex-editing-design.md`.
 - `ascii.ts` — `readAscii` (errors, warnings, guessed durations) and
-  `writeAscii`, every Voice merged onto the one tab (`mergedVoices`); `public/tab-ascii.txt` is the format, its examples are
+  `writeAscii`, every Voice merged onto the one tab (`mergedVoices`), and the `Capo:` header line; `public/tab-ascii.txt` is the format, its examples are
   tests, and `src/__tests__/tab/fixtures/` holds the forgiven spellings.
 - `readTab.ts` — tells ASCII tab from alphaTex by the text alone.
 - `credits.ts` — the artist, words and music from the clip's header, the
-  tuning line ("Tune down 1/2 step"), `foldsTuning`, `shownTuning`, and the
-  head's sizes in `HEAD` — `2026-10-29-tab-credits-tuning-design.md`.
+  tuning line ("Tune down 1/2 step"), `foldsTuning`, `shownTuning`, the
+  capo's words after it (`capoWords`, `capoHeading`, `withCapo`: "DADGAD
+  tuning · Capo 4th fret"), and the head's sizes in `HEAD` —
+  `2026-10-29-tab-credits-tuning-design.md`,
+  `2026-11-13-tab-capo-in-tuning-design.md`.
 - `tuning.ts` — the common tunings and setting a string's note, frets kept.
 - `instrument.ts` — the clip's Sound as `\instrument`; one Frets has no
   sound for is kept and played by the nearest —
@@ -278,7 +281,7 @@ and in its spec.
 - `TabClip.tsx` — draws a layout as SVG (a `memo`), with the cursor and selection;
   keeps the hit testing and the layers, and draws each line's strings and notes
   with the parts below. `rangeBoxes`.
-- `ClipWords.tsx` — `SystemWords`: the words over a line (endings, the capo,
+- `ClipWords.tsx` — `SystemWords`: the words over a line (endings, show_tab's capo,
   sections, tempos, "Free time", chord names and their diagrams, free text),
   and the Lyrics under its notes with their hyphens.
 - `ClipMarks.tsx` — `SystemRowMarks`: the marks in their own rows over the tab
@@ -314,7 +317,7 @@ and in its spec.
   layout, and the diagrams under the names (`drawnOnLine`) — `2026-11-06-tab-chord-diagrams-design.md`.
 - `ChordGrid.tsx` — one chord diagram in plain ink, upright or lying, for the page and the image.
 - `ChordChart.tsx` — the Chord chart under the score head, on the page and in the image; on the page each chord is picked by a press and opens Edit chord on a double-click, Enter or right-click Edit.
-- `ScoreHead.tsx` — the score's head: title, artist and credits, tuning;
+- `ScoreHead.tsx` — the score's head: title, artist and credits, tuning and capo;
   `HeadPick`, `FoldedTitle` — `2026-10-28-tab-score-head-design.md`,
   `2026-11-01-tab-arrangement-header-design.md`,
   `2026-11-01-tab-tuning-collapse-design.md`.
@@ -335,20 +338,26 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 - `BarTimePanel.tsx` — the time signature from a bar on, its Beat groups
   field (for 5 beats or more, or a bar with groups of its own), and bar 1's
   Pickup field.
-- `BarFixPopover.tsx` — an Uneven bar's ⚠, pressed: its fix.
+- `BarFixPanel.tsx` — an Uneven bar's ⚠, pressed: its fix.
 - `TupletPanel.tsx` — the Tuplet panel `;` opens at the cursor, kept to the keyboard.
 - `TimeSignatureFields.tsx` — the time signature panel's two fields.
 - `BarKeyPanel.tsx` — the key signature from a bar on (`\ks`).
 - `barPanel.ts` — keeps the bar panels inside the tab.
 - `WordField.tsx` — the field over the tab for a chord name, text, section,
-  capo, ending number or repeat count — `2026-10-26-tab-words-design.md`; the
+  dynamic, ending number or repeat count — `2026-10-26-tab-words-design.md`; the
   Text's is a textarea taking Shift+Enter and Ctrl/⌘+B —
   `2026-11-09-tab-text-markdown-design.md`.
 - `TempoPanel.tsx` — bpm, Tap (`src/lib/tapTempo.ts`) and a label —
   `2026-10-29-tab-tempo-button-design.md`.
 - `CreditsPanel.tsx` — title (needed), artist, words and music.
-- `TuningPanel.tsx` — the common tunings and each string on the
-  `KeyPicker`.
+- `TuningPanel.tsx` — the common tunings in a dropdown, each string
+  (a picked one's note on the `KeyPicker`, shown only while one is
+  picked), and the Capo dropdown (None, 1st to 12th fret) —
+  `2026-10-29-tab-credits-tuning-design.md`,
+  `2026-11-13-tab-capo-in-tuning-design.md`.
+- `CapoNeck.tsx` — the small neck under the Capo dropdown, shown at None
+  too: the capo drawn behind its fret, the nut to fret 15, a press on
+  fret 1 to 12 putting it there.
 - `ViewOptions.tsx` — Colours, then only the shown view's own options —
   `2026-11-01-tab-view-options-per-view-design.md`.
 - `viewOptions.ts` — the view options' values and their parser (`laidOut`),
@@ -455,7 +464,8 @@ or saved. Standard tuning only.
 - `mcp/TabApp.tsx` — the app: shows the call's line and loop points, tells
   the model when the user changes the bpm or the loop points, unmounts the
   line on teardown so the sound goes.
-- `mcp/ChatTab.tsx` — the line as the chat shows it: `TabClip`, the
+- `mcp/ChatTab.tsx` — the line as the chat shows it: `TabClip` (with the
+  capo's row over the first line, `layoutClip`'s `capoRow`: it has no head), the
   playhead and the loop bracket with its handles, then Play, Loop (L), the
   bpm (its "bpm" taps, T too; `BpmField`), Staff | Tab | Both and Open in
   Frets; a selection, made as on the Tab page, only for Loop to loop.
@@ -468,6 +478,10 @@ or saved. Standard tuning only.
 The principles every editing spec since step 1 follows, with Dorico,
 MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
 
+- `docs/specs/2026-11-13-tab-capo-in-tuning-design.md`: the capo set by a
+  dropdown and a small neck in the Tuning panel and drawn beside the tuning's name in the
+  score head; the Capo tool and the capo row over the first line go;
+  ASCII Tab's `Capo:` header (issue #463)
 - `docs/specs/2026-11-09-tab-strums-rolled-chords-design.md`: Strums and
   Rolled chords (alphaTex `bd` `bu` `ad` `au`) drawn as an arrow or a wavy
   arrow left of the chord on the staff and the tab, set by four palette
@@ -696,8 +710,8 @@ MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
   as it is entered
 - `docs/specs/2026-10-27-tab-alphatex-editing-design.md`: the AlphaTex view's
   text can be edited directly
-- `docs/specs/2026-10-26-tab-words-design.md`: chord names, sections, tempo
-  and capo over the tab
+- `docs/specs/2026-10-26-tab-words-design.md`: chord names, sections and
+  tempo over the tab (the capo since moved to the Tuning panel)
 - `docs/specs/2026-10-26-tab-rhythm-design.md`: tuplets, grace notes, tremolo
   picking and time signature changes
 - `docs/specs/2026-10-26-tab-playback-design.md`: playback with alphaTab's

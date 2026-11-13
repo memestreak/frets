@@ -13,7 +13,7 @@ import { createPortal } from 'react-dom';
 import type { Part } from './clip';
 import { UNTITLED } from './clip';
 import { headerValue, setCredit } from './credits';
-import { usePopover } from './usePopover';
+import { usePanel } from './usePanel';
 import { Toggle } from './ViewOptions';
 
 /** The field a press in the head focuses: the title's, or the artist's for the credits. */
@@ -59,7 +59,7 @@ export function CreditsPanel({ clip, x, y, field, onChange, onDone }: {
     done.current = true;
     onDone(keep ? latest.current : null);
   };
-  const { ref, style } = usePopover({ x, y, focus: `[data-field="${field}"]`, onClose: () => finish(true) });
+  const { ref, style } = usePanel({ x, y, focus: `[data-field="${field}"]`, onClose: () => finish(true) });
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     // The page's own keys (Space plays) stay out of the fields.
     e.stopPropagation();

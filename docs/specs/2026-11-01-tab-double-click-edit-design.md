@@ -10,7 +10,7 @@ browser (#244) are.
 A double-click picks what is under it, as a press does, then:
 
 - **on something with an Edit** in its right-click menu (`docs/specs/2026-11-01-tab-selection-look-design.md`):
-  a chord name, text over a column, a section, a tempo, the capo, an ending, or a repeat's end or its
+  a chord name, text over a column, a section, a tempo, an ending, or a repeat's end or its
   ×N count, it opens the same field the menu's Edit opens, where Edit puts it. This works in note input mode
   too, as the menu does.
 - **on something with only Delete**: a mark (P.M. and let ring lines too), a repeat's start or a double

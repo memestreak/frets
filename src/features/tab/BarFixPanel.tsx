@@ -6,17 +6,17 @@ import { barFixes, fillWithRests, makePickup, moveExtra } from './barEdits';
 import type { Part } from './clip';
 
 /**
- * The small popover a press on an Uneven bar's ⚠ opens, where it was pressed
+ * The small panel a press on an Uneven bar's ⚠ opens, where it was pressed
  * (`docs/specs/2026-11-04-tab-bars-always-full-design.md`): what is wrong, and the one command that
  * fixes it, for every Voice of the Track. An overfull bar has Move extra into next bar, a short one
  * Fill with rests, and a short bar 1 Make pickup bar too. It closes after use, on a press elsewhere or Esc.
  */
-export function BarFixPopover({ clip, bar, text, x, y, onFix, onClose }: {
+export function BarFixPanel({ clip, bar, text, x, y, onFix, onClose }: {
   clip: Part;
   bar: number;
   /** The ⚠'s words. */
   text: string;
-  /** Where the popover's left edge and top go, in the tab's own units. */
+  /** Where the panel's left edge and top go, in the tab's own units. */
   x: number;
   y: number;
   /** The clip fixed: null when the fix would put a tuplet across a bar line. */

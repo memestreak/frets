@@ -145,7 +145,7 @@ Whole-bar rest.
 
 An Uneven bar comes only from an import or a link (or, until step 6,
 Triplet and Grace). It keeps its ⚠ and the line under the clip. A press on
-its ⚠ opens a small popover there, with the one command that fixes it:
+its ⚠ opens a small panel there, with the one command that fixes it:
 
 - **Overfull: Move extra into next bar.** The time past the bar's end moves
   into the next bar and pushes the following music along; nothing is lost.
@@ -156,7 +156,7 @@ its ⚠ opens a small popover there, with the one command that fixes it:
   an imported pickup's is.
 - A short last bar is no special case: it gets Fill with rests, as Dorico
   leaves it to you.
-- The command fixes every Voice of the Track in that bar, and the popover
+- The command fixes every Voice of the Track in that bar, and the panel
   closes after it (let go after use).
 
 ## What goes (A10)
@@ -197,7 +197,7 @@ No key is added or removed, so the `?` overlay is unchanged.
   pickup's offset.
 - `BarTimePanel.tsx`: the Pickup field on bar 1.
 - `TabClip.tsx`: the ⚠ under an Uneven bar becomes a button opening the
-  popover (`moveExtra`, `fillWithRests`, `makePickup` in `barEdits.ts`).
+  panel (`moveExtra`, `fillWithRests`, `makePickup` in `barEdits.ts`).
 - Remove `fillBars` from `editingPrefs.ts`, `tabSettings.tsx`,
   `editorKeys.ts`, `useEditorState.ts`, `TabPage.tsx`, and its line in
   `src/lib/README.md`.
@@ -278,9 +278,9 @@ Small points the questions didn't reach, decided by the rules above:
   eighth on its last eighth is written `re e`. Set back to 0, the music re-bars.
 - alphaTex writes a Pickup bar `\ac` and reads it back; MusicXML writes it
   `number="0" implicit="yes"`; Guitar Pro marks it an anacrusis.
-- The ⚠ popover: Move extra into next bar on an overfull bar pushes its
+- The ⚠ panel: Move extra into next bar on an overfull bar pushes its
   extra into the next bar, losing no note; Fill with rests on a short bar
   ends it in a Gap; a short bar 1 also offers Make pickup bar; each fixes
-  Voice 2 too, and closes the popover.
+  Voice 2 too, and closes the panel.
 - Settings › Tab › Editing has no "Fill short bars with rests";
   `parseEditing` drops a saved `fillBars`.

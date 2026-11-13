@@ -18,7 +18,7 @@ import { useEffect } from 'react';
  *
  * Left alone: anything in a dialog or menu (they keep the focus inside them), radio groups (their
  * arrow keys move from the pressed tile) and anything under `[data-keep-focus]`. A handler that
- * moved the focus on (say, into the popover a button opened) keeps it there.
+ * moved the focus on (say, into the panel a button opened) keeps it there.
  */
 export function useLetGoAfterUse() {
   useEffect(() => {

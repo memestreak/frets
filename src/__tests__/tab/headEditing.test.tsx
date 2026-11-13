@@ -155,16 +155,17 @@ describe("the score head's tuning", () => {
     expect(tuning()).toHaveTextContent(/^Standard tuning$/);
     fireEvent.doubleClick(within(tuning()).getByRole('button', { name: 'Standard tuning' }));
     const panel = screen.getByRole('dialog', { name: 'Tuning' });
-    expect(within(panel).getByRole('button', { name: 'Standard' })).toHaveAttribute('aria-pressed', 'true');
-    fireEvent.click(within(panel).getByRole('button', { name: 'Drop D' }));
+    const tunings = within(panel).getByRole('combobox', { name: 'Tuning' }) as HTMLSelectElement;
+    expect(tunings).toHaveValue('Standard');
+    fireEvent.change(tunings, { target: { value: 'Drop D' } });
     expect(within(head()).getByLabelText('string 6').parentElement).toHaveTextContent('6 = D');
-    expect(within(panel).getByRole('button', { name: 'Drop D' })).toHaveAttribute('aria-pressed', 'true');
+    expect(tunings).toHaveValue('Drop D');
 
     // The high e down to D on the piano: Drop D is now a tuning of its own.
     fireEvent.click(within(panel).getByRole('button', { name: 'String 1: E' }));
     fireEvent.click(within(within(panel).getByRole('radiogroup', { name: 'String 1' })).getByRole('radio', { name: 'D' }));
     expect(within(head()).getByLabelText('string 1').parentElement).toHaveTextContent('1 = D');
-    expect(within(panel).getByText('Tuning: Custom')).toBeInTheDocument();
+    expect(tunings.selectedOptions[0].textContent).toBe('Custom');
 
     undo();
     expect(within(head()).queryByLabelText('string 1')).toBeNull();
@@ -186,12 +187,66 @@ describe("the score head's tuning", () => {
     await waitFor(() => expect(screen.getByRole('group', { name: 'Tuning' })).toBeInTheDocument(), SLOW);
     fireEvent.doubleClick(within(screen.getByRole('group', { name: 'Tuning' })).getByRole('button'));
     const panel = screen.getByRole('dialog', { name: 'Tuning' });
-    expect(within(panel).getByRole('button', { name: 'E♭' })).toHaveAttribute('aria-pressed', 'true');
-    fireEvent.click(within(panel).getByRole('button', { name: 'Standard' }));
+    const tunings = within(panel).getByRole('combobox', { name: 'Tuning' });
+    expect(tunings).toHaveValue('E♭');
+    fireEvent.change(tunings, { target: { value: 'Standard' } });
     expect(screen.getByRole('group', { name: 'Tuning' })).toHaveTextContent(/^Standard tuning$/);
     fireEvent.keyDown(window, { key: 'Escape' });
     fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
     expect((screen.getByRole('textbox', { name: 'alphaTex' }) as HTMLTextAreaElement).value).not.toContain('\\tuning');
+  });
+});
+
+describe("the Tuning panel's dropdown and strings", () => {
+  const openPanel = () => {
+    renderAt();
+    fireEvent.doubleClick(within(screen.getByRole('group', { name: 'Tuning' })).getByRole('button', { name: 'Standard tuning' }));
+    return screen.getByRole('dialog', { name: 'Tuning' });
+  };
+  const tunings = (panel: HTMLElement) => within(panel).getByRole('combobox', { name: 'Tuning' }) as HTMLSelectElement;
+  const piano = (panel: HTMLElement) => within(panel).queryByRole('radiogroup', { name: /^String \d$/ });
+
+  it('lists every preset in order, Custom only while the tuning is one of its own; a pick is one undo step', () => {
+    const panel = openPanel();
+    expect([...tunings(panel).options].map(o => o.textContent)).toEqual(
+      ['Standard', 'E♭', 'D', 'Drop D', 'Drop C♯', 'Drop C', 'DADGAD', 'Open G', 'Open D', 'Open E'],
+    );
+    fireEvent.change(tunings(panel), { target: { value: 'DADGAD' } });
+    expect(within(head()).getByRole('group', { name: 'Tuning' })).toHaveTextContent(/^DADGAD tuning/);
+    // The high e to E again: a tuning of its own.
+    fireEvent.click(within(panel).getByRole('button', { name: 'String 1: D' }));
+    fireEvent.click(within(piano(panel)!).getByRole('radio', { name: 'E' }));
+    expect([...tunings(panel).options][0].textContent).toBe('Custom');
+    expect(tunings(panel).selectedOptions[0].textContent).toBe('Custom');
+    fireEvent.change(tunings(panel), { target: { value: 'Open G' } });
+    expect([...tunings(panel).options].map(o => o.textContent)).not.toContain('Custom');
+    undo();
+    expect(tunings(panel).selectedOptions[0].textContent).toBe('Custom');
+    undo();
+    expect(tunings(panel)).toHaveValue('DADGAD');
+    undo();
+    expect(tunings(panel)).toHaveValue('Standard');
+  });
+
+  it('shows the piano only while a string is picked: a second press, Esc or a press elsewhere lets it go', () => {
+    const panel = openPanel();
+    expect(piano(panel)).toBeNull();
+    const string6 = within(panel).getByRole('button', { name: 'String 6: E' });
+    fireEvent.click(string6);
+    expect(string6).toHaveAttribute('aria-pressed', 'true');
+    expect(piano(panel)).toHaveAccessibleName('String 6');
+    fireEvent.click(string6);
+    expect(piano(panel)).toBeNull();
+    fireEvent.click(string6);
+    fireEvent.pointerDown(within(panel).getByText('Strings'));
+    expect(piano(panel)).toBeNull();
+    fireEvent.click(string6);
+    // Esc lets the string go and keeps the panel open; a second Esc closes it.
+    fireEvent.keyDown(string6, { key: 'Escape' });
+    expect(piano(panel)).toBeNull();
+    expect(screen.getByRole('dialog', { name: 'Tuning' })).toBeInTheDocument();
+    fireEvent.keyDown(within(panel).getByRole('button', { name: 'String 6: E' }), { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: 'Tuning' })).toBeNull();
   });
 });
 

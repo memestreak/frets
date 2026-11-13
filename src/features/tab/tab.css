@@ -183,7 +183,6 @@
 .tab-head-panel { gap: 10px; padding: 12px; color: var(--ink); }
 .tab-field-problem { color: var(--danger); cursor: help; }
 .tab-head-input { width: 280px; max-width: calc(100vw - 64px); }
-.tab-tuning-presets { flex-wrap: wrap; max-width: 340px; }
 /* The tempo panel: bpm and Tap on one row. */
 .tab-tempo-row { display: flex; align-items: center; gap: 12px; }
 /* Only as wide as the bpm and Tap row (Jeremy, 2026-10-29): a label is a word or two. */
@@ -192,6 +191,9 @@
 .tab-tap { min-width: 72px; }
 .tab-tuning-string { display: inline-flex; align-items: center; gap: 4px; padding-inline: 7px; }
 .tab-tuning-panel .seg { flex-wrap: wrap; }
+/* As wide as the piano (.key-picker's 336px and the panel's padding) whether or not a string is
+   picked, so picking one grows the panel downward only. */
+.tab-tuning-panel { min-width: 362px; }
 /* The View options' colours (TabPage's paperVars): the clip on a sheet of its background, with room
    round it so the music doesn't touch the sheet's edges. The theme's own colours draw no sheet. */
 .tab-paper { padding: 12px; border-radius: var(--radius-sm); }
@@ -383,6 +385,21 @@
 .tab-time-stepper button:focus, .tab-time-stepper input:focus { outline: none; }
 .tab-time-stepper button:focus-visible { color: var(--primary); }
 .tab-time-stepper input:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
+/* The Tuning panel's capo (issue #463): its dropdown, and the neck under it with a button over each fret. */
+/* A caption and its dropdown on one line, the dropdowns lined up (Tuning, Capo). */
+/* A panel's section (the Tuning panel's Tuning, Strings and Capo): its header, as the Settings dialog
+   heads a pane, on a line of its own over its controls, with more room between sections than inside. */
+.tab-panel-section { display: grid; gap: 6px; }
+.tab-panel-section > select { justify-self: start; }
+.tab-panel-section + .tab-panel-section { margin-top: 6px; }
+.tab-panel-section > .settings-pane-heading { margin: 0; }
+.tab-panel-pick { width: auto; min-width: 9rem; }
+.tab-capo-neck { position: relative; width: 100%; max-width: 340px; }
+.tab-capo-neck svg { display: block; width: 100%; height: auto; }
+.tab-capo-spot {
+  position: absolute; top: 0; bottom: 0; padding: 0; border: 0; background: transparent; cursor: pointer;
+}
+.tab-capo-spot:focus { outline: none; }
 .tab-time-value { min-width: 34px; font-variant-numeric: tabular-nums; }
 /* The field for a chord name, section or tempo, over the spot it is drawn. */
 .tab-word {

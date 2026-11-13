@@ -92,7 +92,7 @@ const CLASH_WARNING = /has two voices on string \d+\.$/;
 const UNEVEN_WARNING = /doesn't add up to/;
 
 /**
- * Whether a picked thing has an Edit (in its menu, and on a double-click, issue #289): a word, the capo, an
+ * Whether a picked thing has an Edit (in its menu, and on a double-click, issue #289): a word, an
  * ending, a repeat's end or count, a time or key signature (its panel, step 8), or a tuplet's number (the
  * Tuplet panel), or a dynamic (its field). Other marks, a repeat's start and a double bar have only Delete.
  */
@@ -658,7 +658,7 @@ export default function TabPage() {
     const svg = el.querySelector('svg');
     const r = el.getBoundingClientRect();
     if ((x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) || !svg) return menuSpot(el, x, y);
-    const box = hit.kind === 'mark' ? markBox(layout, hit) : textBox(layout, hit, drawn.capo ?? null);
+    const box = hit.kind === 'mark' ? markBox(layout, hit) : textBox(layout, hit);
     if (!box) return menuSpot(el, x, y);
     const at = svg.getBoundingClientRect();
     const scale = clipWidth > 0 ? at.width / clipWidth : 1;

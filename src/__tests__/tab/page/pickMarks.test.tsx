@@ -46,7 +46,7 @@ function pressMark(layout: Layout, mark: MarkHit['mark'], button = 0) {
   if (button === 2) fireEvent.contextMenu(editor(), at);
 }
 function pressWord(layout: Layout, hit: WordHit, button = 0) {
-  const at = middleOf(textBox(layout, hit, null)!);
+  const at = middleOf(textBox(layout, hit)!);
   fireEvent.pointerDown(drawing(), { ...at, button });
   if (button === 2) fireEvent.contextMenu(editor(), at);
 }
@@ -101,7 +101,7 @@ describe('time and key signatures are picked as words are (Q3)', () => {
     keys('Enter');
     expect(screen.getByRole('dialog', { name: panel })).toBeInTheDocument();
     keys('Escape');
-    const at = middleOf(textBox(layout, { kind, bar: 1 }, null)!);
+    const at = middleOf(textBox(layout, { kind, bar: 1 })!);
     fireEvent.pointerDown(drawing(), { ...at, button: 0 });
     fireEvent.pointerDown(drawing(), { ...at, button: 0 });
     fireEvent.doubleClick(drawing(), at);

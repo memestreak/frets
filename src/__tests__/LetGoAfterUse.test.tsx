@@ -13,7 +13,7 @@ function press(el: HTMLElement) {
   act(() => { vi.runAllTimers(); });
 }
 
-/** A button whose click moves the focus to a field, as a button opening a popover does. */
+/** A button whose click moves the focus to a field, as a button opening a panel does. */
 function Opener() {
   const field = useRef<HTMLInputElement>(null);
   return (

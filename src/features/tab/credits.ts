@@ -143,3 +143,38 @@ export function foldsTuning(block: TuningBlock | null): boolean {
 export function shownTuning(block: TuningBlock | null, details: boolean): TuningBlock | null {
   return block && !details && foldsTuning(block) ? { ...block, strings: [] } : block;
 }
+
+/** 1st, 2nd, 3rd, 4th … 11th, 12th. */
+function ordinal(n: number): string {
+  const teen = n % 100 >= 11 && n % 100 <= 13;
+  const suffix = teen ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' } as Record<number, string>)[n % 10] ?? 'th';
+  return `${n}${suffix}`;
+}
+
+/** A fret as the capo is set on it: "4th fret". */
+export function fretWords(fret: number): string {
+  return `${ordinal(fret)} fret`;
+}
+
+/** The capo as the score's head prints it (issue #463): "Capo 4th fret". */
+export function capoWords(capo: number): string {
+  return `Capo ${fretWords(capo)}`;
+}
+
+/**
+ * The tuning's heading with the capo after it, past a middle dot: "DADGAD tuning · Capo 4th fret"
+ * (issue #463); the capo's words alone when the tuning has no heading, the heading alone with no capo.
+ */
+export function capoHeading(heading: string | null, capo: number | undefined): string | null {
+  if (!capo) return heading;
+  return heading ? `${heading} · ${capoWords(capo)}` : capoWords(capo);
+}
+
+/**
+ * The tuning as shown, with the capo in its heading: a capo in standard tuning, which has no block,
+ * makes one of its words alone, as an exported picture prints it ("Capo 4th fret").
+ */
+export function withCapo(block: TuningBlock | null, capo: number | undefined): TuningBlock | null {
+  if (!capo) return block;
+  return { heading: capoHeading(block?.heading ?? null, capo), strings: block?.strings ?? [] };
+}

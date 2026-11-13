@@ -106,7 +106,7 @@ _Avoid_: modify chord
 
 **Chord set**:
 The chords an Arrangement defines for a Track, shown as tiles in the Tab
-page's Chords panel, each with its diagram and a dot saying how many times
+page's Chords palette, each with its diagram and a dot saying how many times
 it is used (none when unused).
 _Avoid_: chord list, chord library
 
@@ -121,7 +121,7 @@ as Columns.
 _Avoid_: beat (Guitar Pro's word for it)
 
 **Edit chord**:
-The Chords panel's view of one chord of the Chord set, opened by
+The Chords palette's view of one chord of the Chord set, opened by
 double-click or the chord's menu: its shapes, picked live, and its name,
 renamed by double-click or F2. It follows the chord picked in the Chord
 set, the tab or the Chord chart.
@@ -171,6 +171,13 @@ pencil; Esc goes back to Normal mode. Dorico's name. Edits happen in
 Normal mode too, so it is not an edit mode.
 _Avoid_: note input (alone), edit mode, editing mode
 
+**Panel**:
+A small window of controls opened at what it edits, by a press or a
+key: the Tuning panel, the Title and credits panel, the Tempo panel,
+the Tuplet panel, an Uneven bar's ⚠ panel. Esc or a press away closes
+it. Not a Popover, which is typed into.
+_Avoid_: popover, hover window
+
 **Phrase**:
 A short stretch of music with a shape of its own, such as a riff, a
 fill or a solo line. Say phrase, riff or line.
@@ -188,10 +195,16 @@ A first bar shorter than its time signature on purpose, written `\ac`
 in alphaTex. No other bar is short.
 _Avoid_: anacrusis, upbeat bar
 
+**Popover**:
+A small, temporary field for typing a Mark as text, kept to the keyboard
+and opened over the staff at the cursor or the earliest selected note,
+as Dorico's popovers are: a chord name, a Text, a section, a dynamic, a
+syllable of the Lyrics. Not a Panel of choices.
+
 **Rail**:
-The column of buttons at the Clip's left, each opening one panel of
-Tool groups: Notes, Articulations, Bars. The code's older name for the
-tools is the palette (`TabPalette.tsx`).
+The column of palettes at the Clip's left, each opened or folded from
+its header, several at once: Notes, Articulations and Bars (each a set
+of Tool groups), Chords and Chat.
 
 **Roll**:
 How a chord sounds when its strings start one after another instead of
@@ -247,7 +260,7 @@ Notes on one string, each tied to the next, that sound as one Sounding
 note. It is picked, deleted and lengthened as one.
 
 **Tool group**:
-A captioned set of tools in a Rail panel: Duration, Rhythm, Joins,
+A captioned set of tools in a palette on the Rail: Duration, Rhythm, Joins,
 Bends and the rest.
 _Avoid_: group (alone), palette group
 

@@ -12,7 +12,7 @@ import { stringAtPitch } from './staffEntry';
 import { placeAtTime, reBar, reBarEnd, SPLITS_TUPLET, timeOf } from './timeline';
 import { clashMessage } from './voices';
 
-/** A chord name, text, section, tempo, capo, ending, bar line or technique mark picked by a press. */
+/** A chord name, text, section, tempo, ending, bar line or technique mark picked by a press. */
 export type Picked = WordHit | MarkHit;
 
 /**

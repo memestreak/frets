@@ -22,7 +22,7 @@ import { useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'r
 import { CollapseIcon, ExpandIcon, PencilIcon } from '@/components/icons';
 import { DEFAULT_BPM, UNTITLED, type Part, type Tempo } from './clip';
 import type { HeadField } from './CreditsPanel';
-import { creditsOf, foldsTuning, HEAD, shownTuning, tuningBlock } from './credits';
+import { capoHeading, creditsOf, foldsTuning, HEAD, shownTuning, tuningBlock } from './credits';
 import { TempoNote, tempoNoteWidth } from './TempoNote';
 
 /** Opens a panel at the press, in viewport pixels (a key press opens it under the element). */
@@ -62,7 +62,8 @@ export function ScoreHead({ clip, folded = false, tuningFolded = false, onEditCr
     : foldsTuning(full) ? { label: 'Collapse tuning', icon: <CollapseIcon />, onClick: () => onFoldTuning(true) } : undefined);
   const rows = tuning ? Math.min(3, tuning.strings.length) : 0;
   // Always shown (Jeremy, 2026-10-29): standard tuning is named, so a press on it opens the tuning panel.
-  const heading = tuning ? tuning.heading : 'Standard tuning';
+  // The capo after it (issue #463): "DADGAD tuning · Capo 4th fret", kept when the tuning is collapsed.
+  const heading = capoHeading(tuning ? tuning.heading : 'Standard tuning', clip.capo);
   const hasCredits = !!artist || lines.length > 0;
   const editTempo = openAt(onEditTempo);
   // The first bar's tempo, always shown where it can be set (Jeremy, 2026-10-29): 120 when the clip names none.

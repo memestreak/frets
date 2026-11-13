@@ -105,7 +105,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
   /** Read by screen readers; the drawing itself is hidden from them. */
   title: string;
   highlight?: Highlight;
-  /** On the page only: the picked chord name, text, section, tempo or capo, or technique mark, outlined. */
+  /** On the page only: the picked chord name, text, section, tempo, or technique mark, outlined. */
   picked?: WordHit | MarkHit | null;
   /**
    * On the page only, while the Lyrics field is open: its note (a column's index), drawn as selected, and the
@@ -195,7 +195,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
   // The picked word, bar line or mark is drawn in the selection's blue where it is (issue #276).
   const lights = markLights(layout, picked?.kind === 'mark' ? picked : null);
   // What the picked Mark belongs to (step 8): its notes tinted, its Attachment lines, a Span's Handles.
-  const attached = useMemo(() => attachment(layout, picked ?? null, clip.capo ?? null), [layout, picked, clip.capo]);
+  const attached = useMemo(() => attachment(layout, picked ?? null), [layout, picked]);
   // The Lyrics field's note is drawn as selected, in the selection blue, while the field is on it.
   const selectedRun: [number, number] | null = highlight?.range ?? (typing ? [typing.note, typing.note] : null);
   /** A Handle being dragged: which, and the column it was last over. */
@@ -799,7 +799,7 @@ const WARNING_INSET = 9;
  * Only the page draws it; screen readers get the same words from the line under the clip.
  */
 function Warning({ bar, x, y, text }: { bar: number; x: number; y: number; text: string }) {
-  // A press opens the popover with the fix (`BarFixPopover`).
+  // A press opens the panel with the fix (`BarFixPanel`).
   return (
     <g data-tip={text} data-testid="bar-warning" data-warning-bar={bar} style={{ cursor: 'pointer' }}>
       {/* A bigger, invisible target round the small mark, so the mouse finds it. */}

@@ -192,7 +192,7 @@ describe('layoutClip wraps free text', () => {
     const { top, rows } = layout.systems[0];
     expect(textAt(layout, second.x, top + rows.text!)).toEqual({ kind: 'text', index: 1 });
     expect(textAt(layout, second.x, top + rows.text! + first.textTop * BEAT_TEXT_LINE)).toEqual({ kind: 'text', index: 0 });
-    const box = textBox(layout, { kind: 'text', index: 0 }, null)!;
+    const box = textBox(layout, { kind: 'text', index: 0 })!;
     expect(box.y).toBeGreaterThan(top + rows.text!);
   });
 
@@ -220,7 +220,7 @@ describe('layoutClip wraps free text', () => {
     expect(textAt(layout, first.x, system.top + lastLine)).toEqual({ kind: 'text', index: 0 });
     // Under its last line is no longer the text.
     expect(textAt(layout, first.x, system.top + lastLine + BEAT_TEXT_LINE)).not.toEqual({ kind: 'text', index: 0 });
-    const box = textBox(layout, { kind: 'text', index: 0 }, null)!;
+    const box = textBox(layout, { kind: 'text', index: 0 })!;
     expect(box.y).toBeLessThanOrEqual(system.top + system.rows.text! - 8);
     expect(box.y + box.height).toBeGreaterThanOrEqual(system.top + lastLine + 8);
     expect(box.x + box.width).toBeLessThan(placedOf(layout)[2].x - BEAT_TEXT_INSET);
@@ -269,7 +269,7 @@ describe('bold and new lines in a Text (issues #446, #445)', () => {
     const layout = layoutClip(clipOf('0.6.4{txt "**press Delete twice**\\nnow"} r.4 r.2 |'), 800);
     const placed = placedOf(layout).find(c => c.column.text)!;
     expect(placed.textLines).toEqual(['press Delete twice', 'now']);
-    const box = textBox(layout, { kind: 'text', index: placed.index }, null)!;
+    const box = textBox(layout, { kind: 'text', index: placed.index })!;
     // The box reaches 3px past the text at each end.
     expect(box.width - 6).toBeCloseTo(18 * 5.6 * 1.12);
   });

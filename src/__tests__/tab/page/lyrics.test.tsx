@@ -27,7 +27,7 @@ const shiftL = () => keys({ key: 'L', shiftKey: true });
 function pressLyric(bar: string, hit: WordHit, twice = false) {
   const read = readAlphaTexWith(alphaTab, `\\ts (4 4)\n${bar}`);
   if (!read.ok) throw new Error(read.errors.join('\n'));
-  const box = textBox(layoutClip(partOf(read.clip), 800, 'tab'), hit, null)!;
+  const box = textBox(layoutClip(partOf(read.clip), 800, 'tab'), hit)!;
   const at = { clientX: box.x + box.width / 2, clientY: box.y + box.height / 2 };
   const svg = screen.getByRole('img', { name: /drawn as/ });
   fireEvent.pointerDown(svg, at);

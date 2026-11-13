@@ -8,7 +8,7 @@
  * a press elsewhere, a scroll or Esc closes it.
  */
 import { NumberField } from '@/components/NumberField';
-import { usePopover } from './usePopover';
+import { usePanel } from './usePanel';
 
 /** The rest between loops, in seconds: its range and step. */
 export const MIN_LOOP_PAUSE = 0.5;
@@ -42,7 +42,7 @@ export function PlaybackOptions({ x, y, values, onChange, onClose }: {
   onChange: (values: PlaybackOptionValues) => void;
   onClose: () => void;
 }) {
-  const { ref, style } = usePopover({ x, y, focus: '[role="menuitemcheckbox"]', onClose: () => onClose() });
+  const { ref, style } = usePanel({ x, y, focus: '[role="menuitemcheckbox"]', onClose: () => onClose() });
 
   return (
     <div
