@@ -12,7 +12,8 @@ import type { Clip } from '../clip';
 import { arrangementNow, type PageSpot } from './arrangementTools';
 import { completeWithOpenRouter, type ChatMessage, type Complete, type Usage } from './openRouter';
 import { loadGuide } from './guide';
-import { askWithArrangement, runReply, systemPrompt } from './reply';
+import { askWithArrangement, IMAGES_ONLY_ASK, runReply, systemPrompt, userContent } from './reply';
+import { imageFromFile, type ChatImage } from './images';
 import type { ChatPrefs } from './chatPrefs';
 
 /** A line on what a tool did, as "Changed bars 3 to 4 of track 1". */
@@ -20,7 +21,7 @@ export type Note = { text: string; failed?: boolean };
 
 /** One entry in the panel's list. */
 export type Entry =
-  | { kind: 'ask'; text: string }
+  | { kind: 'ask'; text: string; images: ChatImage[] }
   | { kind: 'reply'; text: string; notes: Note[]; model: string; usage: Usage }
   | { kind: 'error'; text: string; notes: Note[] };
 
@@ -46,7 +47,12 @@ export interface ChatSession {
   working: { notes: Note[] } | null;
   draft: string;
   setDraft: (text: string) => void;
-  /** Sends the draft. */
+  /** The images waiting to go with the draft (issue #465). */
+  images: ChatImage[];
+  /** Adds image files to the draft, scaled down when large. */
+  addImages: (files: File[]) => Promise<void>;
+  removeImage: (index: number) => void;
+  /** Sends the draft and its images. */
   send: () => Promise<void>;
   stop: () => void;
   /** New chat: forgets the conversation. */
@@ -63,6 +69,7 @@ export function useChatSession(options: ChatSessionOptions): ChatSession {
   /** The conversation as the model sees it, without the system prompt. */
   const history = useRef<ChatMessage[]>([]);
   const [draft, setDraft] = useState('');
+  const [images, setImages] = useState<ChatImage[]>([]);
   const [working, setWorking] = useState<{ notes: Note[] } | null>(null);
   const stopper = useRef<AbortController | null>(null);
   const [unread, setUnread] = useState(false);
@@ -74,22 +81,27 @@ export function useChatSession(options: ChatSessionOptions): ChatSession {
 
   const send = async () => {
     const text = draft.trim();
+    const sent = images;
     const { prefs, complete = completeWithOpenRouter, guide = loadGuide } = latest.current;
-    if (!text || stopper.current || !prefs.apiKey) return;
+    if ((!text && sent.length === 0) || stopper.current || !prefs.apiKey) return;
     setDraft('');
-    setEntries(list => [...list, { kind: 'ask', text }]);
+    setImages([]);
+    setEntries(list => [...list, { kind: 'ask', text, images: sent }]);
+    // Images with no words still need saying what they're for.
+    const said = text || IMAGES_ONLY_ASK;
     const stop = new AbortController();
     stopper.current = stop;
     const notes: Note[] = [];
     setWorking({ notes: [] });
     // The conversation keeps the ask alone; the request carries it with the arrangement as it is now,
     // so the model needn't spend a call reading it first.
-    const asked: ChatMessage = { role: 'user', content: text };
+    // Its images stay in the conversation too, so a later ask can refer to them.
+    const asked: ChatMessage = { role: 'user', content: userContent(said, sent) };
     let changed = false;
     try {
       const current = () => latest.current.current();
       const { clip, spot } = current();
-      const withArrangement: ChatMessage = { role: 'user', content: askWithArrangement(text, await arrangementNow(clip, spot, readAlphaTex)) };
+      const withArrangement: ChatMessage = { role: 'user', content: userContent(askWithArrangement(said, await arrangementNow(clip, spot, readAlphaTex)), sent) };
       const result = await runReply({
         complete, apiKey: prefs.apiKey, model: prefs.model,
         messages: [{ role: 'system', content: systemPrompt(await guide(), prefs) }, ...history.current, withArrangement],
@@ -116,8 +128,15 @@ export function useChatSession(options: ChatSessionOptions): ChatSession {
     setEntries([]);
   };
 
+  const addImages = async (files: File[]) => {
+    const read = await Promise.all(files.map(file => imageFromFile(file).catch(() => null)));
+    const added = read.filter((image): image is ChatImage => image !== null);
+    if (added.length > 0) setImages(list => [...list, ...added]);
+  };
+  const removeImage = (index: number) => setImages(list => list.filter((_, i) => i !== index));
+
   return {
-    entries, working, draft, setDraft, send, clear,
+    entries, working, draft, setDraft, images, addImages, removeImage, send, clear,
     stop: () => stopper.current?.abort(),
     status: working ? 'working' : unread ? 'unread' : 'idle',
   };

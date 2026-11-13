@@ -825,6 +825,27 @@ body:has(.tab-stack-panel[data-dragging]) { cursor: grabbing; user-select: none;
 .tab-chat-compose { display: grid; gap: 6px; }
 .tab-chat-compose textarea { resize: vertical; min-height: 60px; font: 14px/20px var(--font-sans); }
 .tab-chat-actions { display: flex; justify-content: flex-end; gap: 6px; }
+.tab-chat-ask { display: grid; gap: 6px; }
+.tab-chat-ask p { margin: 0; }
+/* Images waiting to be sent, or sent with an ask (issue #465): small thumbnails, each with its remove button on the corner. */
+.tab-chat-images { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.tab-chat-image { position: relative; display: flex; }
+.tab-chat-image img {
+  display: block; height: 56px; max-width: 120px; object-fit: contain; border: 1px solid var(--line); border-radius: 4px;
+  background: var(--surface-raised);
+}
+.tab-chat-image-remove {
+  position: absolute; top: -6px; right: -6px; display: grid; place-items: center; width: 18px; height: 18px; padding: 0;
+  border: 1px solid var(--line-strong); border-radius: 50%; background: var(--surface-raised); color: var(--ink-muted); cursor: pointer;
+}
+/* A ±16px hit area around the small button. */
+.tab-chat-image-remove::after { content: ''; position: absolute; inset: -6px; }
+.tab-chat-image-remove:hover { color: var(--ink); }
+.tab-chat-blind { color: var(--danger); font-size: 14px; cursor: help; }
+.tab-chat-image-open { display: flex; padding: 0; border: 0; background: none; cursor: zoom-in; }
+/* Pressing a thumbnail shows the image full size, as large as the window allows. */
+.settings-dialog:has(.tab-chat-image-view) { width: auto; max-width: calc(100vw - 32px); }
+.tab-chat-image-view img { display: block; max-width: 100%; max-height: calc(100dvh - 120px); margin: 0 auto; object-fit: contain; }
 @media (max-width: 899px) {
   .tab-chat-list { max-height: 50vh; }
 }

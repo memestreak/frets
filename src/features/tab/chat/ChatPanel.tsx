@@ -5,11 +5,14 @@
  * the open arrangement, or ask it to change it. The page calls OpenRouter itself with the viewer's key
  * (Settings › Tab › Chat). The conversation is the page's (`useChatSession`), so it lasts for this visit
  * though the panel closes (issue #442). Each reply's changes are applied at once, and one Undo takes them all back.
+ * Images pasted into the message go with the ask, for the model to transcribe (issue #465).
  */
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type ClipboardEvent, type KeyboardEvent } from 'react';
+import { Modal } from '@/components/Modal';
 import { ModelPicker } from './ModelPicker';
 import { ReplyMarkdown } from './ReplyMarkdown';
-import { fetchPresets, fetchToolModels, type Preset, type Usage } from './openRouter';
+import { fetchPresets, fetchToolModels, knownBlind, type ModelInfo, type Preset, type Usage } from './openRouter';
+import { imageFiles, type ChatImage } from './images';
 import type { ChatPrefs } from './chatPrefs';
 import type { ChatSession, Entry, Note } from './useChatSession';
 
@@ -23,8 +26,17 @@ export interface ChatPanelProps {
 }
 
 export function ChatPanel({ prefs, onModel, session, onOpenSettings }: ChatPanelProps) {
-  const { entries, working, draft, setDraft, send, stop, clear } = session;
-  const [models, setModels] = useState<string[]>([]);
+  const { entries, working, draft, setDraft, images, addImages, removeImage, send, stop, clear } = session;
+  const [models, setModels] = useState<ModelInfo[]>([]);
+  /** The image shown full size, with its label. */
+  const [viewing, setViewing] = useState<{ image: ChatImage; label: string } | null>(null);
+  const boxRef = useRef<HTMLTextAreaElement>(null);
+  const view = (image: ChatImage, label: string) => {
+    // The dialog gives focus back to what had it on closing: the message box, not a field whose list would open again.
+    boxRef.current?.focus({ preventScroll: true });
+    setViewing({ image, label });
+  };
+  const blind = images.length > 0 && knownBlind(prefs.model, models);
   /** The presets listed with a key; shown only while that key is still the one saved. */
   const [listed, setListed] = useState<{ apiKey: string; presets: Preset[] }>({ apiKey: '', presets: [] });
   const presets = listed.apiKey === prefs.apiKey ? listed.presets : [];
@@ -59,11 +71,19 @@ export function ChatPanel({ prefs, onModel, session, onOpenSettings }: ChatPanel
     }
   };
 
+  // A pasted image joins the message; pasted text still pastes as text.
+  const onPaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
+    const files = imageFiles(e.clipboardData.files);
+    if (files.length === 0) return;
+    if (!e.clipboardData.types.includes('text/plain')) e.preventDefault();
+    void addImages(files);
+  };
+
   return (
     <div className="tab-chat">
       <div className="tab-chat-model">
         <span aria-hidden="true">Model</span>
-        <ModelPicker value={prefs.model} onChange={onModel} presets={presets} models={models} disabled={!!working} />
+        <ModelPicker value={prefs.model} onChange={onModel} presets={presets} models={models.map(m => m.id)} disabled={!!working} />
       </div>
       {!prefs.apiKey && (
         <p className="tab-chat-hint">
@@ -78,7 +98,7 @@ export function ChatPanel({ prefs, onModel, session, onOpenSettings }: ChatPanel
             <button type="button" className="tab-chat-link" onClick={onOpenSettings}>More settings</button>
           </p>
         )}
-        {entries.map((entry, i) => <ChatEntry key={i} entry={entry} />)}
+        {entries.map((entry, i) => <ChatEntry key={i} entry={entry} onView={view} />)}
         {working && (
           <div className="tab-chat-reply">
             <Notes notes={working.notes} />
@@ -87,10 +107,31 @@ export function ChatPanel({ prefs, onModel, session, onOpenSettings }: ChatPanel
         )}
       </div>
       <div className="tab-chat-compose">
+        {images.length > 0 && (
+          <div className="tab-chat-images" role="group" aria-label="Images to send">
+            {images.map((image, i) => (
+              <div key={i} className="tab-chat-image">
+                <Thumbnail image={image} index={i} onView={view} />
+                <button
+                  type="button" className="tab-chat-image-remove" aria-label={`Remove image ${i + 1}`} title="Remove"
+                  onMouseDown={e => e.preventDefault()} onClick={() => removeImage(i)}
+                >
+                  <svg viewBox="0 0 10 10" width="8" height="8" aria-hidden="true"><path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" strokeWidth="1.6" /></svg>
+                </button>
+              </div>
+            ))}
+            {blind && (
+              <span
+                className="tab-chat-blind" role="img"
+                aria-label={blindText(prefs.model)} title={blindText(prefs.model)}
+              >⚠</span>
+            )}
+          </div>
+        )}
         <textarea
-          className="input" rows={3} value={draft} aria-label="Message"
-          placeholder={prefs.apiKey ? 'Ask, or say what to change (Enter sends)' : 'Add your OpenRouter key in Settings first'}
-          disabled={!prefs.apiKey} onChange={e => setDraft(e.target.value)} onKeyDown={onKeyDown}
+          ref={boxRef} className="input" rows={3} value={draft} aria-label="Message"
+          placeholder={prefs.apiKey ? 'Ask, or say what to change; paste an image to transcribe it (Enter sends)' : 'Add your OpenRouter key in Settings first'}
+          disabled={!prefs.apiKey} onChange={e => setDraft(e.target.value)} onKeyDown={onKeyDown} onPaste={onPaste}
         />
         <div className="tab-chat-actions">
           {entries.length > 0 && !working && (
@@ -98,15 +139,35 @@ export function ChatPanel({ prefs, onModel, session, onOpenSettings }: ChatPanel
           )}
           {working
             ? <button type="button" className="btn btn-secondary" onClick={stop}>Stop</button>
-            : <button type="button" className="btn btn-primary" disabled={!draft.trim() || !prefs.apiKey} onMouseDown={e => e.preventDefault()} onClick={() => void send()}>Send</button>}
+            : <button type="button" className="btn btn-primary" disabled={(!draft.trim() && images.length === 0) || !prefs.apiKey} onMouseDown={e => e.preventDefault()} onClick={() => void send()}>Send</button>}
         </div>
       </div>
+      <Modal open={viewing !== null} onClose={() => setViewing(null)} title={viewing?.label ?? 'Image'} className="tab-chat-image-view">
+        {viewing && (
+          // A data: URL in the page itself; next/image has nothing to optimise.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={viewing.image.url} alt={viewing.label} />
+        )}
+      </Modal>
     </div>
   );
 }
 
-function ChatEntry({ entry }: { entry: Entry }) {
-  if (entry.kind === 'ask') return <p className="tab-chat-ask">{entry.text}</p>;
+type OnView = (image: ChatImage, label: string) => void;
+
+function ChatEntry({ entry, onView }: { entry: Entry; onView: OnView }) {
+  if (entry.kind === 'ask') {
+    return (
+      <div className="tab-chat-ask">
+        {entry.images.length > 0 && (
+          <div className="tab-chat-images">
+            {entry.images.map((image, i) => <div key={i} className="tab-chat-image"><Thumbnail image={image} index={i} onView={onView} /></div>)}
+          </div>
+        )}
+        {entry.text && <p>{entry.text}</p>}
+      </div>
+    );
+  }
   if (entry.kind === 'error') {
     return (
       <div className="tab-chat-reply">
@@ -122,6 +183,26 @@ function ChatEntry({ entry }: { entry: Entry }) {
       <p className="tab-chat-meta">{usageLine(entry.model, entry.usage)}</p>
     </div>
   );
+}
+
+/** A small image; pressing it shows it full size. Focus stays where it was, so nothing is left outlined after. */
+function Thumbnail({ image, index, onView }: { image: ChatImage; index: number; onView: OnView }) {
+  const label = image.name || `Image ${index + 1}`;
+  return (
+    <button
+      type="button" className="tab-chat-image-open" aria-label={`Show ${label} full size`} title={image.name || undefined}
+      onMouseDown={e => e.preventDefault()} onClick={() => onView(image, label)}
+    >
+      {/* A data: URL in the page itself; next/image has nothing to optimise. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={image.url} alt={label} />
+    </button>
+  );
+}
+
+/** The hover on the ⚠ shown when the model can't read the images waiting to be sent. */
+export function blindText(model: string): string {
+  return `${model} can't read images, so it won't see these. Pick a model that can, such as anthropic/claude-opus-5.5.`;
 }
 
 function Notes({ notes }: { notes: Note[] }) {
