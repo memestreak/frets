@@ -27,8 +27,8 @@ first line in `2026-10-26-tab-words-design.md` and
 ## The Tuning panel
 
 - The Tuning panel (a Panel, not a Popover: see `GLOSSARY.md`) gains
-  **Capo** under the presets, Strings and the piano: a caption, then a
-  dropdown: **None**, first and the default, then **1st fret** to **12th
+  a **Capo** section under Tuning and Strings: its header, then a
+  dropdown under it: **None**, first and the default, then **1st fret** to **12th
   fret** (Jeremy, 2026-11-13, in place of a first − / field / + stepper).
 - With a capo on, a small neck appears under the dropdown, the panel
   growing downward: the nut to fret 15, frets narrowing as a guitar's
@@ -45,8 +45,8 @@ first line in `2026-10-26-tab-words-design.md` and
 - Every choice, in the dropdown or on the neck, applies at once and is
   one undo step, as a preset is. The dropdown lets go of the focus after
   a choice (let go after use).
-- The panel's other keys stay as they are. Capo's caption and dropdown
-  sit on one line, lined up with Tuning's above
+- The panel's other keys stay as they are. Capo's header is on a line
+  of its own over its dropdown, as Tuning's and Strings' are
   (`2026-10-29-tab-credits-tuning-design.md`); the Tuning dropdown still
   reads DADGAD with a capo on (the capo is not part of the tuning's
   name).

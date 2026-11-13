@@ -49,8 +49,9 @@ export function TuningPanel({ clip, x, y, onChange, onClose }: {
         if (!(e.target as Element).closest('.tab-tuning-string, .tab-tuning-piano')) setLow(null);
       }}
     >
-      <span className="tab-panel-row">
-        <label className="tab-time-caption" htmlFor="tab-tuning">Tuning</label>
+      {/* Three sections, each under a header of its own (Jeremy, 2026-11-13). */}
+      <div className="tab-panel-section">
+        <label className="settings-pane-heading" htmlFor="tab-tuning">Tuning</label>
         <select
           id="tab-tuning" className="input tab-panel-pick" value={preset?.name ?? ''}
           onChange={e => { const p = TUNING_PRESETS.find(t => t.name === e.target.value); if (p) onChange(withTuning(clip, p.notes)); }}
@@ -59,27 +60,29 @@ export function TuningPanel({ clip, x, y, onChange, onClose }: {
           {!preset && <option value="" disabled>Custom</option>}
           {TUNING_PRESETS.map(p => <option key={p.name} value={p.name}>{p.name}</option>)}
         </select>
-      </span>
-      <span className="tab-time-caption">Strings</span>
-      <div className="seg" role="group" aria-label="String">
-        {lows.map(s => (
-          <button
-            key={s} type="button" className="seg-opt tab-tuning-string" aria-pressed={s === low} onClick={() => setLow(s === low ? null : s)}
-            aria-label={`String ${STRING_COUNT - s}: ${prettyNote(stringNote(clip.tuning, s))}`}
-          >
-            <span className="score-string" aria-hidden="true">{STRING_COUNT - s}</span>
-            {prettyNote(stringNote(clip.tuning, s))}
-          </button>
-        ))}
       </div>
-      {low !== null && (
-        <div className="tab-tuning-piano">
-          <KeyPicker
-            label={`String ${STRING_COUNT - low}`} value={stringNote(clip.tuning, low)}
-            onPick={note => onChange(withStringNote(clip, low, note))}
-          />
+      <div className="tab-panel-section">
+        <span className="settings-pane-heading">Strings</span>
+        <div className="seg" role="group" aria-label="String">
+          {lows.map(s => (
+            <button
+              key={s} type="button" className="seg-opt tab-tuning-string" aria-pressed={s === low} onClick={() => setLow(s === low ? null : s)}
+              aria-label={`String ${STRING_COUNT - s}: ${prettyNote(stringNote(clip.tuning, s))}`}
+            >
+              <span className="score-string" aria-hidden="true">{STRING_COUNT - s}</span>
+              {prettyNote(stringNote(clip.tuning, s))}
+            </button>
+          ))}
         </div>
-      )}
+        {low !== null && (
+          <div className="tab-tuning-piano">
+            <KeyPicker
+              label={`String ${STRING_COUNT - low}`} value={stringNote(clip.tuning, low)}
+              onPick={note => onChange(withStringNote(clip, low, note))}
+            />
+          </div>
+        )}
+      </div>
       <CapoPicker tuning={clip.tuning} capo={clip.capo ?? 0} onCapo={capo => onChange(setCapo(clip, capo === 0 ? null : capo))} />
     </div>,
     document.body,
@@ -99,15 +102,13 @@ function CapoPicker({ tuning, capo, onCapo }: {
     if (next !== capo) onCapo(next);
   };
   return (
-    <>
-      <span className="tab-panel-row">
-        <label className="tab-time-caption" htmlFor="tab-capo">Capo</label>
-        <select id="tab-capo" className="input tab-panel-pick" value={capo} onChange={e => set(Number(e.target.value))}>
-          <option value={0}>None</option>
-          {Array.from({ length: MAX_CAPO }, (_, k) => k + 1).map(f => <option key={f} value={f}>{fretWords(f)}</option>)}
-        </select>
-      </span>
+    <div className="tab-panel-section">
+      <label className="settings-pane-heading" htmlFor="tab-capo">Capo</label>
+      <select id="tab-capo" className="input tab-panel-pick" value={capo} onChange={e => set(Number(e.target.value))}>
+        <option value={0}>None</option>
+        {Array.from({ length: MAX_CAPO }, (_, k) => k + 1).map(f => <option key={f} value={f}>{fretWords(f)}</option>)}
+      </select>
       {capo > 0 && <CapoNeck tuning={tuning} capo={capo} onCapo={set} />}
-    </>
+    </div>
   );
 }

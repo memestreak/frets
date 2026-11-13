@@ -41,13 +41,18 @@ alphaTex. They are now set where they are drawn.
 
 ## Tuning
 
-- **Tuning**, a caption and a dropdown on one line, as Capo's below it: the common tunings, Standard,
+- The panel has three sections, **Tuning**, **Strings** and **Capo**, each under a header on a line of
+  its own, bold in `--ink` as the Settings dialog heads a pane (`.settings-pane-heading`), with more
+  room between sections than between a header and its controls (Jeremy, 2026-11-13: "Make all three
+  bold or more obvious section headers"; first small muted captions, Tuning and Capo beside their
+  dropdowns).
+- **Tuning**, a dropdown under its header: the common tunings, Standard,
   E♭, D, Drop D, Drop C♯, Drop C, DADGAD, Open G, Open D, Open E (`TUNING_PRESETS` in `tuning.ts`),
   the clip's chosen. A tuning that is none of them reads **Custom**, an option there only while it
   is. Picking one sets it. (First a row of buttons with the name in a caption, "Tuning: DADGAD";
   a dropdown since 2026-11-13, Jeremy: "This will save room".) The dropdown has the focus when the
   panel opens.
-- Then the six strings, lowest first (⑥ to ①), each named as the head names it (a flat when tuned
+- Then **Strings**: the six strings, lowest first (⑥ to ①), each named as the head names it (a flat when tuned
   down, a sharp when tuned up). None is picked when the panel opens; a press picks one and the
   shared piano `KeyPicker` appears under the strings to set its note, the panel growing downward
   (Jeremy, 2026-11-13: "only show the key selector if a string is selected"). A second press on it,
