@@ -99,7 +99,7 @@ export function ChatTab({ part, view: asked, loop: askedLoop, onOpen, onHeard }:
   const selected = selection ? selectedRange(selection) : null;
   const [ref, width] = useWidth();
   const parts: Parts = view;
-  const layout = useMemo(() => (width > 0 ? layoutClip(part, width, parts) : null), [part, width, parts]);
+  const layout = useMemo(() => (width > 0 ? layoutClip(part, width, parts, false, true) : null), [part, width, parts]);
   const playback = usePlayback(part, DEFAULT_SOUND, VOLUME, {
     loopPause: 0, transpose: 0, metronome: false, countIn: false, countInBars: 1, clickVolume: 0.8,
     effects: DEFAULT_FX, onStopAt: () => {},

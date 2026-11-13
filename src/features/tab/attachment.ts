@@ -188,18 +188,18 @@ function restLine(layout: Layout, box: Box, at: Placed): { line: AttachmentLine 
 }
 
 /** What to draw for a picked Mark or word: its notes' tint, its Attachment lines and, for a Span, its Handles. */
-export function attachment(layout: Layout, picked: MarkHit | WordHit | null, capo: number | null = null): Attachment {
+export function attachment(layout: Layout, picked: MarkHit | WordHit | null): Attachment {
   if (!picked) return NONE;
   const columns = placedColumns(layout);
   const tint = tintOf(picked, columns);
   if (picked.kind === 'chord') {
-    const box = textBox(layout, picked, capo);
+    const box = textBox(layout, picked);
     const at = columns.get(picked.index);
     const line = box && at ? timeLine(layout, box, at) : null;
     return { tint, lines: line ? [line] : [], handles: [], rests: [] };
   }
   if (picked.kind === 'text') {
-    const box = textBox(layout, picked, capo);
+    const box = textBox(layout, picked);
     const at = columns.get(picked.index);
     if (box && at && noteStrings(at.placed).length === 0 && !at.placed.column.grace) {
       const { line, rests } = restLine(layout, box, at);

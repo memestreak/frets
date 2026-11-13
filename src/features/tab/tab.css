@@ -383,6 +383,10 @@
 .tab-time-stepper button:focus, .tab-time-stepper input:focus { outline: none; }
 .tab-time-stepper button:focus-visible { color: var(--primary); }
 .tab-time-stepper input:focus-visible { text-decoration: underline; text-underline-offset: 3px; }
+.tab-time-stepper button:disabled { opacity: 0.4; cursor: default; background: transparent; color: var(--ink-muted); }
+/* The Tuning panel's capo: wide enough for "None" (issue #463). */
+.tab-capo-stepper { justify-self: start; align-self: start; }
+.tab-capo-stepper input { width: 5ch; }
 .tab-time-value { min-width: 34px; font-variant-numeric: tabular-nums; }
 /* The field for a chord name, section or tempo, over the spot it is drawn. */
 .tab-word {

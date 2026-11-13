@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
-import { barErrors, dynamicOf, MAX_CAPO, type Part } from './clip';
+import { barErrors, dynamicOf, type Part } from './clip';
 import { columnAt, indexOf, withRestsInEmptyBars, type Cursor } from './editing';
-import { setBarKey, setBarTime, setBeatGroups, setPickup, setBeatText, setCapo, setChordName, setDynamic, setEnding, setRepeatTimes, setSection } from './barEdits';
+import { setBarKey, setBarTime, setBeatGroups, setPickup, setBeatText, setChordName, setDynamic, setEnding, setRepeatTimes, setSection } from './barEdits';
 import { BarKeyPanel } from './BarKeyPanel';
 import { BarFixPanel } from './BarFixPanel';
 import { BarTimePanel } from './BarTimePanel';
@@ -43,7 +43,7 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
   shown: { tab: boolean; drawn: boolean };
 }) {
   const { clip, cursor, commit, commitReBar, dispatch, editorRef, setNotice } = editor;
-  /** The chord name, text, section, tempo or capo being typed, and where: the cursor's column or bar when it opened. */
+  /** The chord name, text, section, dynamic, ending or repeat count being typed, and where: the cursor's column or bar when it opened. */
   const [word, setWord] = useState<{ kind: FieldKind; bar: number; column: number } | null>(null);
   /** The note whose syllable the Lyrics field is typing, and its Lyric line (issue #408). */
   const [lyric, setLyricField] = useState<{ bar: number; column: number; line: number; turn?: number } | null>(null);
@@ -97,12 +97,10 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
       setWord({ kind, bar: at.bar, column: 0 });
       return;
     }
-    // The capo belongs to the whole clip, written over its first line.
-    if (kind === 'capo') setWord({ kind, bar: 0, column: 0 });
-    else setWord({ kind, bar: at.bar, column: at.column });
+    setWord({ kind, bar: at.bar, column: at.column });
   };
 
-  /** A typed chord name, text, section or capo set (an empty one clears it); null leaves it as it was. */
+  /** A typed chord name, text, section, dynamic, ending or repeat count set (an empty one clears it); null leaves it as it was. */
   const finishWord = (value: string | null, byKey: boolean) => {
     const w = word;
     setWord(null);
@@ -124,8 +122,6 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
     if (w.kind === 'ending') commit(setEnding(clip, w.bar, Number(value) || null));
     // A count under 2, or none, is played twice, written without one.
     if (w.kind === 'repeat') commit(setRepeatTimes(clip, w.bar, Number(value) || 2));
-    // A capo of 0 is no capo.
-    if (w.kind === 'capo') commit(setCapo(clip, value === '' || Number(value) === 0 ? null : Math.min(MAX_CAPO, Number(value))));
   };
 
   /**

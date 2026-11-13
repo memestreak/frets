@@ -220,30 +220,15 @@ describe('TabPage editing', () => {
     expect(screen.queryByRole('textbox', { name: 'Chord name' })).toBeNull();
   });
 
-  it('names a chord from C and a field over the tab, and sets the capo from the palette', async () => {
+  it('names a chord from C and a field over the tab', async () => {
     await openWith('5.1.1 |');
     keys('c');
     const field = screen.getByRole('textbox', { name: 'Chord name' });
     fireEvent.change(field, { target: { value: 'Am7' } });
     fireEvent.keyDown(field, { key: 'Enter' });
     expect(screen.queryByRole('textbox', { name: 'Chord name' })).not.toBeInTheDocument();
-    fireEvent.click(tool('Capo'));
-    const capo = screen.getByRole('textbox', { name: 'Capo on fret, 1 to 12' });
-    fireEvent.change(capo, { target: { value: '3' } });
-    fireEvent.keyDown(capo, { key: 'Enter' });
-    expect(screen.getByTestId('capo')).toHaveTextContent('Capo 3');
-    expect(tool('Capo')).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(screen.getByRole('button', { name: 'AlphaTex' }));
-    expect(alphaTexText()).toContain('\\capo 3\n5.1.1{ch "Am7"} |');
-    fireEvent.click(screen.getByRole('button', { name: 'Notation' }));
-    // An empty field, or 0, takes the capo off; the palette acts only while the tab has the keys.
-    act(() => editor().focus());
-    fireEvent.click(tool('Capo'));
-    const again = screen.getByRole('textbox', { name: 'Capo on fret, 1 to 12' });
-    expect(again).toHaveValue('3');
-    fireEvent.change(again, { target: { value: '0' } });
-    fireEvent.keyDown(again, { key: 'Enter' });
-    expect(screen.queryByTestId('capo')).toBeNull();
+    expect(alphaTexText()).toContain('5.1.1{ch "Am7"} |');
   });
 
   it('selects with Shift+arrows, copies the selection as alphaTex, makes rests of it and deletes it', () => {

@@ -16,14 +16,13 @@ const CAPTIONS: Record<FieldKind, string> = {
   chord: 'Chord name',
   text: 'Text over the column',
   section: 'Section',
-  capo: 'Capo on fret, 1 to 12',
   ending: 'Ending number',
   repeat: 'Times played, 2 to 9',
   dynamic: 'Dynamic',
 };
-const PLACEHOLDERS: Record<FieldKind, string> = { chord: 'Am7', text: 'let ring', section: 'Chorus', capo: '3', ending: '2', repeat: '3', dynamic: 'mf, or ↓ for the list' };
+const PLACEHOLDERS: Record<FieldKind, string> = { chord: 'Am7', text: 'let ring', section: 'Chorus', ending: '2', repeat: '3', dynamic: 'mf, or ↓ for the list' };
 /** The words that are numbers: only digits can be typed, and only as many as the largest takes. */
-const NUMBER_LENGTH: Partial<Record<FieldKind, number>> = { capo: 2, ending: 1, repeat: 1 };
+const NUMBER_LENGTH: Partial<Record<FieldKind, number>> = { ending: 1, repeat: 1 };
 /** The longest a word can be typed: free text may run to a few lines, as it wraps over its column (issue #323). */
 const WORD_LENGTH = (kind: FieldKind) => (kind === 'text' ? 200 : kind === 'dynamic' ? 6 : 40);
 /** What a ⚠ by a dynamic's field says when what is typed isn't one. */
@@ -38,7 +37,7 @@ function settable(kind: FieldKind, value: string): boolean {
 const TEXT_ROWS = 6;
 
 /**
- * A small field over the tab for a chord name, free text, a section or the capo, at the spot it is drawn.
+ * A small field over the tab for a chord name, free text, a section, an ending or a repeat's count, at the spot it is drawn.
  * Enter or leaving the field sets what is typed (empty clears it); Esc leaves it as it was. The Text
  * field takes more: Shift+Enter starts a new line in it (issue #445), and Cmd+B makes the selected words
  * bold, `**` round them (issue #446).

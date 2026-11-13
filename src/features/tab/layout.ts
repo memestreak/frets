@@ -411,7 +411,11 @@ function followAnchor(placed: PlacedColumn): void {
   placed.x = placed.start + Math.min(a.inset, placed.width / 2) + a.signs;
 }
 
-export function layoutClip(clip: Part, width: number, parts: Parts = 'tab', diagrams = false): Layout {
+/**
+ * `capoRow`: "Capo 3" over the first line, for show_tab, which has no score head; the Tab page and its
+ * exports draw the capo in the head instead (issue #463).
+ */
+export function layoutClip(clip: Part, width: number, parts: Parts = 'tab', diagrams = false, capoRow = false): Layout {
   const staff = parts !== 'tab';
   // In front of the staff: the time signature (drawn on the first line only, but every line leaves its
   // room, so the lines start one under another). No string names: the score's head shows the tuning
@@ -614,7 +618,7 @@ export function layoutClip(clip: Part, width: number, parts: Parts = 'tab', diag
     let top = 0;
     const systems = drafts.map((draft, si): System => {
       const indices = draft.bars.map(b => b.index);
-      const rows = rowsFor(lineClip(clip, indices, draft.first), parts, reaches[si], indices.some(i => startsFreeTime(clip, i)), draft.textRows, draft.textUnderRows, draft.sectionRows, diagrams);
+      const rows = rowsFor(lineClip(clip, indices, draft.first && capoRow), parts, reaches[si], indices.some(i => startsFreeTime(clip, i)), draft.textRows, draft.textUnderRows, draft.sectionRows, diagrams);
       const system = { ...draft, rows, top };
       top += rows.height;
       return system;
@@ -632,9 +636,9 @@ export function layoutClip(clip: Part, width: number, parts: Parts = 'tab', diag
   return wider.some((r, si) => r.high !== reaches[si].high || r.low !== reaches[si].low) ? stack(wider) : layout;
 }
 
-/** One line of a clip, as `rowsFor` reads it: its own bars, and the capo only on the first line. */
-export function lineClip(clip: Part, bars: number[], first: boolean): Part {
-  return { ...clip, capo: first ? clip.capo : undefined, bars: bars.map(i => clip.bars[i]) };
+/** One line of a clip, as `rowsFor` reads it: its own bars, and the capo only when it draws the capo's row (show_tab's first line). */
+export function lineClip(clip: Part, bars: number[], capo: boolean): Part {
+  return { ...clip, capo: capo ? clip.capo : undefined, bars: bars.map(i => clip.bars[i]) };
 }
 
 /** The line under a y in the whole drawing, and the y within it; null above or below the lines. */

@@ -3,14 +3,16 @@
 /**
  * The tuning (issue #203), opened by a press on the tuning in the score's head, or on the space where
  * it would go when the guitar is in standard tuning: the common tunings, then each string, lowest
- * first, its note picked on the shared piano `KeyPicker`. Every change is one undo step and keeps the
- * frets (`tuning.ts`).
+ * first, its note picked on the shared piano `KeyPicker`; then the capo (issue #463,
+ * `docs/specs/2026-11-13-tab-capo-in-tuning-design.md`). Every change is one undo step and keeps the
+ * frets (`tuning.ts`); a capo change keeps the tuning, and the tuning keeps the capo.
  */
-import { useState } from 'react';
+import { useState, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { KeyPicker } from '@/components/KeyPicker';
 import { prettyNote } from '@/lib/theory/notes';
-import { STRING_COUNT, type Part } from './clip';
+import { MAX_CAPO, STRING_COUNT, type Part } from './clip';
+import { setCapo } from './barEdits';
 import { presetOf, stringNote, TUNING_PRESETS, withStringNote, withTuning } from './tuning';
 import { usePanel } from './usePanel';
 
@@ -58,7 +60,54 @@ export function TuningPanel({ clip, x, y, onChange, onClose }: {
         label={`String ${STRING_COUNT - low}`} value={stringNote(clip.tuning, low)}
         onPick={note => onChange(withStringNote(clip, low, note))}
       />
+      <CapoStepper capo={clip.capo ?? 0} onCapo={capo => onChange(setCapo(clip, capo === 0 ? null : capo))} />
     </div>,
     document.body,
+  );
+}
+
+/**
+ * The capo as a − / + stepper round a field (issue #463): 0 is no capo, and the field then reads None.
+ * What is typed applies at once (past 12 is 12, empty is none); ↑ and ↓ step it.
+ */
+function CapoStepper({ capo, onCapo }: { capo: number; onCapo: (capo: number) => void }) {
+  // What is being typed; null when the field shows the clip's own capo.
+  const [draft, setDraft] = useState<string | null>(null);
+  const set = (next: number) => {
+    const clamped = Math.min(MAX_CAPO, Math.max(0, next));
+    if (clamped !== capo) onCapo(clamped);
+  };
+  const onType = (typed: string) => {
+    const digits = typed.replace(/\D/g, '');
+    const next = digits === '' ? 0 : Math.min(MAX_CAPO, Number(digits));
+    setDraft(digits === '' ? '' : String(next));
+    set(next);
+  };
+  const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') setDraft(null);
+    else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      setDraft(null);
+      set(capo + (e.key === 'ArrowUp' ? 1 : -1));
+    }
+  };
+  // What is typed stays while it is the capo; a change from elsewhere (a button, Undo) shows the capo.
+  const typed = draft !== null && (draft === '' ? capo === 0 : Number(draft) === capo);
+  const shown = typed ? draft : capo === 0 ? 'None' : String(capo);
+  return (
+    <>
+      <span className="tab-time-caption">Capo</span>
+      <span className="tab-time-stepper tab-capo-stepper">
+        <button type="button" aria-label="Capo down a fret" disabled={capo === 0} onClick={() => set(capo - 1)}>−</button>
+        <input
+          type="text" inputMode="numeric" aria-label="Capo"
+          value={shown}
+          onFocus={e => e.currentTarget.select()}
+          onChange={e => onType(e.target.value)}
+          onBlur={() => setDraft(null)} onKeyDown={onKeyDown}
+        />
+        <button type="button" aria-label="Capo up a fret" disabled={capo === MAX_CAPO} onClick={() => set(capo + 1)}>+</button>
+      </span>
+    </>
   );
 }

@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import type { Part } from './clip';
-import { removeBarLine, setBarKey, setBarTime, setBeatText, setCapo, setChordName, setEnding, setSection, setTempo } from './barEdits';
+import { removeBarLine, setBarKey, setBarTime, setBeatText, setChordName, setEnding, setSection, setTempo } from './barEdits';
 import { isBarLine } from './barLines';
 import { barSelection, columnAt, growSelection, indexOf, noteAt, placeOf, selectedRange, setFret, type Cursor, type Selection } from './editing';
 import { elementsOf, stepElement } from './elements';
@@ -66,7 +66,7 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
   const wordPlace = (hit: TextHit): Cursor => ({ ...cursor, ...('index' in hit ? placeOf(clip, hit.index) : { bar: hit.bar, column: 0 }) });
 
   /**
-   * A press on a drawn chord name, text, section, tempo, capo or time or key signature picks it, with the
+   * A press on a drawn chord name, text, section, tempo or time or key signature picks it, with the
    * cursor on its column or bar, lit blue; Enter, a double-click or its menu's Edit opens its field or panel
    * (Jeremy, 2026-10-27; a signature, since step 8, as a word: a press had opened its panel at once).
    */
@@ -106,7 +106,7 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
     }
     commit(clip, at, null);
     if (hit.kind === 'time' || hit.kind === 'key') {
-      const box = textBox(layout, hit, drawn.capo ?? null);
+      const box = textBox(layout, hit);
       openSignature(hit.kind, hit.bar, box ? { x: box.x + box.width / 2 - PANEL_LEAD, y: box.y + box.height / 2 + PANEL_DROP } : null);
       return;
     }
@@ -127,7 +127,6 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
       if (hit.kind === 'lyric') commit(setLyric(clip, at, hit.line, ''), at, null);
       if (hit.kind === 'section') commit(setSection(clip, at.bar, ''), at, null);
       if (hit.kind === 'tempo') commit(setTempo(clip, at.bar, null), at, null);
-      if (hit.kind === 'capo') commit(setCapo(clip, null), at, null);
       if (hit.kind === 'ending') commit(setEnding(clip, at.bar, null), at, null);
       // A signature change later in the clip goes; bar 1's stays (step 8, Q3).
       if (hit.kind === 'time' && at.bar > 0 && clip.bars[at.bar]?.time) commitReBar(setBarTime(clip, at.bar, null), at.bar);

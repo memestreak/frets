@@ -71,7 +71,7 @@ describe('short texts under the chord names', () => {
     expect(rows.textUnder!).toBeGreaterThan(rows.diagrams!);
     expect(textAt(layout, short.x, top + rows.textUnder!)).toEqual({ kind: 'text', index: short.index });
     expect(textAt(layout, short.x + 4, top + rows.text!)).toEqual({ kind: 'text', index: long.index });
-    const box = textBox(layout, { kind: 'text', index: short.index }, null)!;
+    const box = textBox(layout, { kind: 'text', index: short.index })!;
     expect(box.y).toBeGreaterThan(top + rows.diagrams!);
   });
 

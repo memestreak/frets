@@ -86,7 +86,7 @@ describe('diagrams over the names', () => {
     const a = system.bars[0].columns[0];
     const middle = system.top + system.rows.diagrams! + 10;
     expect(textAt(layout, a.x, middle)).toEqual({ kind: 'chord', index: a.index });
-    const box = textBox(layout, { kind: 'chord', index: a.index }, null)!;
+    const box = textBox(layout, { kind: 'chord', index: a.index })!;
     expect(box.y + box.height).toBeGreaterThan(middle);
   });
   it('a picked chord’s dashed Attachment line runs from under its diagram', () => {

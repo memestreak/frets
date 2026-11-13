@@ -23,6 +23,7 @@ frets on the one tab, as it reads them: one voice.
     Time: <beats>/<note>                optional; 4/4 if left out
                                         (beats 1 to 32; note 2, 4, 8, 16 or 32)
     Tuning: <six notes, low to high>    optional; E A D G B E if left out
+    Capo: <fret>                        optional; 1 to 12, none if left out
     <blank line>
     <one or more blocks>
 
@@ -38,6 +39,11 @@ Without a Tuning line, string names that differ from standard (a "D" on
 the bottom line) are read as the tuning. When there is a Tuning line,
 the string names may be either the Tuning's notes or standard e B G D A E;
 they are not checked against it. Frets writes e B G D A E in every tuning.
+
+The capo goes on after the tuning, and frets are counted from it, as tab
+is written: with "Capo: 4" a 0 is the capoed open string. "Capo: 0" is
+no capo; a capo past 12 is read as 12. Frets writes the Capo line after
+Tuning, only when there is a capo.
 
 
 2. A BLOCK
@@ -323,8 +329,9 @@ adds the tab to My arrangements as a new arrangement and shows it.
 10. FROM A PICTURE OF TAB: CHECKLIST FOR AGENTS
 -----------------------------------------------
 
-1. Read the title, time signature and tuning. Write "Time:" always;
-   write "Title:" and "Tuning:" only when the picture shows them.
+1. Read the title, time signature, tuning and capo. Write "Time:"
+   always; write "Title:", "Tuning:" and "Capo:" only when the picture
+   shows them ("Capo 3rd fret" is "Capo: 3").
 2. Copy each system as one block, string by string, top line = highest
    string. Tab in pictures always puts the highest string on top.
 3. Line up notes that sound together at one position.

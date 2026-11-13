@@ -136,7 +136,7 @@ describe('a clip of long section names on short bars', () => {
     const under = sectionBox(low, rows.section!);
     expect(textAt(layout, under.x0 + 10, top + under.y0)).toEqual({ kind: 'section', bar: low.index });
     expect(textAt(layout, box.x0 + 10, top + under.y0)).toBeNull();
-    const picked = textBox(layout, { kind: 'section', bar: raised.index }, null)!;
+    const picked = textBox(layout, { kind: 'section', bar: raised.index })!;
     expect(picked.y + picked.height / 2).toBeCloseTo(top + box.y0);
   });
 

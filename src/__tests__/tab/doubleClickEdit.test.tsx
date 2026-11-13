@@ -24,7 +24,7 @@ vi.stubGlobal('fetch', vi.fn(async (url: unknown) => {
   return new Response(JSON.stringify(BUILTIN_FILES));
 }));
 
-/** Every kind of word: capo, section, tempo, chord name, text, a repeat played three times with endings, a double bar and a mark. */
+/** Every kind of word (the capo is drawn in the head, issue #463): section, tempo, chord name, text, a repeat played three times with endings, a double bar and a mark. */
 const TEX = '\\title "Words"\n\\capo 2\n\\ts (4 4)\n'
   + '\\section "Verse" \\tempo 90 \\ro 5.1.4{ch "A"} 7.3.4{txt "let ring"} 7.3{h}.4 8.3.4 | \\ae 1 \\rc 3 3.4.1 | \\ae 2 \\tempo 120 5.1.1 | \\db 3.2.1 | 5.1.1 |';
 const result = readAlphaTexWith(alphaTab, TEX);
@@ -33,7 +33,7 @@ const CLIP = partOf(result.clip);
 /** jsdom draws the tab 800 wide at 0, 0. */
 const LAYOUT = layoutClip(CLIP, 800);
 const middleOf = (box: { x: number; y: number; width: number; height: number }) => ({ clientX: box.x + box.width / 2, clientY: box.y + box.height / 2 });
-const wordAt = (hit: WordHit) => middleOf(textBox(LAYOUT, hit, CLIP.capo ?? null)!);
+const wordAt = (hit: WordHit) => middleOf(textBox(LAYOUT, hit)!);
 const barLineAt = (kind: BarLineHit['kind']) => middleOf(barLineBoxes(LAYOUT).find(b => b.hit.kind === kind)!);
 
 async function open() {
@@ -59,7 +59,6 @@ describe('a double-click on something with an Edit opens its field (issue #289)'
   const cases: [string, () => { clientX: number; clientY: number }, string][] = [
     ['text over a column', () => wordAt({ kind: 'text', index: 1 }), 'Text over the column'],
     ['a section', () => wordAt({ kind: 'section', bar: 0 }), 'Section'],
-    ['the capo', () => wordAt({ kind: 'capo', bar: 0 }), 'Capo on fret, 1 to 12'],
     ['an ending', () => wordAt({ kind: 'ending', bar: 1 }), 'Ending number'],
     ['a repeat’s count', () => barLineAt('repeatCount'), 'Times played, 2 to 9'],
     ['a repeat’s end', () => barLineAt('repeatEnd'), 'Times played, 2 to 9'],

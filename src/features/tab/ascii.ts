@@ -11,7 +11,7 @@
 import { lyricLines } from './lyrics';
 import { chartChords, type ShapedChord } from './chordDiagrams';
 import {
-  barTicks, hasNotes, isPalmMuted, isStandardTuningNames, nearestDuration, unevenMessage, slideDirections, STANDARD_TUNING, STRING_COUNT,
+  barTicks, hasNotes, isPalmMuted, MAX_CAPO, isStandardTuningNames, nearestDuration, unevenMessage, slideDirections, STANDARD_TUNING, STRING_COUNT,
   ticks, COMMON_TIME, isTimeSignature, tupletFields, tupletLabel, TUPLET_SPANS, WHOLE,
   asClip, type Bar, type BendQuarters, type Clip, type Part, type Column, type Duration, type Note, type NoteValue,
   type TimeSignature,
@@ -293,7 +293,7 @@ export function readAscii(text: string): ReadResult {
   const header: Record<string, string> = {};
   const used = new Set<number>();
   lines.forEach((line, i) => {
-    const m = /^\s*(title|time|tuning)\s*:\s*(.*?)\s*$/i.exec(line);
+    const m = /^\s*(title|time|tuning|capo)\s*:\s*(.*?)\s*$/i.exec(line);
     if (m && !(m[1].toLowerCase() in header)) {
       header[m[1].toLowerCase()] = m[2];
       used.add(i);
@@ -313,6 +313,16 @@ export function readAscii(text: string): ReadResult {
     const notes = header.tuning.split(/[\s,]+/).filter(Boolean);
     if (notes.length === STRING_COUNT && notes.every(n => NOTE_NAME.test(n))) tuning = notes.map(normalNote);
     else tally.messages.push(`Tuning "${header.tuning}" isn't six note names, so it is left out.`);
+  }
+
+  // The capo's fret (issue #463): 0 is none, past 12 is 12.
+  let capo: number | undefined;
+  if (header.capo !== undefined) {
+    if (/^\d+$/.test(header.capo)) {
+      const fret = Number(header.capo);
+      if (fret > MAX_CAPO) tally.messages.push(`Read capo ${fret} as ${MAX_CAPO}, the highest Frets offers.`);
+      if (fret > 0) capo = Math.min(MAX_CAPO, fret);
+    } else tally.messages.push(`Capo "${header.capo}" isn't a fret number, so it is left out.`);
   }
 
   // Blocks: six string lines in a row, and the annotation lines just above.
@@ -376,7 +386,7 @@ export function readAscii(text: string): ReadResult {
 
   return {
     ok: true,
-    clip: asClip({ name: header.title ?? '', time, tuning: tuning ?? [...STANDARD_TUNING], bars }),
+    clip: asClip({ name: header.title ?? '', time, tuning: tuning ?? [...STANDARD_TUNING], ...(capo ? { capo } : {}), bars }),
     warnings,
   };
 }
@@ -776,6 +786,7 @@ export function writeAscii(part: Part, { rhythm = true, chords = false }: { rhyt
   if (clip.name.trim()) head.push(`Title: ${clip.name.trim()}`);
   head.push(`Time: ${clip.time.beats}/${clip.time.value}`);
   if (!isStandardTuningNames(clip.tuning)) head.push(`Tuning: ${clip.tuning.join(' ')}`);
+  if (clip.capo) head.push(`Capo: ${clip.capo}`);
   // The Chord chart under the head (issue #242), a reader skips it: not a string line.
   const chart = chords ? asciiChordChart(chartChords(part)) : '';
   if (chart) head.push('', chart);

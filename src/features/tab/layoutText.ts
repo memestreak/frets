@@ -66,17 +66,17 @@ export function barTextX(bar: PlacedBar): number {
 export type TextHit = WordHit;
 
 export const CAPO_SIZE = 11;
-/** The capo's words, as drawn: "Capo 3". */
+/** The capo's words over show_tab's first line, which has no score head: "Capo 3". The Tab page draws it in its head (issue #463). */
 export function capoText(capo: number): string {
   return `Capo ${capo}`;
 }
 
 /**
- * A word over the staff that can be picked: a chord name, free text, a section, a tempo, the capo or an
+ * A word over the staff that can be picked: a chord name, free text, a section, a tempo or an
  * ending; a time or key signature (step 8: the bar it is drawn at, the first line's time signature bar
  * 0's); or a bar line that can (`barLines.ts`): a repeat's start, end or count, or a double bar line.
  */
-export type WordHit = { kind: 'chord' | 'text'; index: number } | LyricHit | { kind: 'section' | 'tempo' | 'capo' | 'ending' | 'time' | 'key'; bar: number } | BarLineHit;
+export type WordHit = { kind: 'chord' | 'text'; index: number } | LyricHit | { kind: 'section' | 'tempo' | 'ending' | 'time' | 'key'; bar: number } | BarLineHit;
 
 /** A syllable of the Lyrics under a note: its column's place in the clip, and its Lyric line from 0. */
 export type LyricHit = { kind: 'lyric'; index: number; line: number };
@@ -105,17 +105,13 @@ export function endingSpans(system: System): { bar: number; n: number; x0: numbe
  * The box round a drawn word or bar line, in the tab's units, as a press finds it (`textAt`); null when it
  * isn't drawn. A picked one's menu opens under it from the keyboard.
  */
-export function textBox(layout: Layout, hit: WordHit, capo: number | null): { x: number; y: number; width: number; height: number } | null {
+export function textBox(layout: Layout, hit: WordHit): { x: number; y: number; width: number; height: number } | null {
   if (isBarLine(hit)) return barLineBox(layout, hit);
   const box = (s: number, rowY: number | null, x0: number, x1: number, height = 18) =>
     rowY === null ? null : { x: x0 - 3, y: layout.systems[s].top + rowY - height / 2, width: x1 - x0 + 6, height };
   for (let s = 0; s < layout.systems.length; s++) {
     const system = layout.systems[s];
     const { rows } = system;
-    if (hit.kind === 'capo') {
-      if (!system.first || !capo) continue;
-      return box(s, rows.capo, system.lineStart, system.lineStart + capoText(capo).length * 6.5);
-    }
     if (hit.kind === 'lyric') {
       const placed = system.bars.flatMap(b => b.columns).find(c => c.index === hit.index);
       if (!placed) continue;
@@ -202,7 +198,7 @@ function signatureBox(system: System, bar: System['bars'][number], kind: 'time' 
   return bar.keyX === null ? null : tall(bar.keyX - 4, end((bar.columns[0]?.x ?? bar.x1) - 6));
 }
 
-/** The chord name, section, tempo, capo, ending, bar line or time signature under a point; null when there is none. */
+/** The chord name, section, tempo, ending, bar line or time signature under a point; null when there is none. */
 export function textAt(layout: Layout, x: number, y: number): TextHit | null {
   const line = lineAt(layout, y);
   if (!line) return null;
@@ -211,9 +207,6 @@ export function textAt(layout: Layout, x: number, y: number): TextHit | null {
   const { system, localY } = line;
   const { rows } = system;
   const near = (rowY: number | null) => rowY !== null && Math.abs(localY - rowY) <= 8;
-  if (system.first && near(rows.capo) && x >= system.lineStart - 2 && x <= system.lineStart + capoText(1).length * 6.5 + 8) {
-    return { kind: 'capo', bar: 0 };
-  }
   if (near(rows.endings)) {
     const span = endingSpans(system).find(e => x >= e.x0 - 4 && x <= e.x1 + 4);
     if (span) return { kind: 'ending', bar: span.bar };

@@ -15,7 +15,7 @@ first line in `2026-10-26-tab-words-design.md` and
   12), one per Track, as before. Nothing new is stored.
 - It goes on **after** the tuning: the strings are tuned first, then the
   capo raises every open string by its fret. DADGAD with a capo on 4
-  sounds F♯ B F♯ B C♯ F♯.
+  sounds F♯ C♯ F♯ B C♯ F♯.
 - Like a transposition, it changes what sounds, not the fingering. Frets
   stay counted from the capo, as tab is written: a `0` is the capoed open
   string, a `2` two frets above the capo. Playback, MIDI out, the staff,
@@ -86,7 +86,8 @@ first line in `2026-10-26-tab-words-design.md` and
   with no capo.
 - A capo change is one undo step; Undo puts the old capo back.
 - DADGAD with the capo on 4: the panel's tuning stays D A D G A D;
-  playback's open strings sound F♯ B F♯ B C♯ F♯ (MIDI 54 59 66 71 73 78);
+  playback's open strings sound F♯2 C♯3 F♯3 B3 C♯4 F♯4 (MIDI 42 49 54 59
+  61 66);
   the tab still shows its `0`s.
 - Picking a preset with a capo on keeps the capo; changing the capo keeps
   the tuning and every fret.

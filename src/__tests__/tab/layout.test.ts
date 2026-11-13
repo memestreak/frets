@@ -250,8 +250,9 @@ describe('each line\'s own rows', () => {
     expect(lineAt(layout, layout.height)).toBeNull();
   });
 
-  it('puts the capo over the first line only', () => {
-    const capo = layoutClip({ ...clip, capo: 2 }, 600);
+  it('puts the capo over the first line only, for show_tab (the Tab page draws it in the head, issue #463)', () => {
+    expect(layoutClip({ ...clip, capo: 2 }, 600).systems[0].rows.capo).toBeNull();
+    const capo = layoutClip({ ...clip, capo: 2 }, 600, 'tab', false, true);
     expect(capo.systems[0].rows.capo).not.toBeNull();
     expect(capo.systems[1].rows.capo).toBeNull();
   });
