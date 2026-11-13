@@ -1,7 +1,5 @@
 'use client';
 
-import { useMock } from '@/components/mocks/useMock';
-import { CAPO_LOOK_MOCK, type CapoLook } from './CapoNeck';
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
 import { HoverTips } from '@/components/HoverTips';
 import { ShapeMenu } from '@/components/chords/export/ShapeMenu';
@@ -303,9 +301,7 @@ export default function TabPage() {
   };
 
   // The fields and panels over the tab and from the score's head.
-  // The capo picture's look, while Jeremy picks one (issue #463): declared here so the mock card shows on the page.
-  const capoLook = useMock(CAPO_LOOK_MOCK) as CapoLook;
-  const head = useHeadPanels(editor, { layout, width: clipWidth, zoom, shown: { tab: view === 'tab', drawn: clipWidth > 0 }, capoLook });
+  const head = useHeadPanels(editor, { layout, width: clipWidth, zoom, shown: { tab: view === 'tab', drawn: clipWidth > 0 } });
   // Presses and drags on the drawn tab.
   const picking = useTabPicking(editor, {
     drawn, layout, hearNote, setNotice, openWord: head.openWord, openLyric: head.openLyric,

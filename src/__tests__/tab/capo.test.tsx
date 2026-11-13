@@ -3,7 +3,7 @@
  * (issue #463, docs/specs/2026-11-13-tab-capo-in-tuning-design.md).
  */
 import * as alphaTab from '@coderline/alphatab';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { readAscii, writeAscii } from '@/features/tab/ascii';
 import { writeAlphaTex, writePart } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
@@ -144,16 +144,18 @@ describe('the capo through the formats', () => {
 });
 
 describe('the capo’s neck in the Tuning panel', () => {
-  const frets = () => screen.getAllByRole('button').map(b => b.getAttribute('aria-label'));
-  it('draws the nut to fret 12 (look a), or five frets round the capo (look b)', () => {
-    const { rerender } = render(<CapoNeck tuning={STANDARD_TUNING} capo={4} look="a" onCapo={() => {}} />);
-    expect(frets()).toEqual(Array.from({ length: 12 }, (_, k) => `Capo on fret ${k + 1}`));
+  it('draws the nut to fret 15, but only frets 1 to 12 take a press', () => {
+    render(<CapoNeck tuning={STANDARD_TUNING} capo={4} onCapo={() => {}} />);
+    expect(screen.getAllByRole('button').map(b => b.getAttribute('aria-label'))).toEqual(Array.from({ length: 12 }, (_, k) => `Capo on fret ${k + 1}`));
+    const numbers = [...screen.getByRole('img').querySelectorAll('text')].map(t => t.textContent).filter(t => /^\d+$/.test(t ?? ''));
+    expect(numbers).toEqual(Array.from({ length: 15 }, (_, k) => String(k + 1)));
     expect(screen.getAllByTestId('capo-bar')).toHaveLength(1);
-    rerender(<CapoNeck tuning={STANDARD_TUNING} capo={4} look="b" onCapo={() => {}} />);
-    expect(frets()).toEqual([2, 3, 4, 5, 6].map(f => `Capo on fret ${f}`));
-    rerender(<CapoNeck tuning={STANDARD_TUNING} capo={1} look="b" onCapo={() => {}} />);
-    expect(frets()).toEqual([1, 2, 3, 4, 5].map(f => `Capo on fret ${f}`));
-    rerender(<CapoNeck tuning={STANDARD_TUNING} capo={12} look="b" onCapo={() => {}} />);
-    expect(frets()).toEqual([8, 9, 10, 11, 12].map(f => `Capo on fret ${f}`));
+  });
+
+  it('shows a faint capo over a fret hovered, none over 13 to 15, which have no button', () => {
+    render(<CapoNeck tuning={STANDARD_TUNING} capo={4} onCapo={() => {}} />);
+    fireEvent.mouseEnter(screen.getByRole('button', { name: 'Capo on fret 9' }));
+    expect(screen.getByTestId('capo-hover')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /fret 1[3-5]$/ })).toBeNull();
   });
 });

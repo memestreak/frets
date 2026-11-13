@@ -13,15 +13,13 @@ import { KeyPicker } from '@/components/KeyPicker';
 import { prettyNote } from '@/lib/theory/notes';
 import { MAX_CAPO, STRING_COUNT, type Part } from './clip';
 import { setCapo } from './barEdits';
-import { CapoNeck, type CapoLook } from './CapoNeck';
+import { CapoNeck } from './CapoNeck';
 import { fretWords } from './credits';
 import { presetOf, stringNote, TUNING_PRESETS, withStringNote, withTuning } from './tuning';
 import { usePanel } from './usePanel';
 
-export function TuningPanel({ clip, x, y, capoLook = 'a', onChange, onClose }: {
+export function TuningPanel({ clip, x, y, onChange, onClose }: {
   clip: Part;
-  /** The capo picture's look, while Jeremy picks one (`CAPO_LOOK_MOCK`). */
-  capoLook?: CapoLook;
   x: number;
   y: number;
   onChange: (clip: Part) => void;
@@ -64,7 +62,7 @@ export function TuningPanel({ clip, x, y, capoLook = 'a', onChange, onClose }: {
         label={`String ${STRING_COUNT - low}`} value={stringNote(clip.tuning, low)}
         onPick={note => onChange(withStringNote(clip, low, note))}
       />
-      <CapoPicker tuning={clip.tuning} capo={clip.capo ?? 0} look={capoLook} onCapo={capo => onChange(setCapo(clip, capo === 0 ? null : capo))} />
+      <CapoPicker tuning={clip.tuning} capo={clip.capo ?? 0} onCapo={capo => onChange(setCapo(clip, capo === 0 ? null : capo))} />
     </div>,
     document.body,
   );
@@ -74,10 +72,9 @@ export function TuningPanel({ clip, x, y, capoLook = 'a', onChange, onClose }: {
  * The capo (issue #463): a dropdown, None first, then the 1st to the 12th fret; with a capo on, the
  * neck under it shows where, and a press on a fret moves it there. Each choice is one undo step.
  */
-function CapoPicker({ tuning, capo, look, onCapo }: {
+function CapoPicker({ tuning, capo, onCapo }: {
   tuning: readonly string[];
   capo: number;
-  look: CapoLook;
   onCapo: (capo: number) => void;
 }) {
   const set = (next: number) => {
@@ -90,7 +87,7 @@ function CapoPicker({ tuning, capo, look, onCapo }: {
         <option value={0}>None</option>
         {Array.from({ length: MAX_CAPO }, (_, k) => k + 1).map(f => <option key={f} value={f}>{fretWords(f)}</option>)}
       </select>
-      {capo > 0 && <CapoNeck tuning={tuning} capo={capo} look={look} onCapo={set} />}
+      {capo > 0 && <CapoNeck tuning={tuning} capo={capo} onCapo={set} />}
     </>
   );
 }

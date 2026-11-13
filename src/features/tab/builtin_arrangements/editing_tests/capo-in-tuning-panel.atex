@@ -7,6 +7,5 @@
   0.3.4{txt "3. Esc, then Space: the open strings sound four frets higher"} |
 0.2.4{txt "4. Ctrl/⌘+Z: the capo is gone, and the tuning is still DADGAD"}
   0.1.4{txt "5. Open the panel again, choose 2nd fret, then press fret 7 on the neck: the dropdown reads 7th fret"}
-  0.2.4{txt "6. Choose None: the neck goes, and the head has no capo"}
-  0.3.4 |
+  0.2.4{txt "6. Choose None: the neck goes, and the head has no capo"} 0.3.4 |
 

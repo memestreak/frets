@@ -73,6 +73,10 @@ describe('the Tuning panel’s Capo', () => {
       expect(capo()).toBe(f);
     }
     expect(within(panel()).queryByRole('button', { name: /None|fret 0/ })).toBeNull();
+    // Frets 13 to 15 are drawn but take no press.
+    expect(within(panel()).queryByRole('button', { name: /fret (0|1[3-5])$/ })).toBeNull();
+    fireEvent.click(neck()!);
+    expect(capo()).toBe(12);
   });
 
   it('is one undo step a change, from the dropdown or the neck; Undo puts the old capo back', async () => {
