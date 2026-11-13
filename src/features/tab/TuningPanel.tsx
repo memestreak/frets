@@ -12,7 +12,7 @@ import { KeyPicker } from '@/components/KeyPicker';
 import { prettyNote } from '@/lib/theory/notes';
 import { STRING_COUNT, type Part } from './clip';
 import { presetOf, stringNote, TUNING_PRESETS, withStringNote, withTuning } from './tuning';
-import { usePopover } from './usePopover';
+import { usePanel } from './usePanel';
 
 export function TuningPanel({ clip, x, y, onChange, onClose }: {
   clip: Part;
@@ -23,7 +23,7 @@ export function TuningPanel({ clip, x, y, onChange, onClose }: {
 }) {
   // The string whose note the piano picks, counted from the low E (0).
   const [low, setLow] = useState(0);
-  const { ref, style } = usePopover({ x, y, focus: '[aria-pressed="true"]', onClose });
+  const { ref, style } = usePanel({ x, y, focus: '[aria-pressed="true"]', onClose });
   const preset = presetOf(clip.tuning);
   const lows = Array.from({ length: STRING_COUNT }, (_, s) => s);
 

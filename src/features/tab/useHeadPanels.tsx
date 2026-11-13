@@ -3,7 +3,7 @@ import { barErrors, dynamicOf, MAX_CAPO, type Part } from './clip';
 import { columnAt, indexOf, withRestsInEmptyBars, type Cursor } from './editing';
 import { setBarKey, setBarTime, setBeatGroups, setPickup, setBeatText, setCapo, setChordName, setDynamic, setEnding, setRepeatTimes, setSection } from './barEdits';
 import { BarKeyPanel } from './BarKeyPanel';
-import { BarFixPopover } from './BarFixPopover';
+import { BarFixPanel } from './BarFixPanel';
 import { BarTimePanel } from './BarTimePanel';
 import { CreditsPanel, type HeadField } from './CreditsPanel';
 import { barTempoSpot, barTimeSpot, lyricSpot, PANEL_DROP, PANEL_LEAD, wordNow, wordSpot } from './fieldSpots';
@@ -61,7 +61,7 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
   /** Where a press opened the time or key signature panel; null when the palette did. */
   const [panelAt, setPanelAt] = useState<{ x: number; y: number } | null>(null);
   const [headPanel, setHeadPanel] = useState<HeadPanel | null>(null);
-  /** The Uneven bar whose ⚠ was pressed, and where: its popover holds the fix. */
+  /** The Uneven bar whose ⚠ was pressed, and where: its panel holds the fix. */
   const [fixBar, setFixBar] = useState<{ bar: number; x: number; y: number } | null>(null);
 
   /**
@@ -172,7 +172,7 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
     setPanelAt(at);
     (kind === 'time' ? setTimeBar : setKeyBar)(bar);
   };
-  /** An Uneven bar's popover, just under the press on its ⚠ (`at`, in the drawing's units). */
+  /** An Uneven bar's panel, just under the press on its ⚠ (`at`, in the drawing's units). */
   const openFix = (bar: number, at: { x: number; y: number }) => {
     closeSignatures();
     setFixBar({ bar, x: at.x - PANEL_LEAD, y: at.y + PANEL_DROP });
@@ -237,7 +237,7 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
   }, [lyric, lyricLit, clip]);
 
   const { tab, drawn } = shown;
-  // Only while a popover is open: what its bar's ⚠ says.
+  // Only while its panel is open: what its bar's ⚠ says.
   const fixText = fixBar ? barErrors(clip).get(fixBar.bar) : undefined;
   const panels = (
     <>
@@ -276,7 +276,7 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
         <TuningPanel clip={clip} x={headPanel.x} y={headPanel.y} onChange={commit} onClose={() => setHeadPanel(null)} />
       )}
       {tab && fixBar !== null && fixText !== undefined && drawn && (
-        <BarFixPopover clip={clip} bar={fixBar.bar} text={fixText} x={fixBar.x} y={fixBar.y} onFix={finishFix} onClose={closeFix} />
+        <BarFixPanel clip={clip} bar={fixBar.bar} text={fixText} x={fixBar.x} y={fixBar.y} onFix={finishFix} onClose={closeFix} />
       )}
       {tab && timeBar !== null && timeBar < clip.bars.length && drawn && (
         <BarTimePanel

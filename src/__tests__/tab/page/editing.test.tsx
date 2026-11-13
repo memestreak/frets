@@ -144,15 +144,15 @@ describe('TabPage editing', () => {
     expect(warning.getAttribute('data-tip')).toBe("Bar 1 doesn't add up to 4/4: 3 beats and a quarter triplet short. The tuplet of 3 in bar 1 has 1 note; it needs 3.");
   });
 
-  it('opens a popover on a press on the ⚠ whose command fixes the bar, and closes after it', async () => {
+  it('opens a panel on a press on the ⚠ whose command fixes the bar, and closes after it', async () => {
     renderAt(`#tab=${encodeURIComponent('\\ts (4 4)\n5.1.4 | 7.1.1 7.1.4 |')}`);
     await waitFor(() => expect(alphaTex()).toBe('5.1.4 |\n7.1.1 7.1.4 |'), SLOW);
     const press = (n: number) => fireEvent.pointerDown(screen.getAllByTestId('bar-warning')[n], { button: 0, clientX: 10, clientY: 10 });
     // A short bar 1: Fill with rests, or make it a Pickup bar.
     press(0);
-    const popover = screen.getByRole('dialog', { name: 'Fix this bar' });
-    expect(within(popover).getAllByRole('button').map(b => b.textContent)).toEqual(['Fill with rests', 'Make pickup bar']);
-    fireEvent.click(within(popover).getByRole('button', { name: 'Make pickup bar' }));
+    const panel = screen.getByRole('dialog', { name: 'Fix this bar' });
+    expect(within(panel).getAllByRole('button').map(b => b.textContent)).toEqual(['Fill with rests', 'Make pickup bar']);
+    fireEvent.click(within(panel).getByRole('button', { name: 'Make pickup bar' }));
     expect(screen.queryByRole('dialog', { name: 'Fix this bar' })).toBeNull();
     expect(screen.getAllByTestId('bar-warning')).toHaveLength(1);
     // The overfull bar: its extra quarter goes on into a new bar.

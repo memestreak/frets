@@ -76,7 +76,7 @@ and in its spec.
 - `notice.ts` — what the line under the clip says (an import's guesses, a
   failure, a copy).
 - `useWidth.ts` — an element's width, kept up to date.
-- `usePopover.ts` — places and closes the small panels opened at a press or
+- `usePanel.ts` — places and closes the small panels opened at a press or
   under a button.
 - `shortcuts.ts` — the page's keys for the `?` overlay: the palette's from
   `tools.ts`, the rest listed by hand from `editorKeys.ts`, `usePageKeys.ts`
@@ -331,7 +331,7 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 - `BarTimePanel.tsx` — the time signature from a bar on, its Beat groups
   field (for 5 beats or more, or a bar with groups of its own), and bar 1's
   Pickup field.
-- `BarFixPopover.tsx` — an Uneven bar's ⚠, pressed: its fix.
+- `BarFixPanel.tsx` — an Uneven bar's ⚠, pressed: its fix.
 - `TupletPanel.tsx` — the Tuplet panel `;` opens at the cursor, kept to the keyboard.
 - `TimeSignatureFields.tsx` — the time signature panel's two fields.
 - `BarKeyPanel.tsx` — the key signature from a bar on (`\ks`).

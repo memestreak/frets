@@ -9,7 +9,7 @@
 import { useRef, useState } from 'react';
 import { DECAY_SECONDS, type FxSettings } from './effects';
 import { NumberField } from '@/components/NumberField';
-import { usePopover } from './usePopover';
+import { usePanel } from './usePanel';
 import { Toggle } from './ViewOptions';
 import { VolumeKnob } from '@/components/VolumeKnob';
 
@@ -61,7 +61,7 @@ function FxDialog({ x, y, above, fx, onFx, onClose }: {
   onClose: (pressedAway: boolean) => void;
 }) {
   // The dialog itself takes the focus, so no control shows a focus ring on opening.
-  const { ref, style } = usePopover({ x, y, above, onClose });
+  const { ref, style } = usePanel({ x, y, above, onClose });
   const set = (change: Partial<FxSettings>) => onFx({ ...fx, ...change });
   // Switching an effect on while the FX button has them all off switches them back on, so it is heard.
   const enable = (change: Partial<FxSettings>, on: boolean) => set(on ? { ...change, on: true } : change);

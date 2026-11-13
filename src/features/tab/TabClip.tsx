@@ -799,7 +799,7 @@ const WARNING_INSET = 9;
  * Only the page draws it; screen readers get the same words from the line under the clip.
  */
 function Warning({ bar, x, y, text }: { bar: number; x: number; y: number; text: string }) {
-  // A press opens the popover with the fix (`BarFixPopover`).
+  // A press opens the panel with the fix (`BarFixPanel`).
   return (
     <g data-tip={text} data-testid="bar-warning" data-warning-bar={bar} style={{ cursor: 'pointer' }}>
       {/* A bigger, invisible target round the small mark, so the mouse finds it. */}

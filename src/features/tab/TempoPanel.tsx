@@ -14,7 +14,7 @@ import { setTempo } from './barEdits';
 import { DEFAULT_BPM, MAX_BPM, MIN_BPM, type Part, type Tempo } from './clip';
 import { NumberField, resetOnDoubleClick } from '@/components/NumberField';
 import { addTap, tapBpm, type BpmRange } from '@/lib/tapTempo';
-import { usePopover } from './usePopover';
+import { usePanel } from './usePanel';
 
 const BPM_RANGE: BpmRange = { min: MIN_BPM, max: MAX_BPM };
 
@@ -72,7 +72,7 @@ export function TempoPanel({ clip, bar, x, y, onChange, onDone }: {
   };
   // The panel itself takes the focus, not the bpm field, so a press on the number drags it at once
   // (a focused number field takes a press as the caret's). A digit typed goes into the field.
-  const { ref, style } = usePopover({ x, y, onClose: () => finish(true) });
+  const { ref, style } = usePanel({ x, y, onClose: () => finish(true) });
   const bpmInput = () => ref.current?.querySelector<HTMLInputElement>('input[role="spinbutton"]');
   const labelRef = useRef<HTMLInputElement>(null);
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {

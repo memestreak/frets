@@ -7,7 +7,7 @@
  */
 import { useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react';
 
-export function usePopover({ x, y, above = y, align = 'start', focus, onClose }: {
+export function usePanel({ x, y, above = y, align = 'start', focus, onClose }: {
   /** Where it opens, in viewport pixels: its left edge at x ('start') or its right edge ('end'), its top at y. */
   x: number;
   y: number;

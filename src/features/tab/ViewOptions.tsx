@@ -13,7 +13,7 @@ import {
   BAR_NUMBER_NAMES, BAR_NUMBERS, COLOUR_NAMES, COLOURS, DEFAULT_COLOURS, DEFAULT_VIEW, MAX_SIZE, MIN_SIZE, SCHEMES, SIZE_STEP,
   type ColourPair, type ColourPrefs, type Colours, type TabView,
 } from './viewOptions';
-import { usePopover } from './usePopover';
+import { usePanel } from './usePanel';
 import { VIEWS, type View } from './views';
 
 export function ViewOptions({ x, y, view, values, onChange, onClose }: {
@@ -26,7 +26,7 @@ export function ViewOptions({ x, y, view, values, onChange, onClose }: {
   onChange: (values: TabView) => void;
   onClose: (pressedAway: boolean) => void;
 }) {
-  const { ref, style } = usePopover({ x, y, align: 'end', onClose });
+  const { ref, style } = usePanel({ x, y, align: 'end', onClose });
   return (
     <div
       ref={ref} role="dialog" aria-label="View options" className="shape-menu tab-view-options" style={style} tabIndex={-1}
