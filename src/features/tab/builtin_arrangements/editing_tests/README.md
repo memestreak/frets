@@ -51,6 +51,7 @@ PR, or removes the file and its row when the behaviour is gone.
 | `tie-chain-is-one-note.atex` | A press on any Tied note picks the whole Tie chain, and Delete takes all of it | `docs/specs/2026-11-04-tab-ties-forward-design.md` |
 | `tie-forward.atex` | T ties a note on to the next one, in normal mode and in note input mode | `docs/specs/2026-11-04-tab-ties-forward-design.md` |
 | `tuplet-entry.atex` | Tuplet entry: a triplet typed note by note, the Tuplet button lit while it is on | `docs/specs/2026-11-04-tab-tuplets-grace-rest-design.md` |
+| `tuplet-entry-on-staff.atex` | Tuplet entry on the staff: A–G make a quarter-note triplet, and Enter starts the next | issue #469, `docs/specs/2026-11-04-tab-tuplets-grace-rest-design.md` |
 | `tuplet-on-a-note.atex` | A tuplet on one picked note takes its time, the bar staying full | `docs/specs/2026-11-04-tab-tuplets-grace-rest-design.md` |
 | `typed-note-ties-over.atex` | A note typed in note input mode past the bar line is tied over it | `docs/specs/2026-11-04-tab-bars-always-full-design.md` |
 | `voice-move.atex` | Alt+2 moves selected notes into voice 2; Select only voice › keeps one voice of a selection | `docs/specs/2026-11-04-tab-voices-drawn-edited-design.md` |

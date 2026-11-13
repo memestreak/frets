@@ -133,6 +133,36 @@ describe('Tuplet entry in note input mode (Q6, Q7)', () => {
     expect(tuplet()).toHaveAttribute('aria-pressed', 'false');
   });
 
+  it('on the staff, A–G with Tuplet entry on make tuplet notes and Enter adds one; Grace entry makes grace notes (issue #469)', async () => {
+    localStorage.setItem('frets.tab.notation', JSON.stringify({ show: 'staff' }));
+    await open('r.1 |');
+    // Staff view alone: note input mode puts the caret on the staff; 5 there is a quarter.
+    keys('n', '5', ';');
+    fireEvent.keyDown(panel()!, { key: '3' });
+    expect(tuplet()).toHaveAttribute('aria-pressed', 'true');
+    keys('g', 'a', 'b');
+    expect(alphaTex()).toBe('0.3.4{tu 3} 2.3.4{tu 3} 0.2.4{tu 3} r.2 |');
+    // Enter at the caret's pitch (the B) starts the next triplet.
+    keys('Enter');
+    expect(alphaTex()).toBe('0.3.4{tu 3} 2.3.4{tu 3} 0.2.4{tu 3} 0.2.4{tu 3} r.2{tu 3} |');
+    // Tuplet entry off, Grace entry on: G is a grace note before the caret's Column, which stays.
+    keys(';');
+    fireEvent.keyDown(panel()!, { key: '3' });
+    keys('/', 'g');
+    expect(alphaTex()).toBe('0.3.4{tu 3} 2.3.4{tu 3} 0.2.4{tu 3} 0.2.4{tu 3} 0.3.8{gr} r.2{tu 3} |');
+  });
+
+  it('a press on the tab with Tuplet entry on starts a tuplet with the open string, as a typed 0 (issue #469)', async () => {
+    await open('r.1 |');
+    keys('n', quarterLength, ';');
+    fireEvent.keyDown(panel()!, { key: '3' });
+    press('r.1 |', 0, 2);
+    expect(alphaTex()).toBe('0.3.4{tu 3} r.2{tu 3} r.2 |');
+    // A digit then changes its fret, as after any press.
+    keys('2');
+    expect(alphaTex()).toBe('2.3.4{tu 3} r.2{tu 3} r.2 |');
+  });
+
   it('None turns it off; a sixteenth Input length inside an eighth triplet types a triplet sixteenth', async () => {
     await open('5.1.8{tu 3} r.4{tu 3} r.4 r.2 |');
     keys('n', 'ArrowUp', ';');
