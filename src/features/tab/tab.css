@@ -574,6 +574,9 @@ main:has(> .tab-page) { display: flex; flex-direction: column; }
 /* The column sits in a grid cell as tall as the clip's row, so it stays in view (sticky) while a long clip
    scrolls by. */
 .tab-rail-column { align-self: stretch; }
+/* The browser never picks its scroll anchor in the palettes' column: collapsing, expanding or opening a
+   palette there would scroll the page by as much as the anchor moved (issue #470). */
+.tab-rail-column { overflow-anchor: none; }
 /* Runs down the row, but no taller than the window. Its palettes scroll inside it when they outgrow it; a
    tool's panel (Bend, Tuplet) is fixed to the window, so it still opens past the column's edge. */
 .tab-rail-panel {

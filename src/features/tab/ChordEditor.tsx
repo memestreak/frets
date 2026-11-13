@@ -232,7 +232,7 @@ function Lookup({ draft }: { draft: Pick<Draft, 'root' | 'typeId' | 'pickRoot' |
   const [missed, setMissed] = useState(false);
   const field = useRef<HTMLInputElement>(null);
   useEffect(() => {
-    if (searching) field.current?.focus();
+    if (searching) field.current?.focus({ preventScroll: true });
   }, [searching]);
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {

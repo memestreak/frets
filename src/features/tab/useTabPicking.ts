@@ -74,7 +74,7 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
     const at = wordPlace(hit);
     commit(clip, at, null);
     setPicked(hit);
-    editorRef.current?.focus();
+    editorRef.current?.focus({ preventScroll: true });
   };
 
   /**
@@ -92,7 +92,7 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
     commit(clip, at, run ? { anchor: hit.index, focus: hit.to! } : null);
     setColumnOnly(hit.string === null);
     setPicked(hit);
-    editorRef.current?.focus();
+    editorRef.current?.focus({ preventScroll: true });
   };
 
   /** Opens the picked word's field, a repeat's count's or a signature's panel under it; a repeat's start and a double bar have none. */
@@ -144,7 +144,7 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
     dropLine();
     commit(clip, { ...cursor, ...placeOf(clip, to) }, { anchor: from, focus: to });
     startRegion();
-    editorRef.current?.focus();
+    editorRef.current?.focus({ preventScroll: true });
   };
 
   /** Alt+← → (issue #238): the next or last thing a press can pick, picked as a press would. */
@@ -267,7 +267,7 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
     lastDigitRef.current = null;
     // A head pressed doesn't take the focus until now (issue #337); taken first, so the focus's own
     // staff cursor (with the staff alone) gives way to the one set below.
-    editorRef.current?.focus();
+    editorRef.current?.focus({ preventScroll: true });
     const at = { bar: hit.bar, column: hit.column, string: hit.string ?? cursor.string };
     const note = hit.string === null ? null : noteAt(clip, at);
     const pitch = note && note.fret !== null ? writtenStrings(clip.tuning)[hit.string!] + (clip.capo ?? 0) + note.fret : pitchAtStep(clip, hit.bar, hit.step);
@@ -318,7 +318,7 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
       const carried = range && index >= range[0] && index <= range[1] ? selection : null;
       dragFrom.current = { clip, selection: carried, good: null };
       lastDigitRef.current = null;
-      editorRef.current?.focus();
+      editorRef.current?.focus({ preventScroll: true });
     }
     const from = dragFrom.current;
     const note = noteAt(from.clip, at);

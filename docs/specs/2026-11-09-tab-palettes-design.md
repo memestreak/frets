@@ -34,7 +34,8 @@ be dragged into another order; Guitar Pro 8's Edition palette is a fixed column 
 - **A press on a header opens or folds** that palette, downwards from the header. Any number may be open.
   A press doesn't take the focus from the tab.
 - **The column scrolls** when the open palettes outgrow it; it is no taller than the window and runs down
-  the clip's row, as the panel did. The page never scrolls by itself.
+  the clip's row, as the panel did. The page never scrolls by itself: not on a header pressed, nor on
+  Collapse or Expand (the column is never the browser's scroll anchor; issue #470).
 - **The line under an open palette is a handle**: drag it up to make the palette shorter, and its tools
   scroll inside; drag it down to give the room back. It is never taller than its tools, so no empty room
   shows, nor shorter than 48px, about one row of tools. A double-click gives the full height back. Tab to it
@@ -74,6 +75,7 @@ be dragged into another order; Guitar Pro 8's Edition palette is a fixed column 
   Articulations, Chords, Chat, Notes 48px.
 - A header and a tool pressed keep the tab's cursor (Palm mute lands on the note).
 - `.tab-tool-panel` is `position: fixed`; `.tab-stack` scrolls.
+- `.tab-rail-column` has `overflow-anchor: none` (issue #470).
 - Dragging Notes' header 20px down (jsdom: every palette's middle is at 0) lands it last, the line drawn
   after Chat, and the click ending the drag doesn't fold it; kept order follows. A 4px move then a click is a
   press: it opens Bars. A right-button drag moves nothing.
