@@ -195,7 +195,12 @@ describe('moving', () => {
 
   it('reads the Editing setting, with no "Fill short bars with rests" any more', () => {
     expect([parseEditing(null), parseEditing({ fillBars: true })])
-      .toEqual([{ fixedGrid: false, grid: 16, gridLook: 'ruler' }, { fixedGrid: false, grid: 16, gridLook: 'ruler' }]);
+      .toEqual([{ fixedGrid: false, grid: 16, gridLook: 'ruler', chordNames: 'shape' }, { fixedGrid: false, grid: 16, gridLook: 'ruler', chordNames: 'shape' }]);
+  });
+
+  it('reads which name Chord from notes writes under a capo, the shape’s for anything but "sounding" (issue #464)', () => {
+    expect(parseEditing({ chordNames: 'sounding' }).chordNames).toBe('sounding');
+    expect(parseEditing({ chordNames: 'Bm' }).chordNames).toBe('shape');
   });
 
   it('makes up any length with the fewest rests, longest first', () => {

@@ -1,0 +1,13 @@
+\title "A chord from picked notes"
+\ts (4 4)
+\capo 2
+0.5.8{txt "Tab view. 1. Press this 0"}
+  2.4.8{txt "2. Shift+Right arrow key, 3 times"}
+  2.3.8{txt "3. Right-click, Chord from notes"}
+  1.2.8{txt "Am appears over the 0"} r.2 |
+(5.1 5.2 5.3 7.4).4{txt "4. Right-click this 5"}
+  r.4{txt "5. Choose Chord from notes"}
+  r.2{txt "Am 2 appears: the Am shape, 5th fret"} |
+5.1.4{txt "6. Right-click this 5, Chord from notes"} r.4
+  r.2{txt "Under the clip: why not"} |
+

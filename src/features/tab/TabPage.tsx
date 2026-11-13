@@ -14,6 +14,7 @@ import { barErrors, brokenTupletMessage, emptyClip, partOf, stringClashes, title
 import { pastesVoices, pasteVoices, sliceVoices, spansVoices, voiceRange, voiceSelections } from './voices';
 import { clipAction, type ClipAction, type PartAction } from './clipState';
 import { useArrangements } from './useArrangements';
+import { chordFromNotes, NO_NOTES, pickedNotes, writeChordFromNotes } from './chordFromNotes';
 import { clampCursor, columnAt, indexOf, sliceClip, coversWholeBars, deleteBars, insertBar, insertPaste, isEmpty, noteAt, withRestsInEmptyBars, pasteOver, placeOf, selectedRange, START } from './editing';
 import { isBarLine, type BarLineHit } from './barLines';
 import { beamLit, canBeamTarget, clearToRests, setBend, setOttava, setWhammy } from './noteEdits';
@@ -672,6 +673,27 @@ export default function TabPage() {
     return [i, i];
   };
 
+  /**
+   * The selected notes (or the cursor's column), in every Voice in their time, named as one chord (issue #464):
+   * its name over the first column, its shape in the Chord set; when there is none, the line under the clip says why.
+   */
+  const chordFromPicked = () => {
+    const range = copiedRange();
+    const made = range ? chordFromNotes(clip, { anchor: range[0], focus: range[1] }, prefs.editing.chordNames) : { problem: NO_NOTES };
+    if ('problem' in made) {
+      setNotice({ tone: 'error', lines: [made.problem] });
+      return;
+    }
+    commit(writeChordFromNotes(clip, { ...cursor, ...placeOf(clip, range![0]) }, made.name, made.frets).part);
+  };
+  /** Whether the selection (or the cursor's column) holds a note to make a chord from: the menus offer it then. */
+  const hasPickedNotes = (): boolean => {
+    const range = copiedRange();
+    return range !== null && pickedNotes(clip, { anchor: range[0], focus: range[1] }).length > 0;
+  };
+  /** The note and bar menus' Chord from notes, on picked notes. */
+  const chordFromNotesItem = menu && !menu.hit && hasPickedNotes() ? [{ label: 'Chord from notes', onSelect: chordFromPicked }] : [];
+
   /** Each drawn line of tab's first and last column, as laid out now, for Shift+Home / End. */
   const drawnLines = (): Lines => layout.systems.flatMap(system => {
     const places = system.bars.flatMap(bar => bar.columns.map(column => column.index));
@@ -1119,6 +1141,8 @@ export default function TabPage() {
             },
             { label: menuBars[1] > menuBars[0] ? `Delete ${menuBars[1] - menuBars[0] + 1} bars` : 'Delete bar', onSelect: () => removeBars(menuBars) },
             insertPasteItem,
+            // A selection of whole bars (an arpeggio over a bar): the chord its notes make.
+            ...(selection ? chordFromNotesItem : []),
           ] : [
             // The note menu. Picked or selected notes: into another Voice (Q11); a selection over several Voices: one of them alone (Q21).
             ...(!noteInputMode && (selection || (!columnOnly && noteAt(clip, cursor))) ? [{
@@ -1130,6 +1154,7 @@ export default function TabPage() {
               items: [voice, ...voiceSelections(clip, selection).keys()].sort((a, b) => a - b).map(v => ({ label: `Voice ${v + 1}`, onSelect: () => selectOnlyVoice(v) })),
             }] : []),
             insertPasteItem,
+            ...chordFromNotesItem,
             // On notes that can take a Beam override, the two beam tools, ticked as set (spec Q9).
             ...(canBeamTarget(clip, beamTarget, 'break') ? [{ label: 'Break beam before', checked: beamLit(clip, beamTarget, 'break'), onSelect: () => onTool('beamBreak') }] : []),
             ...(canBeamTarget(clip, beamTarget, 'join') ? [{ label: 'Join beam to previous', checked: beamLit(clip, beamTarget, 'join'), onSelect: () => onTool('beamJoin') }] : []),

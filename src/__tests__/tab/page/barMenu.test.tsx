@@ -41,10 +41,10 @@ const insert = (name: string) => {
 const besideNote = (bar: number) => rightClick(spot(THREE, bar, 0));
 
 describe('the bar menu and the note menu', { timeout: 20000 }, () => {
-  it('beside the notes: the bar menu, Insert › first, then Delete bar, then Insert paste', async () => {
+  it('beside the notes: the bar menu, Insert › first, then Delete bar, then Insert paste, then Chord from notes for the bar picked', async () => {
     await openWith(THREE);
     besideNote(1);
-    expect(items('Bar')).toEqual(['Insert›', 'Delete bar', 'Insert paste']);
+    expect(items('Bar')).toEqual(['Insert›', 'Delete bar', 'Insert paste', 'Chord from notes']);
     expect(screen.queryByRole('menuitem', { name: /Move to voice/ })).toBeNull();
   });
 

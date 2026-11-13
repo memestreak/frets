@@ -28,7 +28,7 @@ import {
 } from './viewOptions';
 import { DEFAULT_TAB_EXPORT, TAB_EXPORT_KEY, TAB_EXPORT_WIDTHS, parseTabExportStyle, type TabExportStyle } from './exportTab';
 import { PARTS, type Parts } from './layout';
-import { DEFAULT_EDITING, EDITING_KEY, parseEditing, type EditingPrefs } from './editingPrefs';
+import { DEFAULT_EDITING, EDITING_KEY, parseEditing, type ChordNames, type EditingPrefs } from './editingPrefs';
 import { GRID_LOOK_NAMES, GRID_LOOKS, GRID_NAMES, GRID_VALUES, type GridLook, type GridValue } from './grid';
 import { CHAT_KEY, DEFAULT_CHAT, parseChatPrefs, type ChatPrefs } from './chat/chatPrefs';
 import { customField, instructionsField } from './chat/promptFields';
@@ -305,6 +305,7 @@ export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: Playback
           twoWayField('fixedGrid', 'Note input grid', 'Fixed', 'Follow note length'),
           choiceField<EditingPrefs, 'grid', GridValue>('grid', 'Fixed grid', GRID_VALUES.map(g => [g, GRID_NAMES[g]] as const), { enabled: v => v.fixedGrid }),
           choiceField<EditingPrefs, 'gridLook', GridLook>('gridLook', 'Grid drawn as', GRID_LOOKS.map(l => [l, GRID_LOOK_NAMES[l]] as const)),
+          choiceField<EditingPrefs, 'chordNames', ChordNames>('chordNames', 'Chord from notes, with a capo', [['shape', 'Shape name (from the capo)'], ['sounding', 'Sounding name']]),
         ],
       }),
       section<TabExportStyle>({
