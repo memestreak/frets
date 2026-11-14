@@ -1,4 +1,4 @@
-\title "1. Enter notes"
+\title "Enter notes"
 \ts (4 4)
 r.1{txt "Tab view. 1. Press **N**.\nNote input mode starts."} |
 r.1{txt "2. Type **0**, then the **Right arrow** key.\nA quarter note goes in."} |

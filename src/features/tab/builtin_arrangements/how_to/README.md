@@ -3,8 +3,8 @@
 Lessons: each built-in arrangement here teaches one Tab feature to someone
 using Frets, with numbered steps in Text over the bars (what to press, what
 you'll see) and room to try it (issue #443). They show under Arrangements…
-→ Built-in → How to, and open with `/tab#example=<file name>`. Titles start
-with a number, so the dialog lists them in course order.
+→ Built-in → How to, and open with `/tab#example=<file name>`. Titles name
+the feature with no number; the dialog lists them alphabetically.
 
 They differ from `editing_tests/`, which shows one editing behaviour for
 checking a PR: a lesson is written for a learner, walks through a whole

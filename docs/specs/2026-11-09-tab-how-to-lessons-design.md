@@ -14,10 +14,10 @@ Arrangements written for people learning Frets, one per feature.
   nothing kept.
 - One feature per lesson, the whole of it a learner needs, not its edge
   cases (those belong to `editing_tests/`, which stays as it is).
-- `\title` is a number and the feature: "1. Enter notes". The dialog sorts
-  by title with numbers in order, so the folder reads as a course, from
-  typing notes to copy and paste. A new lesson takes the next number, or a
-  place in the order and the ones after it renumbered.
+- `\title` names the feature, with no number: "Enter notes" (Jeremy,
+  2026-11-14: "do not number the how-to arrangements"). The dialog lists
+  them alphabetically, so a lesson stands on its own and a new one needs
+  no renumbering.
 - One short step per Text, each on its own bar (Jeremy, 2026-11-09: "way
   too much text in one note... make sure that any of our text notes are
   significantly less wordy and broken up"). A Text is a step on its
@@ -33,7 +33,7 @@ Arrangements written for people learning Frets, one per feature.
 - A Text over a column you'll copy is copied with it, so a lesson keeps
   its Text off the columns its steps copy.
 
-The fourteen lessons, in order: enter notes; enter chords and name them;
+The fourteen lessons: enter notes; enter chords and name them;
 change notes; enter notes on the staff; hammer-ons, slides and ties; bends
 and vibrato; let ring and palm mute; triplets and other tuplets; grace
 notes; two voices; repeats and endings; play and loop; copy and paste;
@@ -56,9 +56,8 @@ dynamics. Lyrics (PR #441) gets its lesson once it merges.
 ## Reading
 
 - The open questions in issue #443 were settled with these choices, for
-  Jeremy to change: the folder is "How to"; numbered titles, in course
-  order; the key check above. Linking the lessons from the `?` overlay or
-  a new arrangement is left for later.
+  Jeremy to change: the folder is "How to"; the key check above. Linking
+  the lessons from the `?` overlay or a new arrangement is left for later.
 - Chord diagrams from the Chords panel are not a lesson yet: the panel
   has its own dialogs and an editing test (`chords-panel-edit.atex`).
 
