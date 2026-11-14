@@ -57,14 +57,15 @@ lyrics.
   line up to six, then scrolling. Other words' fields stay one-line
   inputs.
 - Enter sets the Text, Shift+Enter starts a new line, Esc leaves it as
-  it was.
+  it was. Tab and Shift+Tab set it and move to the next or previous
+  column (the Text popover, `2026-11-14-tab-text-popover-design.md`).
 - Ctrl/⌘+B wraps the selected words in `**`, or takes the `**` off when
   they already have it (from inside the marks or with them selected).
   Spaces and new lines at the selection's ends stay outside the marks,
   as Markdown needs; the selection stays on the same words. With nothing
   selected it puts `****` in with the caret between. It does nothing in
   other fields, or when the Text would pass 200 characters.
-- Both keys are in the `?` overlay under "In the Text field".
+- Both keys are in the `?` overlay under "In the Text field (Shift+X)".
 
 ## Exports
 

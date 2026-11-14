@@ -23,6 +23,12 @@ export function wordNow(clip: Part, { kind, bar, column }: { kind: FieldKind; ba
 /** The chord popover's height (`.tab-word`: its caption and field) and a small gap under it. */
 const CHORD_FIELD_HEIGHT = 96;
 
+/** The Text popover's height with one line typed (`.tab-word`: its caption and field), and the gap under it. */
+const TEXT_FIELD_HEIGHT = 84;
+const TEXT_FIELD_GAP = 6;
+/** Half a Text's line: a row's place is its first line's middle. */
+const TEXT_HALF_LINE = 9;
+
 /** How far a dynamic's field stands from its column's middle, beside it. */
 const BESIDE = 16;
 
@@ -33,7 +39,7 @@ function lineBottom(rows: Rows, dynamic: number): number {
 }
 
 /** Where a word's field goes over the drawing: above the spot the word is drawn, kept inside the tab's width. */
-export function wordSpot(layout: Layout, width: number, { kind, bar, column }: { kind: FieldKind; bar: number; column: number }): { x: number; y: number } {
+export function wordSpot(layout: Layout, width: number, { kind, bar, column }: { kind: FieldKind; bar: number; column: number }): { x: number; y: number; up?: boolean } {
   // A number's field fits its caption and a small number box; the others are 180px wide (`.tab-word`).
   const FIELD_WIDTH = kind === 'ending' || kind === 'repeat' ? 150 : 180;
   const FIELD_HEIGHT = 64;
@@ -71,8 +77,17 @@ export function wordSpot(layout: Layout, width: number, { kind, bar, column }: {
         y: over >= 0 ? over : top + lineBottom(rows, dynamic) + 12,
       };
     }
-    const x = kind === 'text' ? (placed.columns[column]?.x ?? placed.x0)
-      : kind === 'repeat' ? placed.x1 - FIELD_WIDTH / 2 : placed.x0 + FIELD_WIDTH / 2;
+    if (kind === 'text') {
+      // The Text popover hangs up from the top of the line's Texts (long ones over the chord names, short ones
+      // under them, issue #404), or from where they would go, so it never covers its column or what is written
+      // over the line; it grows up as lines are typed. With no room over the first line, it opens under the line.
+      const highest = rows.text ?? rows.chords ?? rows.textUnder ?? (rows.score?.top ?? rows.staffTop) - 20;
+      const bottom = top + highest - TEXT_HALF_LINE - TEXT_FIELD_GAP;
+      const at = placed.columns[column]?.x ?? placed.x0 + FIELD_WIDTH / 2;
+      const x = Math.min(width - FIELD_WIDTH / 2, Math.max(FIELD_WIDTH / 2, at));
+      return bottom >= TEXT_FIELD_HEIGHT ? { x, y: bottom, up: true } : { x, y: top + lineBottom(rows, dynamic) + 12 };
+    }
+    const x = kind === 'repeat' ? placed.x1 - FIELD_WIDTH / 2 : placed.x0 + FIELD_WIDTH / 2;
     return { x: Math.min(width - FIELD_WIDTH / 2, Math.max(FIELD_WIDTH / 2, x)), y: Math.max(0, y) };
   }
   return { x: FIELD_WIDTH / 2, y: 0 };

@@ -6,7 +6,7 @@
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { partOf, type Part } from '@/features/tab/clip';
-import { chordStep } from '@/features/tab/chordPopover';
+import { popoverStep } from '@/features/tab/popoverStep';
 
 function partFrom(tex: string): Part {
   const result = readAlphaTexWith(alphaTab, tex);
@@ -20,28 +20,28 @@ const part = () => {
   return { ...p, bars: [p.bars[0], { ...p.bars[1], columns: [] }, p.bars[2]] };
 };
 
-describe('chordStep', () => {
+describe('popoverStep', () => {
   it('moves column to column on Space, crossing bars, and stops once on an empty bar', () => {
     const p = part();
-    expect(chordStep(p, { bar: 0, column: 0 }, 'next')).toEqual({ bar: 0, column: 1 });
-    expect(chordStep(p, { bar: 0, column: 1 }, 'next')).toEqual({ bar: 1, column: 0 });
-    expect(chordStep(p, { bar: 1, column: 0 }, 'next')).toEqual({ bar: 2, column: 0 });
-    expect(chordStep(p, { bar: 2, column: 0 }, 'next')).toBeNull();
+    expect(popoverStep(p, { bar: 0, column: 0 }, 'next')).toEqual({ bar: 0, column: 1 });
+    expect(popoverStep(p, { bar: 0, column: 1 }, 'next')).toEqual({ bar: 1, column: 0 });
+    expect(popoverStep(p, { bar: 1, column: 0 }, 'next')).toEqual({ bar: 2, column: 0 });
+    expect(popoverStep(p, { bar: 2, column: 0 }, 'next')).toBeNull();
   });
 
   it('moves back on Shift+Space to the bar before’s last column', () => {
     const p = part();
-    expect(chordStep(p, { bar: 2, column: 0 }, 'back')).toEqual({ bar: 1, column: 0 });
-    expect(chordStep(p, { bar: 1, column: 0 }, 'back')).toEqual({ bar: 0, column: 1 });
-    expect(chordStep(p, { bar: 0, column: 1 }, 'back')).toEqual({ bar: 0, column: 0 });
-    expect(chordStep(p, { bar: 0, column: 0 }, 'back')).toBeNull();
+    expect(popoverStep(p, { bar: 2, column: 0 }, 'back')).toEqual({ bar: 1, column: 0 });
+    expect(popoverStep(p, { bar: 1, column: 0 }, 'back')).toEqual({ bar: 0, column: 1 });
+    expect(popoverStep(p, { bar: 0, column: 1 }, 'back')).toEqual({ bar: 0, column: 0 });
+    expect(popoverStep(p, { bar: 0, column: 0 }, 'back')).toBeNull();
   });
 
   it('moves to the start of the next or previous bar on Tab and Shift+Tab', () => {
     const p = part();
-    expect(chordStep(p, { bar: 0, column: 1 }, 'nextBar')).toEqual({ bar: 1, column: 0 });
-    expect(chordStep(p, { bar: 2, column: 0 }, 'nextBar')).toBeNull();
-    expect(chordStep(p, { bar: 0, column: 1 }, 'backBar')).toBeNull();
-    expect(chordStep(p, { bar: 2, column: 0 }, 'backBar')).toEqual({ bar: 1, column: 0 });
+    expect(popoverStep(p, { bar: 0, column: 1 }, 'nextBar')).toEqual({ bar: 1, column: 0 });
+    expect(popoverStep(p, { bar: 2, column: 0 }, 'nextBar')).toBeNull();
+    expect(popoverStep(p, { bar: 0, column: 1 }, 'backBar')).toBeNull();
+    expect(popoverStep(p, { bar: 2, column: 0 }, 'backBar')).toEqual({ bar: 1, column: 0 });
   });
 });

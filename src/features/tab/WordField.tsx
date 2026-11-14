@@ -5,7 +5,7 @@ import { toggleBold, type TypedText } from './textMarks';
 import type { WordKind } from './tools';
 import { DYNAMICS, dynamicOf, type Dynamic } from './clip';
 import { DYNAMIC_REACH, dynamicWord } from './dynamics';
-import type { ChordMove } from './chordPopover';
+import type { PopoverMove } from './popoverStep';
 
 /**
  * What a field sets: a palette word, a picked ending bracket's number, or how many times a picked repeat
@@ -48,14 +48,17 @@ interface WordFieldProps {
   kind: FieldKind;
   /** What the field starts with. */
   initial: string;
-  /** Where the field's middle and top go, in the tab's own units. */
+  /** Where the field's middle and top go (its bottom with `up`), in the tab's own units. */
   x: number;
   y: number;
+  /** The field hangs up from `y`, so a Text's new lines grow away from the line it is over. */
+  up?: boolean;
   /**
    * What was typed, or null for Esc; `byKey` when a key finished it, not leaving the field. A chord name's
-   * field (the chord popover, issue #342) also gives where Space, Shift+Space, Tab or Shift+Tab moves it.
+   * field (the chord popover, issue #342) also gives where Space, Shift+Space, Tab or Shift+Tab moves it, and
+   * a Text's field (the Text popover) where Tab or Shift+Tab does.
    */
-  onDone: (value: string | null, byKey: boolean, move?: ChordMove) => void;
+  onDone: (value: string | null, byKey: boolean, move?: PopoverMove) => void;
 }
 
 /** Every dynamic in alphabetical order, so a word comes before the longer ones it starts: p, pf, pp, ppp… */
@@ -70,7 +73,7 @@ export function dynamicsFor(typed: string): readonly Dynamic[] {
   return ALPHABETICAL.filter(d => d.startsWith(start));
 }
 
-export function WordField({ kind, initial, x, y, onDone }: WordFieldProps) {
+export function WordField({ kind, initial, x, y, up = false, onDone }: WordFieldProps) {
   const [value, setValue] = useState(initial);
   const digits = NUMBER_LENGTH[kind];
   const inputRef = useRef<HTMLInputElement & HTMLTextAreaElement>(null);
@@ -78,7 +81,7 @@ export function WordField({ kind, initial, x, y, onDone }: WordFieldProps) {
   useEffect(() => inputRef.current?.focus({ preventScroll: true }), []);
   // Enter and then the blur it causes would both finish; only the first counts.
   const done = useRef(false);
-  const finish = (result: string | null, byKey: boolean, move?: ChordMove) => {
+  const finish = (result: string | null, byKey: boolean, move?: PopoverMove) => {
     if (done.current) return;
     done.current = true;
     onDone(result, byKey, move);
@@ -152,15 +155,25 @@ export function WordField({ kind, initial, x, y, onDone }: WordFieldProps) {
       return true;
     }
     if (e.altKey) return false;
-    const move: ChordMove | null = e.key === ' ' ? (e.shiftKey ? 'back' : 'next') : e.key === 'Tab' ? (e.shiftKey ? 'backBar' : 'nextBar') : null;
+    const move: PopoverMove | null = e.key === ' ' ? (e.shiftKey ? 'back' : 'next') : e.key === 'Tab' ? (e.shiftKey ? 'backBar' : 'nextBar') : null;
     if (!move) return false;
     e.preventDefault();
     finish(value, true, move);
     return true;
   };
+  /**
+   * The Text popover's own keys (issue #342): Tab sets the Text and moves to the next column, Shift+Tab to the one
+   * before. Space types a space in a Text, so Tab takes the job Space has in the chord popover.
+   */
+  const onTextKey = (e: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>): boolean => {
+    if (kind !== 'text' || e.key !== 'Tab' || e.ctrlKey || e.metaKey || e.altKey) return false;
+    e.preventDefault();
+    finish(value, true, e.shiftKey ? 'back' : 'next');
+    return true;
+  };
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     e.stopPropagation();
-    if (onListKey(e) || onChordKey(e)) return;
+    if (onListKey(e) || onChordKey(e) || onTextKey(e)) return;
     // Shift+Enter is a new line in a Text: the textarea's own.
     if (e.key === 'Enter' && !(isText && e.shiftKey)) {
       e.preventDefault();
@@ -186,7 +199,7 @@ export function WordField({ kind, initial, x, y, onDone }: WordFieldProps) {
   };
   const showList = kind === 'dynamic' && listOpen;
   return (
-    <span className={`tab-word card${digits ? ' tab-word-fit' : ''}`} style={{ left: x, top: y }} role="dialog" aria-label={CAPTIONS[kind]}>
+    <span className={`tab-word card${digits ? ' tab-word-fit' : ''}${up ? ' tab-word-up' : ''}`} style={{ left: x, top: y }} role="dialog" aria-label={CAPTIONS[kind]}>
       <span className="tab-time-caption">{CAPTIONS[kind]}</span>
       {isText ? (
         <textarea

@@ -3,8 +3,9 @@
 Issue #342 ("FR: Dorico-style popovers in the Tab editor"). Asked
 2026-11-10 (Jeremy): "Let's begin work on the popover FR and start with
 chords." This step is the chord symbol popover only; the issue's other
-popovers (Text, Tempo, Time signature, Key signature, Playing techniques)
-come later. Dynamics (Shift+D) and Lyrics (Shift+L) already have theirs.
+popovers come later; the Text popover (Shift+X) followed
+(`2026-11-14-tab-text-popover-design.md`), and its moves share
+`popoverStep.ts` (was `chordPopover.ts`). Dynamics (Shift+D) and Lyrics (Shift+L) already have theirs.
 
 Editing follows Dorico first (`docs/tab-editing-principles.md`). Dorico's
 chord symbols popover opens on Shift+Q at the selection or caret, and
@@ -60,7 +61,7 @@ closed it. This step makes that field the chord popover.
 
 ## Tests
 
-- `chordStep`: Space from a bar's last column goes to the next bar's
+- `popoverStep`: Space from a bar's last column goes to the next bar's
   first; an empty bar is one stop; Shift+Space from a bar's first column
   goes to the bar before's last; Tab and Shift+Tab go bar to bar; past
   either end it is null.
@@ -76,7 +77,7 @@ closed it. This step makes that field the chord popover.
 
 ## How
 
-1. `chordPopover.ts`: `chordStep`, where a move takes the popover.
+1. `popoverStep.ts`: `popoverStep`, where a move takes the popover.
 2. `WordField.tsx`: the chord field's keys (Space, Shift+Space, Tab,
    Shift+Tab, Alt+Space) and `onDone`'s move.
 3. `useHeadPanels.tsx`: `openWord` opens a chord name on an empty bar;
