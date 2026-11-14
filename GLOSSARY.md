@@ -206,6 +206,12 @@ The column of palettes at the Clip's left, each opened or folded from
 its header, several at once: Notes, Articulations and Bars (each a set
 of Tool groups), Chords and Chat.
 
+**Re-bar**:
+Lay a Voice's notes into bars again by the time signatures, split and
+tied over the bar lines. Setting a time signature or the Pickup bar does
+it; so does Re-bar by time signature, Import's option.
+_Avoid_: re-flow, bar arranger
+
 **Roll**:
 How a chord sounds when its strings start one after another instead of
 together: low to high for a downstroke or Strum down, high to low for an
@@ -226,6 +232,12 @@ A note as it sounds: its Voice, string, fret, start and length, with a
 Tie chain counted as one. Edits work on Sounding notes; the Clip stores
 Columns.
 _Avoid_: event
+
+**Source bar line**:
+A bar line as written in imported or pasted text, before Re-bar by time
+signature lays the notes into bars. One that no longer falls on a
+downbeat misses it, and is listed in the line under the clip.
+_Avoid_: original bar line
 
 **Span**:
 A Mark drawn as one line or wave over neighbouring columns that have it:

@@ -45,7 +45,8 @@ Off the tab, with the playback line, Delete and Backspace follow the same rules
   part). A tuplet is not split: its bar runs over, as note input mode's long notes do.
 - A short bar's missing time is room too, before the paste goes on to the next bar.
 - Past the clip's end, bars of rests are added in the last bar's time.
-- Into an empty clip the pasted clip comes whole, with its name, time and tuning, as before.
+- Into an empty clip the pasted clip comes whole, with its name, time and tuning, as before; Uneven bars are
+  re-barred as Import re-bars them (`2026-11-14-tab-rebar-import-design.md`).
 - The cursor ends on the last pasted column.
 
 ## Reading

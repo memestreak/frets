@@ -498,6 +498,11 @@ or saved. Standard tuning only.
 The principles every editing spec since step 1 follows, with Dorico,
 MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
 
+- `docs/specs/2026-11-14-tab-rebar-import-design.md`: Re-bar by time
+  signature, Import's option (a Preference, on by default): notes flow into
+  bars by the time signatures, bar Marks go to the nearest bar line, and
+  Source bar lines that miss a downbeat are listed as runs; paste into an
+  empty clip always re-bars (issue #482, phase 1)
 - `docs/specs/2026-11-13-tab-move-in-time-design.md`: Alt+← → (Dorico's
   keys) move the picked note, chord or selection a grid step earlier or later,
   and a sideways drag of a head or number does the same; stepping through

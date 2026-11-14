@@ -15,8 +15,9 @@ No edit makes an Uneven bar. A note that runs past the room it has
 writes over what follows and is split and tied by the meter. Time is
 added or taken only by Insert, Insert paste and Ctrl/⌘+Delete, which push
 or pull the music after them across bar lines. A short first bar is a
-Pickup bar, set on purpose. Uneven bars come only from an import or a
-link, and their ⚠ offers the fix.
+Pickup bar, set on purpose. Uneven bars come only from an import with
+Re-bar by time signature off (`2026-11-14-tab-rebar-import-design.md`)
+or a link, and their ⚠ offers the fix.
 
 ## Writing over (Q1, Q18, Q19, Q12)
 
@@ -80,11 +81,14 @@ time, in every Track; the other Tracks' new bars are Whole-bar rests
   clipboard's Voice 1 in at the cursor and pushes what follows by its
   length. The pasted bar lines are not kept, as with paste. Into an empty
   clip the pasted clip still comes whole, with its name, time and tuning.
-  A copy that starts or ends inside a bar (most copies) is written from
-  the clip's start through the meter instead, so its bar is filled with
-  rests and never short; the pasted clip's name, time and tuning still
-  come. A paste never says a copied bar "doesn't add up": the bars it
-  lands in stay full (issues #421, #422).
+  Uneven bars are re-barred as Import's Re-bar by time signature lays them,
+  with their bar Marks kept
+  (`2026-11-14-tab-rebar-import-design.md`): a copy that starts inside a
+  bar (most copies) has its short first bar placed to end on a bar line,
+  so it lands where it was copied from, with Gaps before and after; the
+  pasted clip's name, time and tuning still come. A paste never says a
+  copied bar "doesn't add up": the bars it lands in stay full (issues
+  #421, #422); a pasted tab whose bar lines drift lists its misses.
 - **Ctrl/⌘+Delete** takes the selection's time, or the cursor's Column's,
   and pulls what follows back. Bars it covers whole are removed, as now
   and as MuseScore's "Remove selected range" does; the time it takes from a
@@ -143,7 +147,8 @@ Whole-bar rest.
 
 ## Uneven bars (A10, Q5, Q6, Q7, Q25)
 
-An Uneven bar comes only from an import or a link (or, until step 6,
+An Uneven bar comes only from an import with Re-bar by time signature
+off, or a link (or, until step 6,
 Triplet and Grace). It keeps its ⚠ and the line under the clip. A press on
 its ⚠ opens a small panel there, with the one command that fixes it:
 

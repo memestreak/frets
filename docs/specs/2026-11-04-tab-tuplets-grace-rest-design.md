@@ -154,8 +154,9 @@ Grace entry and Delete on a picked tuplet number.
 - `public/tab-alphatex.txt` and `public/skills/frets-tab/SKILL.md`: their
   tuplet and grace rules already hold, and they name no editing keys.
 - No Preference is added or removed.
-- Uneven bars now come only from an import or a link: Tuplet and Grace no
-  longer make them.
+- Uneven bars now come only from an import (with Re-bar by time signature
+  off, since `2026-11-14-tab-rebar-import-design.md`) or a link: Tuplet
+  and Grace no longer make them.
 
 ## How
 
