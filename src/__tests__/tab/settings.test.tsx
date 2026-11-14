@@ -151,10 +151,10 @@ describe('Settings', () => {
     const dialog = within(screen.getByRole('dialog', { name: 'Metronome' }));
     // Every field Settings › Metronome has.
     for (const name of ['Metronome', 'Count in']) expect(dialog.getByRole('checkbox', { name })).toBeInTheDocument();
-    expect(dialog.getByRole('spinbutton', { name: 'Bars' })).toBeDisabled();
+    expect(dialog.getByRole('spinbutton', { name: 'Count-in bars' })).toBeDisabled();
     for (const name of ['Click volume', 'Beat one', 'Beats', 'Subdivisions']) expect(dialog.getByRole('slider', { name })).toBeInTheDocument();
     fireEvent.click(dialog.getByRole('checkbox', { name: 'Count in' }));
-    expect(dialog.getByRole('spinbutton', { name: 'Bars' })).toBeEnabled();
+    expect(dialog.getByRole('spinbutton', { name: 'Count-in bars' })).toBeEnabled();
     fireEvent.change(dialog.getByRole('combobox', { name: 'Sound' }), { target: { value: 'hihat' } });
     fireEvent.click(within(dialog.getByRole('group', { name: 'Subdivide' })).getByRole('button', { name: 'Sixteenths' }));
     fireEvent.click(within(dialog.getByRole('group', { name: 'Click on' })).getByRole('button', { name: 'Beat one' }));

@@ -81,8 +81,8 @@ Metronome page's Tempo, Beats, Tap and presets have no place here.
   gains nothing. The toggle's tip says "Right-click for its settings".
 - The dialog shows exactly Settings › Metronome's fields, in the same rows:
   - Metronome (the toggle's own on and off).
-  - A Count-in box: Count in, then Bars (1 to 4), greyed out while Count in
-    is off.
+  - Count in, with its bars (1 to 4) on the same line, greyed out while
+    Count in is off (Jeremy, 2026-11-14).
   - Sound (a list), Subdivide and Click on (segmented switches).
   - A Volumes box: Click volume, Beat one, Beats, Subdivisions (knobs).
 - Each change in the dialog takes effect at once, heard as the clip plays,
@@ -146,5 +146,5 @@ each, and a value it doesn't know is the default.
 - Settings › Metronome sets the sound, subdivisions, Click on and the three
   volumes, and the Metronome dialog shows them.
 - A right-click on Metronome opens the Metronome dialog with every field;
-  Bars is greyed out until Count in is on; each change is saved at once
+  the count-in bars are greyed out until Count in is on; each change is saved at once
   with no OK, and the footer's toggle follows the dialog's Metronome.

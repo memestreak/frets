@@ -10,7 +10,7 @@ import { useState } from 'react';
 import { usePersist } from '@/hooks/usePersist';
 import { loadJson } from '@/lib/storage';
 import { Segmented } from '@/components/controls';
-import { checkField, choiceField } from '@/components/settings/fields';
+import { CheckBox, checkField, choiceField } from '@/components/settings/fields';
 import { section, type SettingsField, type SettingsGroup } from '@/components/settings/types';
 import { NumberField } from '@/components/NumberField';
 import { VolumeKnob } from '@/components/VolumeKnob';
@@ -239,18 +239,32 @@ function channelsField(): SettingsField<MidiSettings> {
  * playback).
  */
 /**
+ * Count in and how many bars, on one line (Jeremy, 2026-11-14): the check box, then the bars, greyed
+ * out while Count in is off.
+ */
+function countInField(): SettingsField<MetronomeSettings> {
+  return {
+    key: 'countIn', label: 'Count in',
+    control: ({ value, set, labelId, disabled }) => (
+      <>
+        <CheckBox on={value.countIn} labelledBy={labelId} disabled={disabled} onChange={countIn => set({ ...value, countIn })} />
+        <NumberField
+          value={value.countInBars} min={1} max={MAX_COUNT_IN_BARS} step={1} disabled={disabled || !value.countIn}
+          label="Count-in bars" upLabel="More bars" downLabel="Fewer bars" onChange={countInBars => set({ ...value, countInBars })}
+        />
+        <span className="settings-after">{value.countInBars === 1 ? 'bar' : 'bars'}</span>
+      </>
+    ),
+  };
+}
+
+/**
  * Tab › Metronome's fields, in Settings and in the Metronome dialog a right-click on the footer's
  * Metronome opens (issue #477), so both show the same.
  */
 export const METRONOME_FIELDS: SettingsField<MetronomeSettings>[] = [
   checkField('on', 'Metronome'),
-  { ...checkField<MetronomeSettings, 'countIn'>('countIn', 'Count in'), box: 'Count-in' },
-  {
-    ...numberField<MetronomeSettings, 'countInBars'>('countInBars', 'Bars', {
-      min: 1, max: MAX_COUNT_IN_BARS, step: 1, upLabel: 'More bars', downLabel: 'Fewer bars', enabled: v => v.countIn,
-    }),
-    box: 'Count-in',
-  },
+  countInField(),
   listField<MetronomeSettings, 'sound'>('sound', 'Sound', CLICK_SOUNDS, sound => previewClick(sound, 1)),
   choiceField<MetronomeSettings, 'subdivide', Subdivide>('subdivide', 'Subdivide', SUBDIVIDES),
   choiceField<MetronomeSettings, 'clickOn', ClickOn>('clickOn', 'Click on', CLICK_ONS),
