@@ -851,7 +851,7 @@ export default function TabPage() {
   const clipHandlers = useStableHandlers({
     onPick: (...args: Parameters<typeof picking.onPick>) => { restOnStaff.current = null; picking.onPick(...args); },
     onPickStaff: (...args: Parameters<typeof picking.onPickStaff>) => { restOnStaff.current = null; picking.onPickStaff(...args); }, onDragStaff: picking.onDragStaff,
-    onDragFret: noteInputMode ? undefined : picking.onDragFret, onDragTime: noteInputMode ? undefined : picking.onDragTime, onDragSpan: picking.onDragSpan, onDragRange: picking.onDragRange, onPickRect: picking.onPickRect,
+    onDragFret: noteInputMode ? undefined : picking.onDragFret, onDragTime: noteInputMode ? undefined : picking.onDragTime, keepsPick: picking.keepsPick, timeStep: picking.dragStep, onDragSpan: picking.onDragSpan, onDragRange: picking.onDragRange, onPickRect: picking.onPickRect,
     // A press that takes the caret away (blank space, the playback line's place above or below the staff, a
     // mark or a word picked) ends note input mode too, so the pencil is never lit without a caret.
     onMenuPress: setMenuPress,

@@ -185,13 +185,8 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
     }
   };
 
-  /** The chord a press on one of its notes found picked whole, until the drag from it ends. */
-  const chordPress = useRef<{ bar: number; column: number } | null>(null);
-
   /** A press on the tab: the cursor there, a note entered (note input mode) or a bar selected (normal mode); with Shift, the selection grows. */
   const onPick = ({ at: into = 0, ...hit }: Hit, extend: boolean, alone = false, menu = false) => {
-    // A press on a note of the chord picked whole: a drag from it moves the chord (`onDragTime`).
-    chordPress.current = !extend && columnOnly && !selection && hit.bar === cursor.bar && hit.column === cursor.column ? { bar: hit.bar, column: hit.column } : null;
     lastDigitRef.current = null;
     setStaffPitch(null);
     setColumnOnly(false);
@@ -367,7 +362,12 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
    */
   const onDragFret = (drag: FretDrag) => {
     const { hit } = drag;
-    if (!fretFrom.current) fretFrom.current = { clip, string: hit.string };
+    if (!fretFrom.current) {
+      fretFrom.current = { clip, string: hit.string };
+      // A press inside what was picked (`keepsPick`) left it picked: the note dragged is picked now.
+      setSelection(null);
+      setColumnOnly(false);
+    }
     const from = fretFrom.current;
     // The string under the pointer, else the nearest one back toward where the note started that can take it.
     const toward = Math.sign(hit.string - drag.string);
@@ -386,6 +386,26 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
     if (moved && !drag.done) hearNote({ ...hit, string });
   };
 
+  /** Whether Column `index` is inside the selection (of one Column or more). */
+  const inSelection = (index: number) => {
+    if (!selection) return false;
+    const [from, to] = selectedRange(selection);
+    return index >= from && index <= to;
+  };
+  /** Whether the chord at `at` is picked whole (its Column, no selection). */
+  const wholeChordAt = (at: { bar: number; column: number }) => columnOnly && !selection && cursor.bar === at.bar && cursor.column === at.column;
+  /**
+   * A press on a note inside what is picked, in normal mode: the selection, or the chord picked whole. It
+   * keeps the pick until the pointer lets go without moving, so a drag moves all of it (Jeremy, 2026-11-14).
+   */
+  const keepsPick = (hit: Hit) => !noteInputMode && !picked && (inSelection(indexOf(clip, hit.bar, hit.column)) || wholeChordAt(hit));
+
+  /** The step a drag in time from `hit` moves by: the fixed grid, or the length of what it moves (for the Grid drawn under it). */
+  const dragStep = (hit: Hit) => {
+    const carried = inSelection(indexOf(clip, hit.bar, hit.column)) ? selection : null;
+    return timeStep(clip, { cursor: hit, selection: carried });
+  };
+
   /** A drag in time: the clip it started from, what moves (the pressed chord, or the selection it is in), and the last move that worked. */
   const timeFrom = useRef<{ clip: Part; target: Target; alone: boolean; good: TimeMove | null } | null>(null);
 
@@ -399,12 +419,9 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
     const { hit } = drag;
     if (!timeFrom.current) {
       const index = indexOf(clip, hit.bar, hit.column);
-      const range = selection ? selectedRange(selection) : null;
-      const carried = range && range[0] !== range[1] && index >= range[0] && index <= range[1] ? selection : null;
-      // The chord moves when it was picked whole before the press (the press itself picks the note); else the note alone.
-      const wasWhole = chordPress.current
-        ? chordPress.current.bar === hit.bar && chordPress.current.column === hit.column
-        : columnOnly && !selection && cursor.bar === hit.bar && cursor.column === hit.column;
+      const carried = inSelection(index) ? selection : null;
+      // The chord moves when it was picked whole before the press (`keepsPick` kept it); else the note alone.
+      const wasWhole = wholeChordAt(hit);
       timeFrom.current = { clip, target: { cursor: hit, selection: carried }, alone: !carried && !wasWhole, good: null };
       lastDigitRef.current = null;
       editorRef.current?.focus();
@@ -418,7 +435,6 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
     const shown = from.good;
     if (drag.done) {
       timeFrom.current = null;
-      chordPress.current = null;
       if (shown) dispatch({ type: 'replacePart', part: shown.clip, from: from.clip });
       else dispatch({ type: 'previewPart', part: from.clip });
     } else dispatch({ type: 'previewPart', part: shown ? shown.clip : from.clip });
@@ -501,7 +517,7 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
   };
 
   return {
-    onPick, onPickRhythm, onPickStaff, onPickText, onPickMark, onPickRect, onDragStaff, onDragFret, onDragTime, onDragSpan, onDragRange,
+    onPick, onPickRhythm, onPickStaff, onPickText, onPickMark, onPickRect, onDragStaff, onDragFret, onDragTime, dragStep, keepsPick, onDragSpan, onDragRange,
     stepToElement, editPicked, deletePicked, moveSpanEnd,
   };
 }

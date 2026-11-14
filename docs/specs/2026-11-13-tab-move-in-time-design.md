@@ -72,9 +72,18 @@ to the normal mode table in `2026-10-30-tab-note-input-mode-design.md`.
 - A sideways drag snaps to the step, previews as it goes, and lands as
   one undo step on release. Dropped outside the drawing, it puts the
   music back.
-- A drag on a note moves that note alone; on a note of a chord picked
-  whole (its stem pressed first), the chord; inside a selection of several
-  Columns, the selection.
+- A drag on a note moves that note alone. A drag on a note inside what
+  is picked moves all of it: the chord picked whole (its stem pressed, or
+  its Column selected), or the selection, one Column or more (Jeremy,
+  2026-11-14: "I want to be able to drag one or more columns as well as
+  individual notes"). So a press there keeps the pick until the pointer
+  lets go without moving; then it picks that note, as any press does. An
+  up or down drag from there moves that note alone, as before.
+- The time is read on the drawing as it was pressed, so the preview
+  moving columns doesn't make the drag jump.
+- While it drags, the Grid it snaps to (note input mode's, in its look
+  from Settings) is drawn in the bar under the pointer, on the staff or
+  the tab it started on (Jeremy, 2026-11-14), and goes when it lets go.
 - Dorico drags one item at a time and only with a preference on; ours is
   always on, as dragging the pitch is.
 
@@ -118,6 +127,11 @@ to the normal mode table in `2026-10-30-tab-note-input-mode-design.md`.
 - Fixed grid on at 8ths: Alt+→ on `5.1.4 r.4 r.2 |` gives
   `r.8 5.1.4 r.8 r.2 |`.
 - In note input mode Alt+→ changes nothing; Ctrl+Alt+→ still steps.
+- Drags on `(5.1 7.2).4 r.4 r.2 |`, the tab alone, to the next column:
+  string 2's note alone gives `5.1.4 7.2.4 r.2 |`; with the chord's
+  Column selected first, `r.4 (5.1 7.2).4 r.2 |`, one undo step; a press
+  without a move on a note of the selected Column picks that note; the
+  Grid is drawn (one `grid-lines`) while the drag holds and gone after.
 - Test arrangement `editing_tests/move-by-the-grid`.
 
 ## How
@@ -127,6 +141,6 @@ to the normal mode table in `2026-10-30-tab-note-input-mode-design.md`.
   grid) and `timeAtX` (a pointer's time, for the drag).
 - `editorKeys.ts`: `moveInTimeKey` on Alt+← →; stepping moves to
   Ctrl/⌘+Alt+← →.
-- `TabClip.tsx`: the 6px axis choice and `onDragTime`; `useTabPicking.ts`
+- `TabClip.tsx`: the 6px axis choice, `onDragTime`, `keepsPick` (a press inside what is picked) and the drag's Grid; `useTabPicking.ts`
   snaps, previews and commits it; `TabPage.tsx` passes the step.
 - `shortcuts.ts`: both rows.
