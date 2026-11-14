@@ -13,8 +13,9 @@ selection of PR #365), so nothing new is learned between the two.
 ## What
 
 - A press on a note (on the tab or a staff head) or a rest selects its
-  column. A press beside the notes (a blank string, a line or space)
-  selects its whole bar, as on the Tab page (Jeremy, 2026-11-05: "it
+  column. A press beside the notes (a blank string, a line or space, or
+  the string beside a note's number: a note is pressed only on it, as on
+  the Tab page, issue #478) selects its whole bar, as on the Tab page (Jeremy, 2026-11-05: "it
   selects the entire bar as it should"). A rest is taken in whole: every
   rest of a Whole-bar rest, every bar of a multi-bar rest.
 - A Shift+press grows the selection to take in what was pressed; inside

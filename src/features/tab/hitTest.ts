@@ -9,13 +9,18 @@ import { xAlong } from './grid';
 import { staffBar } from './staffGeometry';
 import { type Layout, lineAt, type System, wholeRestX } from './layout';
 import { SPACE, STRING_GAP, type ScoreRows, stepY } from './rows';
-import { accidentalRoom, HEAD_WIDTH } from './widths';
+import { accidentalRoom, HEAD_WIDTH, labelWidth } from './widths';
 
 /** Where a click lands: the bar under it, its nearest column (0 in an empty bar) and the nearest string. */
 export interface Hit {
   bar: number;
   column: number;
   string: number;
+  /**
+   * The press missed the note's number: the string there is empty, or the press is beside the number
+   * (issue #478). A press must land on a note to pick it, as in Dorico; beside one, normal mode selects the bar.
+   */
+  beside?: true;
   /** In note input mode, how far into a rest the press snapped, in ticks (issue #293); absent at a column's start. */
   at?: number;
 }
@@ -23,9 +28,20 @@ export interface Hit {
 /** How far above the top string and below the bottom one a press still lands on the staff, as the cursor's band reaches. */
 export const STAFF_REACH = 10;
 
-/** How near a note head a press on the notation staff must be: about a head's width across, a space up or down. */
-const HEAD_REACH_X = HEAD_WIDTH;
-const HEAD_REACH_Y = SPACE;
+/**
+ * How near a note head's centre a press on the notation staff must be: on the head, and a little round it
+ * (issue #478). It reached a whole head across and a whole space up or down, so the next line picked it.
+ */
+export const HEAD_REACH_X = HEAD_WIDTH / 2 + 2;
+export const HEAD_REACH_Y = SPACE / 2 + 1.5;
+
+/** How far past a dot's centre a press still lands on its note. */
+const DOT_REACH = 2.5;
+/** A ghost note's brackets either side of its head, and the gap before them. */
+const GHOST_ROOM = 5;
+
+/** How far past either end of a note's number on the tab a press still lands on the note (issue #478). */
+export const NUMBER_REACH = 3;
 
 /** The tab note under a press on a note head of the notation staff: the nearest head within reach. */
 function staffHeadAt(system: System, score: ScoreRows, x: number, localY: number): Hit | null {
@@ -35,13 +51,17 @@ function staffHeadAt(system: System, score: ScoreRows, x: number, localY: number
     bar.columns.forEach((placed, column) => {
       const drawn = geometry.get(placed);
       if (!drawn) return;
-      // A press on an accidental, left of the heads, is on its note too (step 8, Q1).
+      // A press on an accidental, left of the heads, or on a dot, right of them, is on its note too (step 8, Q1).
       const signs = accidentalRoom(placed.heads);
+      const dots = placed.column.duration.dots;
       placed.heads.forEach((head, k) => {
         // Where the head is drawn: a head a second from its neighbour sits on the stem's other side (issue #276).
         const centre = drawn.xs[k] + drawn.width / 2;
         const dx = Math.abs(centre - x);
-        if (dx > HEAD_REACH_X + (x < centre ? signs : 0)) return;
+        // The dots start right of the column's rightmost head (`StaffDrawing`), each 5 on from the last.
+        const dotted = dots > 0 ? Math.max(...drawn.xs) - drawn.xs[k] + drawn.width / 2 + 4 + (dots - 1) * 5 + DOT_REACH : 0;
+        const ghost = placed.column.notes[head.string]?.ghost ? GHOST_ROOM : 0;
+        if (dx > (x < centre ? HEAD_REACH_X + ghost + signs : Math.max(HEAD_REACH_X + ghost, dotted))) return;
         const dy = Math.abs(stepY(score, head.step) - localY);
         if (dy > HEAD_REACH_Y) return;
         const distance = dx + dy;
@@ -150,7 +170,7 @@ export function staffAt(layout: Layout, x: number, y: number): StaffHit | null {
   return { bar: bar.index, column, step, string: null };
 }
 
-/** The column and string a press on the tab lands on; null anywhere else. */
+/** The column and string a press on the tab lands on, `beside` when it misses the note's number there; null anywhere else. */
 export function hitTest(layout: Layout, x: number, y: number): Hit | null {
   const line = lineAt(layout, y);
   if (!line) return null;
@@ -171,7 +191,10 @@ export function hitTest(layout: Layout, x: number, y: number): Hit | null {
       if (Math.abs(c.x - x) < Math.abs(bar.columns[column].x - x)) column = i;
     });
   }
-  return { bar: bar.index, column, string };
+  const placed = bar.columns[column];
+  const note = placed?.column.notes[string];
+  const onNumber = note && Math.abs(placed.x - x) <= labelWidth(note, placed.column) / 2 + NUMBER_REACH;
+  return onNumber ? { bar: bar.index, column, string } : { bar: bar.index, column, string, beside: true };
 }
 
 /** How far right of a column's centre a press still counts as on it: about a note head's half width. */
@@ -286,7 +309,7 @@ function staffStemAt(system: System, score: ScoreRows, x: number, localY: number
   for (const bar of system.bars) {
     if (bar.restRun) continue;
     const geometry = staffBar(bar, score);
-    const onHead = bar.columns.some(p => Math.abs(p.x - x) <= HEAD_REACH_X && p.heads.some(h => Math.abs(stepY(score, h.step) - localY) <= SPACE / 2 + 1));
+    const onHead = bar.columns.some(p => Math.abs(p.x - x) <= HEAD_REACH_X && p.heads.some(h => Math.abs(stepY(score, h.step) - localY) <= HEAD_REACH_Y));
     if (onHead) return null;
     let best: { column: number; off: number } | null = null;
     for (const [placed, c] of geometry.columns) {

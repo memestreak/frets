@@ -1,0 +1,8 @@
+\title "A press picks a note only on the note"
+\ts (4 4)
+3.1.4{txt "**1.** Select Tab view\nTab, at the top left of the clip"}
+  3.1.4{txt "**2.** Press beside this 3\nOn the top string, halfway to the 5: the whole bar is boxed, not the 3"}
+  5.1.4{txt "**3.** Press on this 5\nOnly the 5 is boxed"} 3.2.4 |
+2.3.2{txt "**4.** Select Both view\nBoth, at the top left of the clip"}
+  4.3.2{txt "**5.** Press a line above this head\nOn the staff, one line up from it: the whole bar lights, not this note"} |
+

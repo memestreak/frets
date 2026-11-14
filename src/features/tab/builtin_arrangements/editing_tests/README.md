@@ -43,6 +43,7 @@ PR, or removes the file and its row when the behaviour is gone.
 | `notes-into-tuplet.atex` | Selected notes squeezed into a tuplet, a Gap left after it | `docs/specs/2026-11-04-tab-tuplets-grace-rest-design.md` |
 | `pick-every-mark.atex` | A chord name, accent, fermata, bend, tie and time signature picked: Attachment lines and the notes' tint, and a signature's panel opened by Enter | `docs/specs/2026-11-04-tab-pick-every-mark-design.md` |
 | `pick-spans.atex` | A let ring line picked and its end Handle dragged to join the next; a P.M. line deleted; a vibrato grown by Alt+Shift+→ | `docs/specs/2026-11-04-tab-pick-every-mark-design.md` |
+| `press-beside-a-note.atex` | A press picks a note only on its number or head; beside it, on the string or one line up on the staff, the whole bar is selected | `docs/specs/2026-10-30-tab-note-input-mode-design.md`, #478 |
 | `press-away-ends-note-input.atex` | A press above the staff, the Tab key, or a press away from the chord name field ends note input mode | `docs/specs/2026-10-30-tab-note-input-mode-design.md` |
 | `rest-key-in-note-input.atex` | `,` in note input mode writes a rest of the Input length and moves the cursor on | `docs/specs/2026-11-04-tab-tuplets-grace-rest-design.md` |
 | `rests-follow-the-meter.atex` | Delete leaves a Gap written by the meter: rests that show each beat | `docs/specs/2026-11-03-tab-rests-are-gaps-design.md` |

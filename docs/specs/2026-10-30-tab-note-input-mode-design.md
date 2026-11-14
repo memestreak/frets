@@ -43,8 +43,8 @@ note selected on the tab coloured on the staff; the same goes for note input mod
 
 | Input | Does |
 | --- | --- |
-| Press on a note (tab number or staff head) | Selects it. |
-| Press beside the notes (an empty string, a blank line or space) | Selects the bar, as MuseScore's does (Jeremy, 2026-10-31; it selected the column before); adds nothing. |
+| Press on a note (tab number or staff head) | Selects it. The press must land on the note, as in Dorico (Jeremy, 2026-11-14, issue #478): on the tab, on its number or within 3 of either end (`NUMBER_REACH`); on the staff, on its head or within about 2 of it (`HEAD_REACH_X`, `HEAD_REACH_Y`: no longer the next line or space), its accidental, its ghost brackets or its dots. A rest, a stem or beam, or a mark is picked the same way, only when pressed. |
+| Press beside the notes (an empty string, a blank line or space, or the string beside a note's number) | Selects the bar, as MuseScore's does (Jeremy, 2026-10-31; it selected the column before); adds nothing. Until issue #478 a press anywhere on a string picked the nearest column's note on it. |
 | Digit, a staff note selected | Sets its length, MuseScore's numbers: 1 a 64th, 2 a 32nd, 3 a 16th, 4 an eighth, 5 a quarter, 6 a half, 7 a whole (Q1, Jeremy). |
 | Digit, a tab note selected | Sets its length, as on the staff: frets are typed only in note input mode, as in Dorico (Jeremy, 2026-11-07, issue #396; it typed the fret before). |
 | ↑ ↓, tab | The string above or below, as Dorico's arrows go between notes and staves; up past the top string (or from the column alone) to the staff when it is shown, on the note's pitch or else the column's lowest note (Jeremy, 2026-11-07, issue #396; it changed the fret before). From the column alone ↓ picks the top string. |
