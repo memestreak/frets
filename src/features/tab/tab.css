@@ -258,6 +258,9 @@
 }
 /* Nothing shrinks; the row scrolls instead. */
 .tab-playback > * { flex: none; }
+/* Loop, Playback sound and the Metronome, when on, are in the selection's denim like every other lit
+   control on the page (Jeremy, 2026-11-14), not the primary red. */
+.tab-playback .btn-toggle[aria-pressed='true'] { background: var(--select-soft); box-shadow: inset 0 0 0 1.5px var(--select); }
 .tab-slot { display: flex; align-items: center; height: var(--tab-slot); }
 .tab-playback > .btn { margin-block: 4px; }
 /* A control over its name, centred under it. */
