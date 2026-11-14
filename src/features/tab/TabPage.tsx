@@ -38,6 +38,7 @@ import { litTiedNotes, tieOnInput } from './ties';
 import { useClipActions } from './ClipActions';
 import { SizeField } from './ViewOptions';
 import { TabClip, type DoubleClickPlace } from './TabClip';
+import { MetronomeDialog } from './MetronomeDialog';
 import { ImportDialog } from './TabDialogs';
 import { TabPalette } from './TabPalette';
 import { TabRail, usePalettes } from './TabRail';
@@ -199,6 +200,8 @@ export default function TabPage() {
   const [exporting, setExporting] = useState(false);
   const menuTrigger = useMenuTrigger();
   const [importing, setImporting] = useState(false);
+  // The Metronome dialog, from a right-click on the footer's Metronome (issue #477).
+  const [metronomeOpen, setMetronomeOpen] = useState(false);
   const [widthRef, boxWidth] = useWidth();
   // The view switch and the copy button sit in a strip above it, so the tab takes the card's whole width.
   // At a Size other than 100% the drawing (and all over it) is zoomed, so it is laid out that much narrower or wider.
@@ -1094,9 +1097,7 @@ export default function TabPage() {
             effects={clip.fx ?? DEFAULT_FX} onEffects={fx => dispatch({ type: 'fx', track, fx })}
             options={playbackSettings} onOptions={options => setPlaybackSettings(s => ({ ...s, ...options }))}
             metronome={metronome.on} onMetronome={on => setMetronome(m => ({ ...m, on }))}
-            countIn={metronome.countIn} onCountIn={countIn => setMetronome(m => ({ ...m, countIn }))}
-            countInBars={metronome.countInBars} onCountInBars={countInBars => setMetronome(m => ({ ...m, countInBars }))}
-            clickVolume={metronome.clickVolume} onClickVolume={clickVolume => setMetronome(m => ({ ...m, clickVolume }))}
+            onMetronomeOptions={() => setMetronomeOpen(true)}
           />
         </HoverTips>
         </PinnedPlayback>
@@ -1112,6 +1113,8 @@ export default function TabPage() {
       </p>
 
       <ImportDialog open={importing} onClose={() => setImporting(false)} onImport={file.importText} />
+      {/* Only while open, so its fields' names aren't in the page the rest of the time. */}
+      {metronomeOpen && <MetronomeDialog open metronome={metronome} onMetronome={setMetronome} onClose={() => setMetronomeOpen(false)} />}
       {file.dialogs}
       {menu && (
         <ShapeMenu

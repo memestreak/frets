@@ -441,8 +441,12 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
   both sides — `2026-10-29-tab-sound-decoding-design.md`.
 - `soundDecoder.ts` — asks the worker to decode.
 - `soundDecoder.worker.ts` — the Web Worker that decodes.
-- `click.ts` — the metronome click (`src/lib/click.ts`) as a tiny
-  SoundFont — `2026-10-28-tab-metronome-design.md`.
+- `click.ts` — the metronome's sounds (`src/lib/clickSounds.ts`) as a tiny
+  SoundFont, two keys a sound — `2026-10-28-tab-metronome-design.md`.
+- `metronomeClicks.ts` — what the metronome clicks in a bar: its Beat
+  groups, Subdivide, Click on and each kind's level (pure) —
+  `2026-11-14-tab-metronome-parity-design.md`.
+- `clickPreview.ts` — a metronome sound heard once as it is picked.
 - `PlaybackFooter.tsx` — the footer under the tab: Play, Loop, Hear notes,
   Metronome, Speed, Transpose, Volume, Sound, FX; the playhead in
   `--playhead`; `trackLabel` — `2026-10-27-tab-hear-notes-design.md`.
@@ -452,8 +456,9 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
   card runs past it — `2026-10-28-tab-pinned-playback-design.md`.
 - `PlaybackOptions.tsx` — Play's right-click menu —
   `2026-10-27-tab-playback-options-design.md`.
-- `ClickOptions.tsx` — the Metronome toggle's right-click menu: count-in
-  and click volume.
+- `MetronomeDialog.tsx` — the Metronome dialog a right-click on the
+  footer's Metronome opens: Settings › Metronome's fields (`METRONOME_FIELDS`
+  in `tabSettings.tsx`), each change at once.
 - `FxButton.tsx` — FX and its light switch, and the FX dialog.
 
 ## The MCP App (`show_tab`)
@@ -697,6 +702,8 @@ MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
   reverb on playback
 - `docs/specs/2026-10-28-tab-pinned-playback-design.md`: the playback controls
   stay in sight while scrolling
+- `docs/specs/2026-11-14-tab-metronome-parity-design.md`: the metronome's
+  sound, Beat groups, Subdivide, Click on and volumes, from the Metronome page
 - `docs/specs/2026-10-28-tab-metronome-design.md`: a metronome and count-in
   for playback
 - `docs/specs/2026-10-28-tab-line-spacing-design.md`: each line only as tall

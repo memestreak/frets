@@ -7,8 +7,6 @@
 .tab-options-check { display: inline-flex; width: 12px; height: 12px; flex: none; color: var(--ink); }
 .tab-options-row { display: flex; align-items: center; gap: 6px; padding-right: 6px; }
 .tab-options-row .tab-options-item { flex: 1; }
-.tab-options-unit { min-width: 30px; font: 400 14px/20px var(--font-sans); color: var(--ink-muted); }
-.tab-click-volume { gap: 12px; padding: 6px 6px 6px 10px; font: 400 14px/20px var(--font-sans); }
 /* The View options panel: each option's name 6px from its switch. */
 .tab-view-options { padding: 10px 12px; }
 .tab-view-options { min-width: 0; }
@@ -460,6 +458,10 @@
 /* The Arrangements dialog: one line per arrangement or folder, the open one filled; a folder's lines indented under it. */
 /* Arrangements… as a file chooser (issue #259): places | files | preview, one height whatever it shows; the panes scroll. */
 .settings-dialog:has(.tab-save-as) { width: min(376px, calc(100vw - 32px)); }
+/* The Metronome dialog (issue #477): Settings' rows for the metronome, room for Subdivide's four choices. */
+.settings-dialog:has(.tab-metronome-dialog) { width: min(520px, calc(100vw - 32px)); }
+.tab-metronome-dialog .settings-rows { margin-top: 14px; }
+.tab-metronome-dialog .settings-port { max-width: 14rem; }
 .settings-dialog:has(.tab-chooser) { width: min(1120px, calc(100vw - 32px)); height: min(640px, calc(100dvh - 32px)); }
 .tab-chooser { height: 100%; }
 .tab-chooser-body { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; }

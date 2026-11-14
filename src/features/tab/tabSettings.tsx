@@ -15,6 +15,9 @@ import { section, type SettingsField, type SettingsGroup } from '@/components/se
 import { NumberField } from '@/components/NumberField';
 import { VolumeKnob } from '@/components/VolumeKnob';
 import { chooseScheme } from './ViewOptions';
+import { CLICK_SOUNDS } from '@/lib/clickSounds';
+import { CLICK_ONS, SUBDIVIDES, type ClickOn, type Subdivide } from './metronomeClicks';
+import { previewClick } from './clickPreview';
 import {
   DEFAULT_METRONOME, DEFAULT_PLAYBACK, MAX_ROLL, MAX_TRANSPOSE, METRONOME_KEY, MIN_ROLL, ROLL_STEP, PLAYBACK_KEY, parseMetronome, parsePlaybackSettings,
   type MetronomeSettings, type PlaybackSettings,
@@ -103,6 +106,27 @@ function knobField<V, K extends keyof V & string>(key: K, label: string): Settin
     key, label,
     control: ({ value, set, labelId }) => (
       <VolumeKnob value={value[key] as number} labelledBy={labelId} name={label} onChange={v => set({ ...value, [key]: v })} />
+    ),
+  };
+}
+
+/** One of a long list of named choices, as a list; `onPick` hears each choice as it is made (a sound, to judge it). */
+function listField<V, K extends keyof V & string>(
+  key: K, label: string, options: readonly (readonly [V[K] & string, string])[], onPick?: (choice: V[K] & string) => void,
+): SettingsField<V> {
+  return {
+    key, label,
+    control: ({ value, set, labelId, disabled }) => (
+      <select
+        className="input settings-port" aria-labelledby={labelId} disabled={disabled} value={value[key] as string}
+        onChange={e => {
+          const choice = e.target.value as V[K] & string;
+          set({ ...value, [key]: choice });
+          onPick?.(choice);
+        }}
+      >
+        {options.map(([v, name]) => <option key={v} value={v}>{name}</option>)}
+      </select>
     ),
   };
 }
@@ -214,6 +238,28 @@ function channelsField(): SettingsField<MidiSettings> {
  * Settings' Tab group, on the page's state. `savePlayback` saves Playback (hiding the controls stops
  * playback).
  */
+/**
+ * Tab › Metronome's fields, in Settings and in the Metronome dialog a right-click on the footer's
+ * Metronome opens (issue #477), so both show the same.
+ */
+export const METRONOME_FIELDS: SettingsField<MetronomeSettings>[] = [
+  checkField('on', 'Metronome'),
+  { ...checkField<MetronomeSettings, 'countIn'>('countIn', 'Count in'), box: 'Count-in' },
+  {
+    ...numberField<MetronomeSettings, 'countInBars'>('countInBars', 'Bars', {
+      min: 1, max: MAX_COUNT_IN_BARS, step: 1, upLabel: 'More bars', downLabel: 'Fewer bars', enabled: v => v.countIn,
+    }),
+    box: 'Count-in',
+  },
+  listField<MetronomeSettings, 'sound'>('sound', 'Sound', CLICK_SOUNDS, sound => previewClick(sound, 1)),
+  choiceField<MetronomeSettings, 'subdivide', Subdivide>('subdivide', 'Subdivide', SUBDIVIDES),
+  choiceField<MetronomeSettings, 'clickOn', ClickOn>('clickOn', 'Click on', CLICK_ONS),
+  { ...knobField<MetronomeSettings, 'clickVolume'>('clickVolume', 'Click volume'), box: 'Volumes' },
+  { ...knobField<MetronomeSettings, 'beatOneVolume'>('beatOneVolume', 'Beat one'), box: 'Volumes' },
+  { ...knobField<MetronomeSettings, 'beatsVolume'>('beatsVolume', 'Beats'), box: 'Volumes' },
+  { ...knobField<MetronomeSettings, 'subdivisionsVolume'>('subdivisionsVolume', 'Subdivisions'), box: 'Volumes' },
+];
+
 export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: PlaybackSettings) => void): SettingsGroup {
   return {
     id: 'tab',
@@ -246,14 +292,7 @@ export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: Playback
       }),
       section<MetronomeSettings>({
         id: 'metronome', name: 'Metronome', value: prefs.metronome, defaults: DEFAULT_METRONOME, save: prefs.setMetronome,
-        fields: [
-          checkField('on', 'Metronome'),
-          checkField('countIn', 'Count in'),
-          numberField('countInBars', 'Count-in bars', {
-            min: 1, max: MAX_COUNT_IN_BARS, step: 1, upLabel: 'More bars', downLabel: 'Fewer bars', enabled: v => v.countIn,
-          }),
-          knobField('clickVolume', 'Click volume'),
-        ],
+        fields: METRONOME_FIELDS,
       }),
       section<MidiSettings>({
         id: 'midi', name: 'MIDI output', value: prefs.midi, defaults: DEFAULT_MIDI, save: prefs.setMidi,

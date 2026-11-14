@@ -39,8 +39,8 @@ Tuner in `sections.ts`.
   `close` (stop and let the `AudioContext` go).
 - `useMetronome.ts`: the page's metronome, which is the core plus loading
   and saving the rhythm and volume, and Space to start and stop.
-- `sounds.ts`: the synthesized sounds, high and low. The wood block is
-  `src/lib/click.ts`.
+- The synthesized sounds, high and low, are `src/lib/clickSounds.ts`,
+  shared with Tab's metronome (#477). The wood block is `src/lib/click.ts`.
 - `storage.ts`: the three keys and their parsers. They are
   `frets.metronome.works.current` (the rhythm), `frets.metronome.display`
   (the view) and `frets.metronome.playback` (the volume).

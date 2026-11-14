@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { Clip, Part } from './clip';
 import { DEFAULT_FX } from './effects';
 import { columnAt, columnCount, growSelection, indexOf, selectedRange, type Cursor, type Selection } from './editing';
-import { rollsOf, usePlayback, type MidiRoute } from './PlaybackFooter';
+import { patternOf, rollsOf, usePlayback, type MidiRoute } from './PlaybackFooter';
 import type { Sound } from './playback';
 import type { TabPrefs } from './tabSettings';
 import type { EditorState } from './useEditorState';
@@ -30,6 +30,12 @@ export function usePlayRange(editor: EditorState, { whole, wholeWith, sound, set
 }) {
   const { clip, cursor, cursorAsSet, selection, selectionAsSet, setSelection, tabFocused, editorRef, startRegion, setNotice } = editor;
   const [playMark, setPlayMark] = useState<{ index: number; clip: Clip; cursor: Cursor; selection: Selection | null } | null>(null);
+  // By value: the same settings as a new object make the clip's MIDI again for nothing.
+  const { sound: clickSound, subdivide, clickOn, beatOneVolume, beatsVolume, subdivisionsVolume } = metronome;
+  const pattern = useMemo(
+    () => patternOf({ sound: clickSound, subdivide, clickOn, beatOneVolume, beatsVolume, subdivisionsVolume }),
+    [clickSound, subdivide, clickOn, beatOneVolume, beatsVolume, subdivisionsVolume],
+  );
   const playback = usePlayback(clip, sound, settings.volume, {
     loopPause: settings.loopPause ? settings.loopPauseSeconds : 0,
     transpose: settings.transpose,
@@ -37,6 +43,7 @@ export function usePlayRange(editor: EditorState, { whole, wholeWith, sound, set
     countIn: metronome.countIn,
     countInBars: metronome.countInBars,
     clickVolume: metronome.clickVolume,
+    pattern,
     effects: clip.fx ?? DEFAULT_FX,
     rolls: rollsOf(settings),
     midi,

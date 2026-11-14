@@ -79,7 +79,9 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   `docs/specs/2026-10-29-settings-design.md`): `SettingsDialog.tsx` (the tree
   of groups and sections, on a phone a group picker and a strip of sections;
   the selected section's rows; staged values, OK / Cancel / Apply, Enter = OK,
-  a double-click or long-press on a label resetting its field), `types.ts`
+  a double-click or long-press on a label resetting its field; and
+  `SettingsFields`, a section's rows alone, which Tab's Metronome dialog
+  shows live, issue #477), `types.ts`
   (a group is a list of sections, each one saved key; a field is one of its
   values; neighbouring fields with the same `box` name are drawn in one named
   box), `fields.tsx` (the check box and segmented fields every page uses)

@@ -14,7 +14,7 @@
  */
 import { useEffect, useEffectEvent, useId, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react';
 import { ChevronDownIcon, ChevronRightIcon, CloseIcon } from '@/components/icons';
-import type { AnySection, SettingsGroup, SettingsPlace } from './types';
+import type { AnySection, SettingsField, SettingsGroup, SettingsPlace } from './types';
 
 /** How long a press on a label must be held to reset it, on a touch screen. */
 const LONG_PRESS_MS = 500;
@@ -299,38 +299,55 @@ function SectionPane({ group, section, value, onStage }: {
   return (
     <section className="settings-pane" aria-labelledby={`${id}-heading`}>
       <h4 id={`${id}-heading`} className="settings-pane-heading">{group.name} › {section.name}</h4>
-      <div className="settings-rows">
-        {boxesOf(section.fields).map(run => {
-          const rows = run.fields.map(f => {
-            const labelId = `${id}-${f.key}`;
-            const disabled = f.enabled ? !f.enabled(value) : false;
-            return (
-              <div key={f.key} className="settings-row" data-disabled={disabled || undefined}>
-                <ResetLabel id={labelId} onReset={() => onStage({ ...value, [f.key]: section.defaults[f.key] })}>
-                  {f.label}
-                </ResetLabel>
-                <div className="settings-control">
-                  {f.control({ value, set: onStage, labelId, disabled })}
-                </div>
-              </div>
-            );
-          });
-          return run.box === undefined ? rows : (
-            // A div, not a fieldset: a fieldset can't take the pane's columns (subgrid).
-            <div key={`box-${run.fields[0].key}`} role="group" aria-labelledby={`${id}-box-${run.fields[0].key}`} className="settings-box">
-              <span id={`${id}-box-${run.fields[0].key}`} className="settings-box-name">{run.box}</span>
-              {rows}
-            </div>
-          );
-        })}
-      </div>
+      <SettingsFields fields={section.fields} defaults={section.defaults} value={value} onChange={onStage} />
     </section>
   );
 }
 
+/**
+ * A section's fields, a row each, its label then its control, in boxes where they ask for one: the
+ * Settings pane's rows, also shown on their own where a page opens its section's settings in place
+ * (Tab's Metronome dialog, issue #477). A double-click on a label puts back the field's default.
+ */
+export function SettingsFields<V extends object>({ fields, defaults, value, onChange }: {
+  fields: SettingsField<V>[];
+  defaults: V;
+  value: V;
+  onChange: (value: V) => void;
+}) {
+  const id = useId();
+  return (
+    <div className="settings-rows">
+      {boxesOf(fields).map(run => {
+        const rows = run.fields.map(f => {
+          const labelId = `${id}-${f.key}`;
+          const disabled = f.enabled ? !f.enabled(value) : false;
+          return (
+            <div key={f.key} className="settings-row" data-disabled={disabled || undefined}>
+              <ResetLabel id={labelId} onReset={() => onChange({ ...value, [f.key]: defaults[f.key] })}>
+                {f.label}
+              </ResetLabel>
+              <div className="settings-control">
+                {f.control({ value, set: onChange, labelId, disabled })}
+              </div>
+            </div>
+          );
+        });
+        return run.box === undefined ? rows : (
+          // A div, not a fieldset: a fieldset can't take the pane's columns (subgrid).
+          <div key={`box-${run.fields[0].key}`} role="group" aria-labelledby={`${id}-box-${run.fields[0].key}`} className="settings-box">
+            <span id={`${id}-box-${run.fields[0].key}`} className="settings-box-name">{run.box}</span>
+            {rows}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 /** A section's fields in runs: neighbouring fields with the same `box` together, the rest one by one. */
-function boxesOf(fields: AnySection['fields']): { box?: string; fields: AnySection['fields'] }[] {
-  const runs: { box?: string; fields: AnySection['fields'] }[] = [];
+function boxesOf<V>(fields: SettingsField<V>[]): { box?: string; fields: SettingsField<V>[] }[] {
+  const runs: { box?: string; fields: SettingsField<V>[] }[] = [];
   for (const f of fields) {
     const last = runs[runs.length - 1];
     if (f.box !== undefined && last?.box === f.box) last.fields.push(f);

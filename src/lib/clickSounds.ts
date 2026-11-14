@@ -1,9 +1,18 @@
 /**
- * The Metronome's sounds, synthesized so they need no recordings: each a high (accent) and a low
- * sample. The wood block is Tab's metronome click (`src/lib/click.ts`).
+ * The metronome sounds, synthesized so they need no recordings: each a high (accent) and a low
+ * sample. The Metronome page (issue #149) plays them through Web Audio; Tab's metronome (issue #477)
+ * wraps them in a SoundFont (`src/features/tab/click.ts`). The wood block is `clickWave`.
  */
 import { clickWave } from '@/lib/click';
-import type { SoundId } from './rhythm';
+
+export type ClickSound = 'wood' | 'beep' | 'cowbell' | 'stick' | 'hihat' | 'clave' | 'kick';
+/** Every sound and its name, in the order the Sound lists show them. */
+export const CLICK_SOUNDS: readonly (readonly [ClickSound, string])[] = [
+  ['wood', 'Wood block'], ['beep', 'Beep'], ['cowbell', 'Cowbell'], ['stick', 'Side stick'],
+  ['hihat', 'Hi-hat'], ['clave', 'Clave'], ['kick', 'Kick'],
+];
+
+export const isClickSound = (x: unknown): x is ClickSound => CLICK_SOUNDS.some(([id]) => id === x);
 
 /** A sound as a sum of sine partials (hertz, level), with optional noise, a decay, and a pitch drop. */
 interface Synth {
@@ -44,7 +53,7 @@ function synth(v: Synth, sampleRate: number): Float32Array {
 }
 
 /** A sound's high and low samples, mono, from -1 to 1. */
-export function soundWaves(sound: SoundId, sr: number): [Float32Array, Float32Array] {
+export function clickSoundWaves(sound: ClickSound, sr: number): [Float32Array, Float32Array] {
   switch (sound) {
     case 'wood': return [clickWave(true, sr), clickWave(false, sr)];
     case 'beep': return [synth({ seconds: 0.07, partials: [[1760, 1]], decay: 0.03 }, sr), synth({ seconds: 0.07, partials: [[1320, 1]], decay: 0.03 }, sr)];

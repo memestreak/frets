@@ -120,8 +120,50 @@ describe('Settings', () => {
     fireEvent.click(inDialog().getByRole('checkbox', { name: 'Metronome' }));
     fireEvent.click(button('OK'));
     expect(screen.getByRole('button', { name: 'Metronome' })).toHaveAttribute('aria-pressed', 'true');
-    expect(saved(METRONOME_KEY)).toEqual({ on: true, countIn: false, countInBars: 1, clickVolume: 0.8 });
+    expect(saved(METRONOME_KEY)).toMatchObject({ on: true, countIn: false, countInBars: 1, clickVolume: 0.8 });
     expect(saved(PLAYBACK_KEY)).not.toHaveProperty('metronome');
+  });
+
+  it("sets the metronome's sound, subdivisions, beats and volumes (issue #477)", () => {
+    render(<TabPage />);
+    openSettings();
+    fireEvent.click(section('Metronome'));
+    fireEvent.change(inDialog().getByRole('combobox', { name: 'Sound' }), { target: { value: 'clave' } });
+    fireEvent.click(within(inDialog().getByRole('group', { name: 'Subdivide' })).getByRole('button', { name: 'Triplets' }));
+    fireEvent.click(within(inDialog().getByRole('group', { name: 'Click on' })).getByRole('button', { name: 'Backbeat' }));
+    const volumes = inDialog().getByRole('group', { name: 'Volumes' });
+    for (const name of ['Beat one', 'Beats', 'Subdivisions']) expect(within(volumes).getByRole('slider', { name })).toBeInTheDocument();
+    fireEvent.keyDown(within(volumes).getByRole('slider', { name: 'Subdivisions' }), { key: 'ArrowDown' });
+    fireEvent.click(button('OK'));
+    const m = saved(METRONOME_KEY);
+    expect(m).toMatchObject({ sound: 'clave', subdivide: 'triplets', clickOn: 'backbeat', beatOneVolume: 1, beatsVolume: 1 });
+    expect(m.subdivisionsVolume).toBeLessThan(0.6);
+    // The Metronome dialog shows the same.
+    fireEvent.contextMenu(screen.getByRole('button', { name: 'Metronome' }));
+    const metronome = within(screen.getByRole('dialog', { name: 'Metronome' }));
+    expect(metronome.getByRole('combobox', { name: 'Sound' })).toHaveValue('clave');
+    expect(within(metronome.getByRole('group', { name: 'Subdivide' })).getByRole('button', { name: 'Triplets' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('opens the Metronome dialog on a right-click on Metronome, each change saved and heard at once (issue #477)', () => {
+    render(<TabPage />);
+    fireEvent.contextMenu(screen.getByRole('button', { name: 'Metronome' }));
+    const dialog = within(screen.getByRole('dialog', { name: 'Metronome' }));
+    // Every field Settings › Metronome has.
+    for (const name of ['Metronome', 'Count in']) expect(dialog.getByRole('checkbox', { name })).toBeInTheDocument();
+    expect(dialog.getByRole('spinbutton', { name: 'Bars' })).toBeDisabled();
+    for (const name of ['Click volume', 'Beat one', 'Beats', 'Subdivisions']) expect(dialog.getByRole('slider', { name })).toBeInTheDocument();
+    fireEvent.click(dialog.getByRole('checkbox', { name: 'Count in' }));
+    expect(dialog.getByRole('spinbutton', { name: 'Bars' })).toBeEnabled();
+    fireEvent.change(dialog.getByRole('combobox', { name: 'Sound' }), { target: { value: 'hihat' } });
+    fireEvent.click(within(dialog.getByRole('group', { name: 'Subdivide' })).getByRole('button', { name: 'Sixteenths' }));
+    fireEvent.click(within(dialog.getByRole('group', { name: 'Click on' })).getByRole('button', { name: 'Beat one' }));
+    fireEvent.click(dialog.getByRole('checkbox', { name: 'Metronome' }));
+    // No OK: each change is saved, and the footer's toggle follows.
+    expect(saved(METRONOME_KEY)).toMatchObject({ on: true, countIn: true, sound: 'hihat', subdivide: 'sixteenths', clickOn: 'one' });
+    expect(screen.getByRole('button', { name: 'Metronome' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(dialog.getByRole('button', { name: 'Close metronome' }));
+    expect(screen.queryByRole('dialog', { name: 'Metronome' })).toBeNull();
   });
 
   it('has no "Fill short bars with rests" under Tab › Editing: edits keep bars full (step 4)', () => {

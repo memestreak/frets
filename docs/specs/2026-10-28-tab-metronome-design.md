@@ -8,25 +8,28 @@ Issue #148. Builds on `2026-10-26-tab-playback-design.md` and
 - **Metronome** is a toggle in the playback footer, after Hear notes (a
   metronome icon). Lit while on. While the clip plays it clicks every beat;
   beat one has a higher, slightly louder click.
-- A **right-click on Metronome** opens a small menu (Jeremy picked this over
-  a second button, 2026-10-28):
+- A **right-click on Metronome** opens the Metronome dialog
+  (`2026-11-14-tab-metronome-parity-design.md`; it was a small menu, which
+  Jeremy picked over a second button, 2026-10-28). Among its fields:
   - **Count in**, with a number field for how many bars, 1 to 4 (1 at
     first; Jeremy, 2026-10-28): Play first clicks that many bars, then plays.
     It works with the metronome off too.
   - **Click volume**, a number field, 0–100 % (step 5), 80 % at first. The
     Volume knob still turns everything down, clicks included.
-- All are remembered in `frets.tab.playback` (`metronome`, `countIn`,
-  `countInBars`, `clickVolume`).
+  - **Sound**, **Subdivide**, **Click on**, and the volumes of beat one,
+    the beats and the subdivisions (issue #477).
+- All are remembered in `frets.tab.metronome` (`on`, `countIn`,
+  `countInBars`, `clickVolume`, and #477's fields).
 - The Volume knob moved to the footer row's far right (Jeremy, 2026-10-28).
 
 ## Counting
 
 - A click per beat of the bar's time signature: the bottom number's note.
-- Compound time (6/8, 9/8, 12/8, and the same over 16) clicks every eighth
-  too, the start of each group of three struck harder: in 6/8 the 1 (its own
-  higher click) and the 4 stand out (Jeremy, 2026-10-28; two dotted-quarter
-  clicks were too few). 3/8 and odd meters (5/8, 7/8) click every eighth with
-  no groups.
+- Bars over 8 or shorter click every eighth (or sixteenth), the start of
+  each Beat group struck harder: in 6/8 the 1 (its own higher click) and the
+  4 stand out (Jeremy, 2026-10-28; two dotted-quarter clicks were too few),
+  and 7/8 as 2+2+3 the 1, 3 and 5 (#477; before it, odd meters had no
+  groups).
 - Clicks follow time signature changes, repeats (every pass clicks), tuplets
   (they don't move the beat), tempo changes and Speed.
 
@@ -45,10 +48,10 @@ Issue #148. Builds on `2026-10-26-tab-playback-design.md` and
   time with the notes whatever the speed, loop or time signature, with no
   second clock. The metronome's channel is muted while it is off, so it can be
   switched on or off mid-play. Transpose leaves both channels alone.
-- The sound is synthesized (`click.ts`: a short, inharmonic, quickly decaying
-  tone, wood-block-like, with a soft attack and a faded end so it never pops)
-  and wrapped in a two-key SoundFont 2 built in the browser, bank 120. The
-  Metronome page (#149) can play the same samples from `clickWave`.
+- The sounds are synthesized (`src/lib/clickSounds.ts`, the Metronome
+  page's; the wood block is `clickWave`, a short, inharmonic, quickly decaying
+  tone with a soft attack and a faded end so it never pops) and wrapped in a
+  SoundFont 2 built in the browser, bank 120, two keys a sound (#477).
 - The MIDI starts with four bars of silence, room for the longest count-in
   before the first bar. A count-in takes the place of the bars before Play's
   start

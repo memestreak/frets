@@ -187,3 +187,6 @@ out of `src/features/tab/`:
   `VolumeKnob.tsx` went to `src/components/`. Their classes are now
   `.number-field` and `.knob`.
 - `clickWave` went to `src/lib/click.ts`.
+- The sounds (`sounds.ts`) went to `src/lib/clickSounds.ts` once Tab's
+  metronome played them too (#477,
+  `2026-11-14-tab-metronome-parity-design.md`).
