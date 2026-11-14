@@ -12,7 +12,7 @@ import { loadJson } from '@/lib/storage';
 import { Segmented } from '@/components/controls';
 import { CheckBox, checkField, choiceField } from '@/components/settings/fields';
 import { section, type SettingsField, type SettingsGroup } from '@/components/settings/types';
-import { NumberField } from '@/components/NumberField';
+import { NumberField, resetOnDoubleClick } from '@/components/NumberField';
 import { VolumeKnob } from '@/components/VolumeKnob';
 import { chooseScheme } from './ViewOptions';
 import { CLICK_SOUNDS } from '@/lib/clickSounds';
@@ -248,11 +248,15 @@ function countInField(): SettingsField<MetronomeSettings> {
     control: ({ value, set, labelId, disabled }) => (
       <>
         <CheckBox on={value.countIn} labelledBy={labelId} disabled={disabled} onChange={countIn => set({ ...value, countIn })} />
-        <NumberField
-          value={value.countInBars} min={1} max={MAX_COUNT_IN_BARS} step={1} disabled={disabled || !value.countIn}
-          label="Count-in bars" upLabel="More bars" downLabel="Fewer bars" onChange={countInBars => set({ ...value, countInBars })}
-        />
-        <span className="settings-after">{value.countInBars === 1 ? 'bar' : 'bars'}</span>
+        {/* A double-click on the bars or their word puts back 1. */}
+        {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- a mouse shortcut only; from the keyboard, type 1 */}
+        <span className="settings-count-in" role="group" aria-label="Count-in bars" onDoubleClick={e => resetOnDoubleClick(e, () => set({ ...value, countInBars: 1 }))}>
+          <NumberField
+            compact value={value.countInBars} min={1} max={MAX_COUNT_IN_BARS} step={1} disabled={disabled || !value.countIn}
+            label="Count-in bars" upLabel="More bars" downLabel="Fewer bars" onChange={countInBars => set({ ...value, countInBars })}
+          />
+          <span className="settings-after">{value.countInBars === 1 ? 'bar' : 'bars'}</span>
+        </span>
       </>
     ),
   };

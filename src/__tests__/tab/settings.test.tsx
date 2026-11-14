@@ -155,6 +155,10 @@ describe('Settings', () => {
     for (const name of ['Click volume', 'Beat one', 'Beats', 'Subdivisions']) expect(dialog.getByRole('slider', { name })).toBeInTheDocument();
     fireEvent.click(dialog.getByRole('checkbox', { name: 'Count in' }));
     expect(dialog.getByRole('spinbutton', { name: 'Count-in bars' })).toBeEnabled();
+    // A compact field inside the line, as small as the check box: no up and down buttons; ↑ steps it.
+    expect(dialog.queryByRole('button', { name: 'More bars' })).toBeNull();
+    fireEvent.keyDown(dialog.getByRole('spinbutton', { name: 'Count-in bars' }), { key: 'ArrowUp' });
+    expect(saved(METRONOME_KEY)).toMatchObject({ countInBars: 2 });
     fireEvent.change(dialog.getByRole('combobox', { name: 'Sound' }), { target: { value: 'hihat' } });
     fireEvent.click(within(dialog.getByRole('group', { name: 'Subdivide' })).getByRole('button', { name: 'Sixteenths' }));
     fireEvent.click(within(dialog.getByRole('group', { name: 'Click on' })).getByRole('button', { name: 'Beat one' }));
