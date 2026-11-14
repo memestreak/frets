@@ -13,7 +13,7 @@ import { useClipImport } from './useClipImport';
  * closes only on unsaved changes the draft couldn't keep; and what opens from outside My arrangements
  * (`useClipImport`). `dialogs` draws Arrangements…, Save as… and "Save changes?".
  */
-export function useArrangementFile(arrangements: ReturnType<typeof useArrangements>, { parts, onNotice, onShown, showTab, toStart, onInsert }: {
+export function useArrangementFile(arrangements: ReturnType<typeof useArrangements>, { parts, onNotice, onShown, showTab, toStart, onInsert, reBar }: {
   /** What the chooser's previews draw: the staff, the tab or both. */
   parts: Parts;
   onNotice: (notice: Notice | null) => void;
@@ -24,6 +24,8 @@ export function useArrangementFile(arrangements: ReturnType<typeof useArrangemen
   toStart: () => void;
   /** Arrangements…'s Insert: the clip goes in before the cursor. */
   onInsert: (clip: Clip) => void;
+  /** Tab › Import's Re-bar by time signature, which a drop follows. */
+  reBar: boolean;
 }) {
   const { state } = arrangements;
   const [choosing, setChoosing] = useState(false);
@@ -66,7 +68,7 @@ export function useArrangementFile(arrangements: ReturnType<typeof useArrangemen
 
   const { importText, openBuiltin } = useClipImport({
     openNew: arrangements.openNew, confirmLeave, open: { id: state.id, unsaved: arrangements.unsaved, kept: arrangements.kept },
-    onNotice, showTab, toStart,
+    onNotice, showTab, toStart, reBar,
   });
 
   // ⌘S (Ctrl+S) saves, ⇧⌘S is Save As…, ⌘O opens Arrangements…, anywhere on the page, in place of the browser's own.

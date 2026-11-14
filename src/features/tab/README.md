@@ -89,7 +89,7 @@ and in its spec.
   and `useSpaceKey`.
 - `tabSettings.tsx` — the page's preferences, one Settings section each
   (Playback, Metronome, Notation, Colours, ASCII Tab, AlphaTex, Editing,
-  Export), held as page state so Settings and the page's own controls
+  Import, Export), held as page state so Settings and the page's own controls
   change the same values — `2026-10-29-settings-design.md`.
 - `editingPrefs.ts` — Tab › Editing (`frets.tab.editing`): note input mode's
   grid — `2026-11-01-tab-note-input-grid-design.md`; which name Chord from
@@ -117,7 +117,13 @@ and in its spec.
 - `ascii.ts` — `readAscii` (errors, warnings, guessed durations) and
   `writeAscii`, every Voice merged onto the one tab (`mergedVoices`), and the `Capo:` header line; `public/tab-ascii.txt` is the format, its examples are
   tests, and `src/__tests__/tab/fixtures/` holds the forgiven spellings.
-- `readTab.ts` — tells ASCII tab from alphaTex by the text alone.
+- `readTab.ts` — tells ASCII tab from alphaTex by the text alone, and re-bars what it read
+  when asked (`ReadOptions`).
+- `reBarImport.ts` — Re-bar by time signature: every Voice laid into bars by the time
+  signatures, bar Marks at the nearest bar line, a pasted copy's short first bar ending on one,
+  and `missReport`, the Source bar lines that miss a downbeat in runs —
+  `2026-11-14-tab-rebar-import-design.md`.
+- `importPrefs.ts` — Tab › Import (`frets.tab.import`): Re-bar by time signature.
 - `credits.ts` — the artist, words and music from the clip's header, the
   tuning line ("Tune down 1/2 step"), `foldsTuning`, `shownTuning`, the
   capo's words after it (`capoWords`, `capoHeading`, `withCapo`: "DADGAD
@@ -400,7 +406,7 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
   `.claude/skills/test-arrangement/`).
 - `useClipImport.ts` — import, built-ins, links and drops, each opened as
   a new arrangement.
-- `TabDialogs.tsx` — the Import dialog.
+- `TabDialogs.tsx` — the Import dialog, with Re-bar by time signature's checkbox.
 - `ClipActions.tsx` — the buttons over the clip: View options, copy, Copy
   link and Download….
 - `saveFile.ts` — saves through the browser's Save As dialog where there is

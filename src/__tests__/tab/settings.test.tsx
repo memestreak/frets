@@ -3,6 +3,7 @@ import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import TabPage from '@/features/tab/TabPage';
 import { METRONOME_KEY, PLAYBACK_KEY } from '@/features/tab/PlaybackFooter';
 import { EDITING_KEY } from '@/features/tab/editingPrefs';
+import { IMPORT_KEY } from '@/features/tab/importPrefs';
 import { readBuiltinFiles } from '@/features/tab/builtinFiles';
 import { BUILTIN_URL } from '@/features/tab/builtins';
 import { APPEARANCE_KEY } from '@/lib/theme';
@@ -49,7 +50,7 @@ describe('Settings', () => {
     // Most used first (G3).
     const tab = inDialog().getByRole('treeitem', { name: /^Tab/ });
     expect(within(tab).getAllByRole('treeitem').map(i => i.textContent))
-      .toEqual(['Playback', 'Metronome', 'MIDI output', 'Notation', 'Colours', 'ASCII Tab', 'AlphaTex', 'Editing', 'Export', 'Chat']);
+      .toEqual(['Playback', 'Metronome', 'MIDI output', 'Notation', 'Colours', 'ASCII Tab', 'AlphaTex', 'Editing', 'Import', 'Export', 'Chat']);
   });
 
   it('stages changes: Apply saves and stays, Cancel drops them, and Apply is enabled only while something differs', () => {
@@ -175,6 +176,20 @@ describe('Settings', () => {
     openSettings();
     fireEvent.click(section('Editing'));
     expect(inDialog().queryByRole('checkbox', { name: /Fill short bars/ })).toBeNull();
+  });
+
+  it('lists Re-bar by time signature under Tab › Import, on by default, the Import dialog showing what it saves (issue #482)', () => {
+    render(<TabPage />);
+    openSettings();
+    fireEvent.click(section('Import'));
+    const box = inDialog().getByRole('checkbox', { name: 'Re-bar by time signature' });
+    expect(box).toBeChecked();
+    fireEvent.click(box);
+    fireEvent.click(button('OK'));
+    expect(saved(IMPORT_KEY)).toEqual({ reBar: false });
+    fireEvent.click(screen.getByRole('button', { name: 'Import…' }));
+    const importBox = within(screen.getByRole('dialog', { name: 'Import tab' })).getByRole('checkbox', { name: 'Re-bar by time signature' });
+    expect(importBox).toHaveAttribute('aria-checked', 'false');
   });
 
   it('sets note input mode’s grid under Tab › Editing: note input mode’s length by default, or a fixed grid (issue #293)', () => {

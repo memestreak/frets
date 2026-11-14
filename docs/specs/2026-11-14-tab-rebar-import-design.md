@@ -207,9 +207,9 @@ bar check for what it reports.
   built-ins pass `reBar: false`.
 - `TabDialogs.tsx`: the checkbox and its hint line.
 - `tabSettings.tsx`: the Import section, `parseImportPrefs`.
-- `editing.ts` (`insertPaste`, into an empty clip) and `TabPage.tsx`
-  (`pasteTab`): paste into an empty clip uses `reBarImport` instead of
-  writing into a one-bar clip, and shows its miss report.
+- `TabPage.tsx` (`pasteTab`): paste into an empty clip reads the text
+  with `{ reBar: true, pasted: true }`, so its bars are full before
+  `insertPaste` takes the clip whole, and shows the miss report.
 - `src/lib/README.md`: the new key.
 - No new key on the keyboard, and no change to editing behaviour, so no
   test arrangement and no `shortcuts.ts` change.

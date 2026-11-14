@@ -759,7 +759,9 @@ export default function TabPage() {
 
   /** Puts pasted tab over the time from the cursor (or in before it, `insert`), or says why it can't. */
   const pasteTab = async (text: string, insert = false) => {
-    const result = await readTab(text);
+    // Into an empty clip a paste re-bars as Import does, keeping its bar Marks and listing its misses; a copy's
+    // short first bar ends on a bar line (`docs/specs/2026-11-14-tab-rebar-import-design.md`).
+    const result = await readTab(text, isEmpty(clip) ? { reBar: true, pasted: true } : {});
     if (!result.ok) {
       setNotice({ tone: 'error', lines: result.errors });
       return;
@@ -803,6 +805,7 @@ export default function TabPage() {
     toStart: () => { setCursor(START); setSelection(null); },
     // Insert in Arrangements…: the clip goes in before the cursor.
     onInsert: inserted => putAtCursor(inserted, true),
+    reBar: prefs.importPrefs.reBar,
   });
 
   // The keys that work anywhere on the page, paste, copy, cut, undo, and the tab taking and letting go of the keys.
@@ -1112,7 +1115,10 @@ export default function TabPage() {
         {notice ? notice.lines.join(' ') : empty ? 'Click the tab and type frets, or import or paste alphaTex or ASCII tab.' : unevenLine}
       </p>
 
-      <ImportDialog open={importing} onClose={() => setImporting(false)} onImport={file.importText} />
+      <ImportDialog
+        open={importing} onClose={() => setImporting(false)} onImport={text => file.importText(text, '', prefs.importPrefs.reBar)}
+        reBar={prefs.importPrefs.reBar} onReBar={reBar => prefs.setImportPrefs({ ...prefs.importPrefs, reBar })}
+      />
       {/* Only while open, so its fields' names aren't in the page the rest of the time. */}
       {metronomeOpen && <MetronomeDialog open metronome={metronome} onMetronome={setMetronome} onClose={() => setMetronomeOpen(false)} />}
       {file.dialogs}

@@ -8,6 +8,7 @@ import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { unevenMessage, partOf } from '@/features/tab/clip';
 import { builtinsFrom, folderTitle, SAMPLES_FOLDER } from '@/features/tab/builtins';
 import { readBuiltinFiles } from '@/features/tab/builtinFiles';
+import { reBarImport } from '@/features/tab/reBarImport';
 
 const builtins = builtinsFrom(await readBuiltinFiles());
 const examples = builtins.filter(b => b.folder !== SAMPLES_FOLDER);
@@ -20,6 +21,12 @@ describe('the built-in arrangements', () => {
     expect(result.clip.name).toBe(example.title);
     result.clip.tracks.forEach((_track, t) => expect(unevenMessage(partOf(result.clip, t))).toBeNull());
     expect(`${writeAlphaTex(result.clip)}\n`).toBe(example.text);
+  });
+
+  it.each(examples.map(e => [`${e.folder}/${e.id}`, e] as const))('%s is the same clip re-barred by time signature, with no misses', (_, example) => {
+    const result = readAlphaTexWith(alphaTab, example.text);
+    if (!result.ok) throw new Error(result.errors.join('\n'));
+    expect(reBarImport(result.clip)).toEqual({ ok: true, clip: result.clip, misses: [], pickupHint: false });
   });
 
   it('have different ids, safe in a link', () => {

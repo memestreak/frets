@@ -1,12 +1,17 @@
-import { useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { Modal } from '@/components/Modal';
+import { CheckBox } from '@/components/settings/fields';
 import { TAB_FILE_TYPES } from './readTab';
 
-export function ImportDialog({ open, onClose, onImport }: {
+export function ImportDialog({ open, onClose, onImport, reBar, onReBar }: {
   open: boolean;
   onClose: () => void;
   onImport: (text: string) => Promise<string[] | null>;
+  /** Re-bar by time signature, Tab › Import's Preference (`docs/specs/2026-11-14-tab-rebar-import-design.md`). */
+  reBar: boolean;
+  onReBar: (on: boolean) => void;
 }) {
+  const reBarLabel = useId();
   const [text, setText] = useState('');
   const [errors, setErrors] = useState<string[]>([]);
   const close = () => {
@@ -39,6 +44,13 @@ export function ImportDialog({ open, onClose, onImport }: {
           aria-label="Tab, as alphaTex or ASCII" spellCheck={false} rows={12}
           placeholder={'\\title "Riff"\n5.5{h}.8 7.5.8 5.4{h}.8 7.4.8 |\n\nor ASCII:\ne|-----5h7-----|\n…'}
         />
+        <div className="tab-import-rebar">
+          <CheckBox on={reBar} onChange={onReBar} labelledBy={reBarLabel} />
+          <div>
+            <span id={reBarLabel}>Re-bar by time signature</span>
+            <p className="m-0 text-(--ink-muted)">Notes flow into bars by the time signatures, tied over bar lines.</p>
+          </div>
+        </div>
         <p className="m-0 text-(--ink-muted)">
           Formats: <a href="/tab-alphatex.txt" target="_blank" rel="noreferrer">alphaTex</a>{' '}
           or <a href="/tab-ascii.txt" target="_blank" rel="noreferrer">ASCII tab</a>.

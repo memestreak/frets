@@ -32,6 +32,7 @@ import {
 import { DEFAULT_TAB_EXPORT, TAB_EXPORT_KEY, TAB_EXPORT_WIDTHS, parseTabExportStyle, type TabExportStyle } from './exportTab';
 import { PARTS, type Parts } from './layout';
 import { DEFAULT_EDITING, EDITING_KEY, parseEditing, type ChordNames, type EditingPrefs } from './editingPrefs';
+import { DEFAULT_IMPORT, IMPORT_KEY, parseImportPrefs, type ImportPrefs } from './importPrefs';
 import { GRID_LOOK_NAMES, GRID_LOOKS, GRID_NAMES, GRID_VALUES, type GridLook, type GridValue } from './grid';
 import { CHAT_KEY, DEFAULT_CHAT, parseChatPrefs, type ChatPrefs } from './chat/chatPrefs';
 import { customField, instructionsField } from './chat/promptFields';
@@ -54,12 +55,13 @@ export function useTabPrefs() {
   const [ascii, setAscii] = usePreference(ASCII_KEY, parseAscii);
   const [alphatex, setAlphaTex] = usePreference(ALPHATEX_KEY, parseAlphaTex);
   const [editing, setEditing] = usePreference(EDITING_KEY, parseEditing);
+  const [importPrefs, setImportPrefs] = usePreference(IMPORT_KEY, parseImportPrefs);
   const [exportStyle, setExportStyle] = usePreference(TAB_EXPORT_KEY, parseTabExportStyle);
   const [chat, setChat] = usePreference(CHAT_KEY, parseChatPrefs);
   const [midi, setMidi] = usePreference(MIDI_KEY, parseMidiSettings);
   return {
     playback, setPlayback, metronome, setMetronome, notation, setNotation, colours, setColours,
-    ascii, setAscii, alphatex, setAlphaTex, editing, setEditing, exportStyle, setExportStyle, chat, setChat, midi, setMidi,
+    ascii, setAscii, alphatex, setAlphaTex, editing, setEditing, importPrefs, setImportPrefs, exportStyle, setExportStyle, chat, setChat, midi, setMidi,
   };
 }
 
@@ -390,6 +392,10 @@ export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: Playback
           choiceField<EditingPrefs, 'gridLook', GridLook>('gridLook', 'Grid drawn as', GRID_LOOKS.map(l => [l, GRID_LOOK_NAMES[l]] as const)),
           choiceField<EditingPrefs, 'chordNames', ChordNames>('chordNames', 'Chord from notes, with a capo', [['shape', 'Shape name (from the capo)'], ['sounding', 'Sounding name']]),
         ],
+      }),
+      section<ImportPrefs>({
+        id: 'import', name: 'Import', value: prefs.importPrefs, defaults: DEFAULT_IMPORT, save: prefs.setImportPrefs,
+        fields: [checkField('reBar', 'Re-bar by time signature')],
       }),
       section<TabExportStyle>({
         id: 'export', name: 'Export', value: prefs.exportStyle, defaults: DEFAULT_TAB_EXPORT, save: prefs.setExportStyle,
