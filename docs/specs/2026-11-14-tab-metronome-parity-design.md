@@ -80,14 +80,18 @@ Metronome page's Tempo, Beats, Tap and presets have no place here.
   replaces the small right-click menu the metronome had, and the footer
   gains nothing. The toggle's tip says "Right-click for its settings".
 - The dialog shows exactly Settings › Metronome's fields, in the same rows:
-  - Metronome (the toggle's own on and off).
+  - Metronome (the toggle's own on and off), and on the same line its
+    Sound, a list only as wide as the longest name (Jeremy, 2026-11-14). The
+    Sound is usable while the metronome is off, since the count-in plays it.
   - Count in, with its bars (1 to 4) on the same line, greyed out while
     Count in is off (Jeremy, 2026-11-14): ☑ 2 bars. The bars are a compact
     number field, a text line tall with no up and down buttons (typed,
     dragged, or stepped with ↑ ↓), so it is no bigger than the check box; a
     double-click on it or on "bars" puts back 1.
-  - Sound (a list), Subdivide and Click on (segmented switches).
-  - A Volumes box: Click volume, Beat one, Beats, Subdivisions (knobs).
+  - Subdivide and Click on (segmented switches).
+  - Volumes: four knobs in one row, each with its name under it, as the
+    footer's Volume (Jeremy, 2026-11-14): Clicks (the click volume), Beat
+    one, Beats, Subdivisions.
 - Each change in the dialog takes effect at once, heard as the clip plays,
   and is saved; there is no OK. A double-click on a label puts back its
   default, as in Settings. Esc, a click outside it or its × closes it.

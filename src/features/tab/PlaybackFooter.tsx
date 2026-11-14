@@ -6,7 +6,7 @@
  * right-click opens the Metronome dialog), Speed, Transpose, Volume and Sound. The
  * playhead and the loop points are drawn over the tab by `Playhead`. The sound is `playback.ts`.
  */
-import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from 'react';
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from 'react';
 import { PlayIcon } from '@/components/icons';
 import type { Part } from './clip';
 import { columnCount, placeOf } from './editing';

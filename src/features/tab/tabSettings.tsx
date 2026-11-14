@@ -15,7 +15,7 @@ import { section, type SettingsField, type SettingsGroup } from '@/components/se
 import { NumberField, resetOnDoubleClick } from '@/components/NumberField';
 import { VolumeKnob } from '@/components/VolumeKnob';
 import { chooseScheme } from './ViewOptions';
-import { CLICK_SOUNDS } from '@/lib/clickSounds';
+import { CLICK_SOUNDS, type ClickSound } from '@/lib/clickSounds';
 import { CLICK_ONS, SUBDIVIDES, type ClickOn, type Subdivide } from './metronomeClicks';
 import { previewClick } from './clickPreview';
 import {
@@ -106,27 +106,6 @@ function knobField<V, K extends keyof V & string>(key: K, label: string): Settin
     key, label,
     control: ({ value, set, labelId }) => (
       <VolumeKnob value={value[key] as number} labelledBy={labelId} name={label} onChange={v => set({ ...value, [key]: v })} />
-    ),
-  };
-}
-
-/** One of a long list of named choices, as a list; `onPick` hears each choice as it is made (a sound, to judge it). */
-function listField<V, K extends keyof V & string>(
-  key: K, label: string, options: readonly (readonly [V[K] & string, string])[], onPick?: (choice: V[K] & string) => void,
-): SettingsField<V> {
-  return {
-    key, label,
-    control: ({ value, set, labelId, disabled }) => (
-      <select
-        className="input settings-port" aria-labelledby={labelId} disabled={disabled} value={value[key] as string}
-        onChange={e => {
-          const choice = e.target.value as V[K] & string;
-          set({ ...value, [key]: choice });
-          onPick?.(choice);
-        }}
-      >
-        {options.map(([v, name]) => <option key={v} value={v}>{name}</option>)}
-      </select>
     ),
   };
 }
@@ -239,6 +218,57 @@ function channelsField(): SettingsField<MidiSettings> {
  * playback).
  */
 /**
+ * The metronome on or off, and its sound, on one line at the top (Jeremy, 2026-11-14). The sound is
+ * not greyed out while it is off: the count-in plays it too. A sound picked is heard once.
+ */
+function metronomeField(): SettingsField<MetronomeSettings> {
+  return {
+    key: 'on', label: 'Metronome',
+    control: ({ value, set, labelId, disabled }) => (
+      <>
+        <CheckBox on={value.on} labelledBy={labelId} disabled={disabled} onChange={on => set({ ...value, on })} />
+        <span className="settings-after settings-sound-name" aria-hidden="true">Sound</span>
+        <select
+          className="input settings-sound" aria-label="Sound" disabled={disabled} value={value.sound}
+          onChange={e => {
+            const sound = e.target.value as ClickSound;
+            set({ ...value, sound });
+            previewClick(sound, 1);
+          }}
+        >
+          {CLICK_SOUNDS.map(([v, name]) => <option key={v} value={v}>{name}</option>)}
+        </select>
+      </>
+    ),
+  };
+}
+
+/** The metronome's four volumes, and their names under them. */
+const METRONOME_VOLUMES = [
+  ['clickVolume', 'Clicks'], ['beatOneVolume', 'Beat one'], ['beatsVolume', 'Beats'], ['subdivisionsVolume', 'Subdivisions'],
+] as const;
+
+/**
+ * The metronome's volumes in one row, each knob with its name under it, as the footer's Volume is
+ * (Jeremy, 2026-11-14): every click's, then beat one's, the other beats' and the subdivisions'.
+ */
+function volumesField(): SettingsField<MetronomeSettings> {
+  return {
+    key: 'clickVolume', label: 'Volumes',
+    control: ({ value, set, labelId }) => (
+      <span className="settings-knobs" role="group" aria-labelledby={labelId}>
+        {METRONOME_VOLUMES.map(([key, name]) => (
+          <span key={key} className="settings-knob">
+            <VolumeKnob value={value[key]} labelledBy={`${labelId}-${key}`} name={name} onChange={v => set({ ...value, [key]: v })} />
+            <span id={`${labelId}-${key}`} className="settings-knob-name">{name}</span>
+          </span>
+        ))}
+      </span>
+    ),
+  };
+}
+
+/**
  * Count in and how many bars, on one line (Jeremy, 2026-11-14): the check box, then the bars, greyed
  * out while Count in is off.
  */
@@ -267,15 +297,11 @@ function countInField(): SettingsField<MetronomeSettings> {
  * Metronome opens (issue #477), so both show the same.
  */
 export const METRONOME_FIELDS: SettingsField<MetronomeSettings>[] = [
-  checkField('on', 'Metronome'),
+  metronomeField(),
   countInField(),
-  listField<MetronomeSettings, 'sound'>('sound', 'Sound', CLICK_SOUNDS, sound => previewClick(sound, 1)),
   choiceField<MetronomeSettings, 'subdivide', Subdivide>('subdivide', 'Subdivide', SUBDIVIDES),
   choiceField<MetronomeSettings, 'clickOn', ClickOn>('clickOn', 'Click on', CLICK_ONS),
-  { ...knobField<MetronomeSettings, 'clickVolume'>('clickVolume', 'Click volume'), box: 'Volumes' },
-  { ...knobField<MetronomeSettings, 'beatOneVolume'>('beatOneVolume', 'Beat one'), box: 'Volumes' },
-  { ...knobField<MetronomeSettings, 'beatsVolume'>('beatsVolume', 'Beats'), box: 'Volumes' },
-  { ...knobField<MetronomeSettings, 'subdivisionsVolume'>('subdivisionsVolume', 'Subdivisions'), box: 'Volumes' },
+  volumesField(),
 ];
 
 export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: PlaybackSettings) => void): SettingsGroup {

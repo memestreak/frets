@@ -132,7 +132,7 @@ describe('Settings', () => {
     fireEvent.click(within(inDialog().getByRole('group', { name: 'Subdivide' })).getByRole('button', { name: 'Triplets' }));
     fireEvent.click(within(inDialog().getByRole('group', { name: 'Click on' })).getByRole('button', { name: 'Backbeat' }));
     const volumes = inDialog().getByRole('group', { name: 'Volumes' });
-    for (const name of ['Beat one', 'Beats', 'Subdivisions']) expect(within(volumes).getByRole('slider', { name })).toBeInTheDocument();
+    for (const name of ['Clicks', 'Beat one', 'Beats', 'Subdivisions']) expect(within(volumes).getByRole('slider', { name })).toBeInTheDocument();
     fireEvent.keyDown(within(volumes).getByRole('slider', { name: 'Subdivisions' }), { key: 'ArrowDown' });
     fireEvent.click(button('OK'));
     const m = saved(METRONOME_KEY);
@@ -152,7 +152,7 @@ describe('Settings', () => {
     // Every field Settings › Metronome has.
     for (const name of ['Metronome', 'Count in']) expect(dialog.getByRole('checkbox', { name })).toBeInTheDocument();
     expect(dialog.getByRole('spinbutton', { name: 'Count-in bars' })).toBeDisabled();
-    for (const name of ['Click volume', 'Beat one', 'Beats', 'Subdivisions']) expect(dialog.getByRole('slider', { name })).toBeInTheDocument();
+    for (const name of ['Clicks', 'Beat one', 'Beats', 'Subdivisions']) expect(dialog.getByRole('slider', { name })).toBeInTheDocument();
     fireEvent.click(dialog.getByRole('checkbox', { name: 'Count in' }));
     expect(dialog.getByRole('spinbutton', { name: 'Count-in bars' })).toBeEnabled();
     // A compact field inside the line, as small as the check box: no up and down buttons; ↑ steps it.

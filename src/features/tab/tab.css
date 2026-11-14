@@ -459,9 +459,8 @@
 /* Arrangements… as a file chooser (issue #259): places | files | preview, one height whatever it shows; the panes scroll. */
 .settings-dialog:has(.tab-save-as) { width: min(376px, calc(100vw - 32px)); }
 /* The Metronome dialog (issue #477): Settings' rows for the metronome, room for Subdivide's four choices. */
-.settings-dialog:has(.tab-metronome-dialog) { width: min(520px, calc(100vw - 32px)); }
+.settings-dialog:has(.tab-metronome-dialog) { width: fit-content; max-width: calc(100vw - 32px); }
 .tab-metronome-dialog .settings-rows { margin-top: 14px; }
-.tab-metronome-dialog .settings-port { max-width: 14rem; }
 .settings-dialog:has(.tab-chooser) { width: min(1120px, calc(100vw - 32px)); height: min(640px, calc(100dvh - 32px)); }
 .tab-chooser { height: 100%; }
 .tab-chooser-body { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
@@ -533,6 +532,13 @@
   font-variant-ligatures: none;
 }
 .settings-after { font: 400 14px/20px var(--font-sans); color: var(--ink-muted); }
+/* The metronome's volumes in a row, each knob over its name (issue #477). */
+.settings-knobs { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.settings-knob { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 56px; }
+.settings-knob-name { font: 400 13px/16px var(--font-sans); color: var(--ink-muted); white-space: nowrap; }
+/* The metronome's sound after its check box: only as wide as the longest sound's name. */
+.settings-sound-name { margin-left: 14px; }
+.settings-sound { width: auto; min-width: 0; }
 /* Count in's bars after its check box, read as one line: ☑ 2 bars. */
 .settings-count-in { display: inline-flex; align-items: center; gap: 6px; margin-left: 4px; }
 /* MIDI output: the port list, and a channel field per track (issue #457). */
