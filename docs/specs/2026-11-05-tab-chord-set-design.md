@@ -10,7 +10,7 @@ Every later chord feature (the chord panel, diagrams in the page and the
 exports, drawing a shape, rendering a chord into the staff) needs two
 things this step gives: a shape stored with each chord, and the meaning of
 a chord name. Nothing new is drawn and no control changes: the chord name
-field (key `C`) is as it was.
+field is as it was (now opened with Shift+Q, `2026-11-10-tab-chord-popover-design.md`).
 
 ## What
 

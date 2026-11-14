@@ -35,7 +35,7 @@ warnings, every bar full, and write back exactly
 | File | Teaches | Keys |
 | --- | --- | --- |
 | `enter-notes.atex` | Note input mode: entering frets, moving on, note lengths, changing string, playing | N, 0–9, Right, Shift+1–7, Down, Esc, Space, ? |
-| `enter-chords.atex` | Entering a chord a string at a time, moving on by its length, naming it | N, 0–9, Down, Up, Shift+Space, Esc, C |
+| `enter-chords.atex` | Entering a chord a string at a time, moving on by its length, naming it | N, 0–9, Down, Up, Shift+Space, Esc, Shift+Q, Space, Enter |
 | `change-notes.atex` | Changing typed notes in normal mode: fret, length, rest, string, undo | Alt+Up, Alt+Down, 1–7, Mod+Z, Delete, Mod+Down |
 | `enter-notes-on-the-staff.atex` | Entering notes on the staff by letter, with a length and a sharp | N, A–G, 1–7, =, Esc |
 | `ties-and-slides.atex` | Hammer-ons, pull-offs, slides and ties | H, Alt+/, T |

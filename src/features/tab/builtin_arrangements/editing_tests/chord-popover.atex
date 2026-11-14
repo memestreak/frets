@@ -1,0 +1,9 @@
+\title "Shift+Q types a run of chord names"
+\ts (4 4)
+3.5.4{txt "Tab view. 1. Press this 3, then Shift+Q"}
+  2.4.4{txt "2. Type Am, then the Space bar"}
+  0.3.4{txt "3. Type C, then the Tab key"}
+  1.2.4{txt "5. Type F7, then the Enter key"} |
+3.6.2{txt "4. Type G, then Shift+Space"} 3.6.2 |
+r.1{txt "Now drawn: Am, C, F7 and G"} |
+
