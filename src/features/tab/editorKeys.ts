@@ -151,7 +151,7 @@ export function editorKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edi
 }
 
 /**
- * Alt+← → move the picked chord (a picked note moves its chord) or selection a grid step earlier or later, as Dorico's do (issue #473;
+ * Alt+← → move the picked note (alone), chord or selection a grid step earlier or later, as Dorico's do (issue #473;
  * normal mode only). Ctrl/⌘+Alt+← → step through notes, rests, marks and words, from a picked one too (they
  * were Alt+← →, MuseScore's, until #473). Alt+1–4 make that Voice active, or move the picked or selected
  * notes into it (step 9, Q8). True when the key was one of them.
@@ -183,11 +183,12 @@ function stepOrVoiceKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: Edito
  * moves in note input mode, with a mark or word picked, or on a rest.
  */
 function moveInTimeKey(editor: EditorKeys, step: 1 | -1) {
-  const { clip, target, picked, noteInputMode, fixedGrid, gridStep, commit } = editor;
+  const { clip, target, picked, columnOnly, noteInputMode, fixedGrid, gridStep, commit } = editor;
   if (noteInputMode || picked) return;
   const by = fixedGrid ? gridStep : ownStep(clip, target);
   if (!by) return;
-  const moved = moveInTime(clip, target, step * by);
+  // A note picked by itself moves alone; a chord picked whole (its Column) moves whole.
+  const moved = moveInTime(clip, target, step * by, !columnOnly);
   if (!moved) return;
   commit(moved.clip, moved.cursor, moved.selection);
   editor.hearNote(moved.cursor);

@@ -1,9 +1,15 @@
-\title "A chord moves earlier or later by the grid"
+\title "A chord or a note moves earlier or later by the grid"
 \ts (4 4)
 r.2{txt "**1.** Select Tab view\nTab, at the top left of the clip"}
-  (5.1 3.2 4.3 5.4).16{txt "**2.** Move this chord a 16th earlier\nPress this 5, then Alt+← (Option+← on a Mac): it now starts a 16th before beat 3"}
+  (5.1 3.2 4.3 5.4).16{txt "**2.** Move the chord a 16th earlier\nPress its stem under the tab, then Alt+← (Option+← on a Mac): the whole chord starts a 16th before beat 3"}
   r.16 r.8 r.4 |
 r.4
-  (2.4 2.5 0.6).8{txt "**3.** Drag it later\nDrag this 0 to the right: the chord moves an 8th (its own length) at a time; let go"}
+  (2.4 2.5 0.6).8{txt "**3.** Move one note\nPress this 0, then Alt+→: only the 0 moves, an 8th later; the 2s stay"}
+  r.8 r.2 |
+r.4
+  (2.4 2.5 0.6).8{txt "**4.** Drag one note\nDrag this 0 to the right: only it moves, an 8th at a time; let go"}
+  r.8 r.2 |
+r.4
+  (2.4 2.5 0.6).8{txt "**5.** Drag the chord\nPress its stem, then drag this 0 to the right: the whole chord moves"}
   r.8 r.2 |
 

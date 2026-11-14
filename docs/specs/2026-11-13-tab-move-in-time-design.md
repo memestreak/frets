@@ -16,9 +16,16 @@ to the normal mode table in `2026-10-30-tab-note-input-mode-design.md`.
 - In normal mode only. In note input mode Alt+← → does nothing (Dorico's
   Alt+← → there moves the caret's chord too, but our caret has its own
   keys; revisit with #474).
-- A picked note, chord or Column moves its **whole chord**, as Dorico's
-  does: a Column has one time, and a note leaves its chord only for
-  another Voice (#237).
+- A chord picked whole moves whole: its stem pressed (under the tab, or
+  on the staff), or its Column selected.
+- A note picked by itself (pressed, or reached with the arrow keys)
+  **moves alone**, the rest of its chord staying (Jeremy, 2026-11-14: "I'd
+  like this to work for single notes of a chord if only a single note is
+  chosen"). Its time on that string becomes a Gap. Where it lands it
+  writes over that string only: it joins the chord there, and a longer
+  chord is cut and tied so the note keeps its length. A note alone in its
+  Column moves as its chord, with its marks. (Dorico moves the chord a
+  note is in; this differs on his ask.)
 - A selection of several Columns moves as one block, and stays selected.
 - A Tie chain moves whole: a chord tied over a bar line moves with its
   tie.
@@ -47,7 +54,7 @@ to the normal mode table in `2026-10-30-tab-note-input-mode-design.md`.
 
 | Keys | Does |
 |---|---|
-| Alt+← → (Option on a Mac) | Moves the picked chord or the selection a step earlier or later (Dorico) |
+| Alt+← → (Option on a Mac) | Moves the picked note, chord or selection a step earlier or later (Dorico) |
 | Ctrl/⌘+Alt+← → | Picks the last or next note, rest, mark or word (was Alt+← →, MuseScore's next element) |
 
 - Each press is one undo step; the chord stays picked, so presses repeat.
@@ -65,8 +72,9 @@ to the normal mode table in `2026-10-30-tab-note-input-mode-design.md`.
 - A sideways drag snaps to the step, previews as it goes, and lands as
   one undo step on release. Dropped outside the drawing, it puts the
   music back.
-- A drag on a note inside a selection of several Columns moves the
-  selection.
+- A drag on a note moves that note alone; on a note of a chord picked
+  whole (its stem pressed first), the chord; inside a selection of several
+  Columns, the selection.
 - Dorico drags one item at a time and only with a preference on; ours is
   always on, as dragging the pitch is.
 
@@ -90,8 +98,21 @@ to the normal mode table in `2026-10-30-tab-note-input-mode-design.md`.
   `r.1 | 5.1.4 r.4 r.2 |`.
 - No move: a rest, before the clip's start, a grace note, a selection of
   only rests.
-- A picked note moves its chord: `(5.1 7.2).4 r.4 r.2 |` with string 2
-  picked, a quarter later: `r.4 (5.1 7.2).4 r.2 |`, the cursor on string 2.
+- A chord picked whole: `(5.1 7.2).4 r.4 r.2 |` a quarter later:
+  `r.4 (5.1 7.2).4 r.2 |`, the cursor on string 2.
+- A note picked by itself:
+  - `(5.1 7.2).4 r.4 r.2 |`, string 2, a quarter later: `5.1.4 7.2.4 r.2 |`.
+  - His chord's top note a 16th earlier: `r.4 r.8 r.16 5.1.16
+    (3.2 4.3 5.4).16 r.16 r.8 r.4 |`, the note still picked.
+  - Into a longer chord: `(1.1 2.2).4 (3.1 3.3).8 r.8 r.2 |`, string 3, a
+    quarter earlier: `(1.1 2.2 3.3).8 (-.1 -.2).8 3.1.8 r.8 r.2 |`.
+  - Over its own string only: `(5.1 0.2).4 (7.1 0.3).4 r.2 |`, string 1
+    a quarter earlier: `(7.1 0.2).4 0.3.4 r.2 |`.
+  - Past the last bar line: `(5.1 0.2).4 r.4 r.2 |`, string 1, a dotted
+    half and an 8th later: `0.2.4 r.4 r.4 r.8 5.1.8 | -.1.8 r.8 r.4 r.2 |`.
+  - Its Tie chain: `(5.1 0.2).4 -.1.4 r.2 |`, string 1, a quarter later:
+    `0.2.4 5.1.2 r.4 |`.
+  - Alone in its Column, it moves as its chord with its Text.
 - A selection of two 8ths moved an 8th: `r.8 1.1.8 2.1.8 r.8 r.2 |`,
   the selection on columns 1–2.
 - Fixed grid on at 8ths: Alt+→ on `5.1.4 r.4 r.2 |` gives
@@ -101,8 +122,8 @@ to the normal mode table in `2026-10-30-tab-note-input-mode-design.md`.
 
 ## How
 
-- `timeMoves.ts`: `moveInTime` (the pure edit, from `writeOver` /
-  `writeSpan` in `timeline.ts`), `ownStep` (the step with no fixed
+- `timeMoves.ts`: `moveInTime` (the pure edit, from `writeOver`, `writeSpan` and,
+  for a lone note, `writeNote` in `timeline.ts`), `ownStep` (the step with no fixed
   grid) and `timeAtX` (a pointer's time, for the drag).
 - `editorKeys.ts`: `moveInTimeKey` on Alt+← →; stepping moves to
   Ctrl/⌘+Alt+← →.

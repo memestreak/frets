@@ -67,7 +67,7 @@ const NORMAL: ShortcutGroup = {
     { keys: ['Alt+Shift+Up', 'Alt+Shift+Down'], does: 'On the staff, a semitone' },
     { keys: ['Mod+Up', 'Mod+Down'], does: 'Same pitch on the next string (on the staff, an octave)' },
     { keys: ['Left', 'Right'], does: 'Select the last or next column' },
-    { keys: ['Alt+Left', 'Alt+Right'], does: 'Move the picked chord or the selection earlier or later by the grid' },
+    { keys: ['Alt+Left', 'Alt+Right'], does: 'Move the picked note, chord or selection earlier or later by the grid' },
     { keys: ['=', '−', 'W', 'Q'], does: 'Longer or shorter (the bar stays full)' },
     { keys: ['Shift+1–7'], does: 'Length (Shift+5 a quarter)' },
     { keys: ['1–7'], does: 'Length (5 a quarter); frets are typed in note input mode' },

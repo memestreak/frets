@@ -76,11 +76,56 @@ describe('a chord moves by the grid', () => {
   });
 });
 
-describe('a note picked in a chord moves its whole chord, as Dorico’s does', () => {
+describe('a note picked by itself moves alone (Jeremy, 2026-11-14)', () => {
+  const alone = (text: string, cursor: Cursor, by: number) => {
+    const moved = moveInTime(clipOf(`\\ts (4 4)\n${text}`), lone(cursor), by, true);
+    if (moved) expect(even(moved.clip)).toBe(true);
+    return moved;
+  };
+
+  it('the note leaves its chord, the rest of the chord staying', () => {
+    const moved = alone('(5.1 7.2).4 r.4 r.2 |', at(0, 0, 1), Q)!;
+    expect(bars(moved.clip)).toBe('5.1.4 7.2.4 r.2 |');
+    expect(moved.cursor).toEqual({ bar: 0, column: 1, string: 1 });
+  });
+
+  it('his chord: its top note a sixteenth earlier', () => {
+    const moved = alone('r.4 r.4 (5.1 3.2 4.3 5.4).16 r.16 r.8 r.4 |', at(0, 2, 0), -S)!;
+    expect(bars(moved.clip)).toBe('r.4 r.8 r.16 5.1.16 (3.2 4.3 5.4).16 r.16 r.8 r.4 |');
+    expect(moved.cursor).toEqual({ bar: 0, column: 3, string: 0 });
+  });
+
+  it('joins a longer chord it lands in, which is cut and tied so the note keeps its length', () => {
+    expect(bars(alone('(1.1 2.2).4 (3.1 3.3).8 r.8 r.2 |', at(0, 1, 2), -Q)!.clip)).toBe('(1.1 2.2 3.3).8 (-.1 -.2).8 3.1.8 r.8 r.2 |');
+  });
+
+  it('writes over the note on its own string only', () => {
+    expect(bars(alone('(5.1 0.2).4 (7.1 0.3).4 r.2 |', at(0, 1, 0), -Q)!.clip)).toBe('(7.1 0.2).4 0.3.4 r.2 |');
+  });
+
+  it('across the bar line, and past the last one, it is tied into a new bar', () => {
+    expect(bars(alone('(5.1 0.2).4 r.4 r.2 |', at(0, 0, 0), Q * 3 + E)!.clip)).toBe('0.2.4 r.4 r.4 r.8 5.1.8 | -.1.8 r.8 r.4 r.2 |');
+  });
+
+  it('takes its Tie chain with it', () => {
+    expect(bars(alone('(5.1 0.2).4 -.1.4 r.2 |', at(0, 0, 0), Q)!.clip)).toBe('0.2.4 5.1.2 r.4 |');
+  });
+
+  it('not before the clip starts', () => {
+    expect(alone('(5.1 0.2).2 (5.1 0.2).4 r.4 |', at(0, 0, 0), -Q)).toBeNull();
+  });
+});
+
+describe('a picked chord moves whole', () => {
   it('the chord moves together', () => {
     const moved = moveInTime(clipOf('\\ts (4 4)\n(5.1 7.2).4 r.4 r.2 |'), lone(at(0, 0, 1)), Q)!;
     expect(bars(moved.clip)).toBe('r.4 (5.1 7.2).4 r.2 |');
     expect(moved.cursor).toEqual({ bar: 0, column: 1, string: 1 });
+  });
+
+  it('a note alone in its Column moves as its chord, taking its marks', () => {
+    const moved = moveInTime(clipOf('\\ts (4 4)\nr.4 5.1.4{txt "go"} r.2 |'), lone(at(0, 1)), Q, true)!;
+    expect(bars(moved.clip)).toBe('r.2 5.1.4{txt "go"} r.4 |');
   });
 });
 

@@ -10,8 +10,8 @@ import { unbeamed } from './beams';
 import { columnAt, indexOf, normalize, placeOf, selectedRange, type Cursor, type Selection, type Target } from './editing';
 import { readVoice } from './sounding';
 import { lineAt, type Layout } from './layout';
-import { lengthAnchor } from './ties';
-import { placeAtTime, timeOf, withoutTimeMarks, writeOver, writeSpan } from './timeline';
+import { chainPlaces, chainTicks, lengthAnchor } from './ties';
+import { placeAtTime, timeOf, withoutTimeMarks, writeNote, writeOver, writeSpan } from './timeline';
 
 export interface TimeMove {
   clip: Part;
@@ -21,19 +21,50 @@ export interface TimeMove {
 
 /**
  * The target moved `by` ticks (negative: earlier). A selection of several Columns moves as one block; a
- * picked note or Column moves its whole chord, as Dorico's do (a Column has one time; a note leaves its
- * chord only for another Voice). A Tie chain moves whole. Null when nothing can move: a rest, a grace
- * note, a note in a tuplet, a move before the clip's start, or one that would put a tuplet across a bar
- * line.
+ * picked chord moves whole; a note picked by itself (`alone`) moves alone, leaving the rest of its chord
+ * (Jeremy, 2026-11-14), unless it is the chord's only note. A Tie chain moves whole. Null when nothing
+ * can move: a rest, a grace note, a note in a tuplet, a move before the clip's start, or one that would
+ * put a tuplet across a bar line.
  */
-export function moveInTime(clip: Part, target: Target, by: number): TimeMove | null {
+export function moveInTime(clip: Part, target: Target, by: number, alone = false): TimeMove | null {
   if (by === 0) return null;
   const { selection } = target;
   if (selection && selection.anchor !== selection.focus) return moveRun(clip, selection, target.cursor.string, by);
   const pressed = selection ? { ...target.cursor, ...placeOf(clip, selection.anchor) } : target.cursor;
   const column = columnAt(clip, pressed);
   if (!column || column.grace || column.duration.tuplet) return null;
+  if (alone && !selection && column.notes[pressed.string] && hasOthers(clip, pressed)) return moveNote(clip, pressed, by);
   return moveChord(clip, pressed, by);
+}
+
+/** Whether a Column the note at `at` is written in (any of its Tie chain's) has another note. */
+function hasOthers(clip: Part, at: Cursor): boolean {
+  return chainPlaces(clip, at).some(p => clip.bars[p.bar].columns[p.column].notes.some((n, s) => n && s !== at.string));
+}
+
+/**
+ * The note at `pressed`, with its Tie chain, `by` ticks later on its own string; the rest of its chord
+ * stays. Its time on that string becomes a Gap; where it lands it writes over that string only.
+ */
+function moveNote(clip: Part, pressed: Cursor, by: number): TimeMove | null {
+  const places = chainPlaces(clip, pressed);
+  const first = places[0];
+  const string = pressed.string;
+  const note = clip.bars[first.bar].columns[first.column].notes[string]!;
+  const start = timeOf(clip, first.bar, first.column);
+  const to = start + by;
+  if (to < 0) return null;
+  const bars = clip.bars.map(bar => ({ ...bar, columns: [...bar.columns] }));
+  for (const p of places) {
+    const column = bars[p.bar].columns[p.column];
+    const notes = [...column.notes];
+    notes[string] = null;
+    bars[p.bar].columns[p.column] = { ...column, notes };
+  }
+  const written = writeNote({ ...clip, bars }, to, string, note, chainTicks(clip, pressed));
+  if (!written) return null;
+  const next = normalize(written);
+  return { clip: next, cursor: { ...placeAtTime(next, to), string }, selection: null };
 }
 
 /** The pressed Column's chord, with its Tie chains, `by` ticks later. */

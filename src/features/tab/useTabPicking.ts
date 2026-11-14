@@ -185,8 +185,13 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
     }
   };
 
+  /** The chord a press on one of its notes found picked whole, until the drag from it ends. */
+  const chordPress = useRef<{ bar: number; column: number } | null>(null);
+
   /** A press on the tab: the cursor there, a note entered (note input mode) or a bar selected (normal mode); with Shift, the selection grows. */
   const onPick = ({ at: into = 0, ...hit }: Hit, extend: boolean, alone = false, menu = false) => {
+    // A press on a note of the chord picked whole: a drag from it moves the chord (`onDragTime`).
+    chordPress.current = !extend && columnOnly && !selection && hit.bar === cursor.bar && hit.column === cursor.column ? { bar: hit.bar, column: hit.column } : null;
     lastDigitRef.current = null;
     setStaffPitch(null);
     setColumnOnly(false);
@@ -382,11 +387,11 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
   };
 
   /** A drag in time: the clip it started from, what moves (the pressed chord, or the selection it is in), and the last move that worked. */
-  const timeFrom = useRef<{ clip: Part; target: Target; good: TimeMove | null } | null>(null);
+  const timeFrom = useRef<{ clip: Part; target: Target; alone: boolean; good: TimeMove | null } | null>(null);
 
   /**
-   * A note head or fret number dragged left or right in normal mode (issue #473): its chord, or the
-   * selection it is in, moves in time by whole grid steps as the pointer goes, written over what it lands
+   * A note head or fret number dragged left or right in normal mode (issue #473): the note alone, its
+   * chord when the chord was picked whole, or the selection it is in, moves in time by whole grid steps as the pointer goes, written over what it lands
    * on. Where it can't go, it stays at the last place that worked. Letting go makes it one undo step and
    * leaves it picked; off the drawing it goes back.
    */
@@ -396,7 +401,11 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
       const index = indexOf(clip, hit.bar, hit.column);
       const range = selection ? selectedRange(selection) : null;
       const carried = range && range[0] !== range[1] && index >= range[0] && index <= range[1] ? selection : null;
-      timeFrom.current = { clip, target: { cursor: hit, selection: carried }, good: null };
+      // The chord moves when it was picked whole before the press (the press itself picks the note); else the note alone.
+      const wasWhole = chordPress.current
+        ? chordPress.current.bar === hit.bar && chordPress.current.column === hit.column
+        : columnOnly && !selection && cursor.bar === hit.bar && cursor.column === hit.column;
+      timeFrom.current = { clip, target: { cursor: hit, selection: carried }, alone: !carried && !wasWhole, good: null };
       lastDigitRef.current = null;
       editorRef.current?.focus();
     }
@@ -405,10 +414,11 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
     const by = drag.cancelled || !step ? 0 : Math.round(drag.by / step) * step;
     const before = from.good;
     if (by === 0) from.good = null;
-    else from.good = moveInTime(from.clip, from.target, by) ?? from.good;
+    else from.good = moveInTime(from.clip, from.target, by, from.alone) ?? from.good;
     const shown = from.good;
     if (drag.done) {
       timeFrom.current = null;
+      chordPress.current = null;
       if (shown) dispatch({ type: 'replacePart', part: shown.clip, from: from.clip });
       else dispatch({ type: 'previewPart', part: from.clip });
     } else dispatch({ type: 'previewPart', part: shown ? shown.clip : from.clip });
@@ -417,7 +427,7 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
     setStaffPitch(null);
     setCursor(shown ? shown.cursor : hit);
     setSelection(shown ? shown.selection : from.target.selection);
-    setColumnOnly(!(shown ? shown.selection : from.target.selection));
+    setColumnOnly(!from.alone && !(shown ? shown.selection : from.target.selection));
     if (!drag.done && shown && shown !== before) hearNote(shown.cursor);
   };
 

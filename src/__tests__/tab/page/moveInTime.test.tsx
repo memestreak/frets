@@ -15,10 +15,18 @@ const open = async (text: string) => {
 const alt = (key: string, more: { ctrlKey?: boolean; shiftKey?: boolean } = {}) => keys({ key, altKey: true, ...more });
 
 describe('TabPage: Alt+← → move by the grid (issue #473)', () => {
-  it('moves the picked sixteenth chord a sixteenth earlier, by its own length with no fixed grid, as one undo step', async () => {
+  it('moves a note picked by itself alone, leaving the rest of its chord (Jeremy, 2026-11-14)', async () => {
+    await open('r.4 r.4 (5.1 3.2 4.3 5.4).16 r.16 r.8 r.4 |');
+    keys('ArrowRight', 'ArrowRight');
+    alt('ArrowLeft');
+    expect(alphaTex()).toBe('r.4 r.8 r.16 5.1.16 (3.2 4.3 5.4).16 r.16 r.8 r.4 |');
+    expect(screen.getByTestId('selected-note')).toBeInTheDocument();
+  });
+
+  it('moves the selected sixteenth chord a sixteenth earlier, by its own length with no fixed grid, as one undo step', async () => {
     await open('r.4 r.4 (5.1 3.2 4.3 5.4).16 r.16 r.8 r.4 |');
     const before = alphaTex();
-    keys('ArrowRight', 'ArrowRight');
+    keys('ArrowRight', 'ArrowRight', { key: 'ArrowRight', shiftKey: true }, { key: 'ArrowLeft', shiftKey: true });
     alt('ArrowLeft');
     expect(alphaTex()).toBe('r.4 r.8 r.16 (5.1 3.2 4.3 5.4).16 r.2 |');
     // Again: it keeps moving, the chord still picked.

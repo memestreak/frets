@@ -194,7 +194,7 @@ and in its spec.
   picks; `hasEdit` (issue #276).
 - `elements.ts` — every pickable thing in reading order, for Ctrl/⌘+Alt+← →
   (MuseScore's next element, issue #238).
-- `timeMoves.ts` — the picked chord or selection moved earlier or later
+- `timeMoves.ts` — the picked note (alone), chord or selection moved earlier or later
   by the grid, written over what it lands on (`moveInTime`, Alt+← → and a
   sideways drag); `ownStep`, a note's own length as the step when the grid
   isn't fixed; `timeAtX`, the time under the pointer —
@@ -219,7 +219,7 @@ and in its spec.
   `2026-10-31-tab-bars-stay-full-design.md`.
 - `timeline.ts` — the edits that change time, on a Voice as one stream
   with the bar lines taken out, laid back into bars by their time
-  signatures: write over (`writeOver`, `writeSpan`), push (`pushTime`),
+  signatures: write over (`writeOver`, `writeSpan`, one string: `writeNote`), push (`pushTime`),
   pull back (`pullTime`), re-bar after a time signature or Pickup bar
   changes (`reBar`, `reBarClip`) and Move extra (`layFrom`) —
   `2026-11-04-tab-bars-always-full-design.md`.
@@ -484,7 +484,7 @@ The principles every editing spec since step 1 follows, with Dorico,
 MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
 
 - `docs/specs/2026-11-13-tab-move-in-time-design.md`: Alt+← → (Dorico's
-  keys) move the picked chord or selection a grid step earlier or later,
+  keys) move the picked note, chord or selection a grid step earlier or later,
   and a sideways drag of a head or number does the same; stepping through
   pickable things moves to Ctrl/⌘+Alt+← → (issue #473)
 - `docs/specs/2026-11-13-tab-capo-in-tuning-design.md`: the capo set by a
