@@ -123,7 +123,7 @@ export function NumberField({ value, min, max, step, dragStep = step, decimals =
     drag.current = null;
     // A click selects the number to type over; so does a drag while typing, so what comes next replaces it.
     if (d && (!d.moved || document.activeElement === input.current)) {
-      input.current?.focus();
+      input.current?.focus({ preventScroll: true });
       input.current?.select();
     }
   };

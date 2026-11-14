@@ -33,6 +33,12 @@ and in its spec.
   warnings and write back exactly (`src/__tests__/tab/examples.test.ts`),
   and every newly drawn feature gets one.
 - A key added or changed goes in `shortcuts.ts` in the same PR.
+- A press never scrolls the page (issue #470): every `focus()` the page
+  makes passes `{ preventScroll: true }`, since the editor is taller than
+  the window and a plain `focus()` scrolls to its top; and the palettes'
+  column has `overflow-anchor: none`, so the browser's scroll anchoring
+  doesn't move the page when the column changes
+  (`src/__tests__/tab/page/noScroll.test.tsx`).
 - What is selected or picked is drawn in `--select`, blue
   (`2026-11-01-tab-selection-look-design.md`); a picked word, signature,
   bar line or mark has Edit and Delete in a right-click menu, and a

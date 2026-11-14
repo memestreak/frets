@@ -105,7 +105,7 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
     const w = word;
     setWord(null);
     // After Enter or Esc the keys go back to the tab; leaving the field leaves the focus where it went.
-    if (byKey) editorRef.current?.focus();
+    if (byKey) editorRef.current?.focus({ preventScroll: true });
     if (!w || value === null) return;
     if (w.kind === 'chord') commit(setChordName(clip, { bar: w.bar, column: w.column, string: cursor.string }, value));
     if (w.kind === 'text') commit(setBeatText(clip, { bar: w.bar, column: w.column, string: cursor.string }, value));
@@ -160,7 +160,7 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
     }
     setLyricField(null);
     setLyricLit(null);
-    if (byKey) editorRef.current?.focus();
+    if (byKey) editorRef.current?.focus({ preventScroll: true });
   };
 
   /** A bar's time or key signature panel: under a press (`at`, viewport pixels), or from the palette (null) under the bar. */
@@ -175,12 +175,12 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
   };
   const closeFix = useCallback((byKey: boolean) => {
     setFixBar(null);
-    if (byKey) editorRef.current?.focus();
+    if (byKey) editorRef.current?.focus({ preventScroll: true });
   }, [editorRef]);
   /** The fix made, and the popover let go of (let go after use); a fix that would split a tuplet is refused. */
   const finishFix = (fixed: Part | null) => {
     setFixBar(null);
-    editorRef.current?.focus();
+    editorRef.current?.focus({ preventScroll: true });
     if (fixed) commit(fixed);
     else setNotice({ tone: 'error', lines: [SPLITS_TUPLET] });
   };
@@ -201,11 +201,11 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
 
   const closeTimeBar = useCallback((byKey: boolean) => {
     setTimeBar(null);
-    if (byKey) editorRef.current?.focus();
+    if (byKey) editorRef.current?.focus({ preventScroll: true });
   }, [editorRef]);
   const closeKeyBar = useCallback((byKey: boolean) => {
     setKeyBar(null);
-    if (byKey) editorRef.current?.focus();
+    if (byKey) editorRef.current?.focus({ preventScroll: true });
   }, [editorRef]);
 
   /** The tempo as set: shown at once, kept as one undo step when the panel closes, or put back. */
@@ -213,7 +213,7 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
     setHeadPanel(null);
     if (kept && kept !== from) dispatch({ type: 'replacePart', part: kept, from });
     else dispatch({ type: 'previewPart', part: from });
-    if (fromTab) editorRef.current?.focus();
+    if (fromTab) editorRef.current?.focus({ preventScroll: true });
   };
   /** The title and credits as typed: shown at once, kept as one undo step when the panel closes, or put back. */
   const finishCredits = (from: Part, kept: Part | null) => {
