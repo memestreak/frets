@@ -2,6 +2,9 @@ import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { choosePlace, enterOnStaff, movedPitch, moveNotes, moveToString, notesToMove, noteToString, pitchAtStep, pitchOfLetter, stepOf, stepPitch, toggleStaffNote } from '@/features/tab/staffEntry';
 import { type Duration, type Part, partOf } from '@/features/tab/clip';
+import { writeBars } from '@/features/tab/alphatex';
+import { rewrite } from '@/features/tab/rewrite';
+import type { StaffEntryModes } from '@/features/tab/staffEntry';
 
 function clipOf(body: string): Part {
   const result = readAlphaTexWith(alphaTab, `\\ts (4 4)\n${body}\n`);
@@ -58,6 +61,91 @@ describe('A–G in note input mode (issue #396)', () => {
     const gone = enterOnStaff(added.clip, { bar: 0, column: 0, string: 0 }, 0, 52, quarter, true);
     expect(frets(gone.clip, 0).every(f => f === null)).toBe(true);
     expect(gone.cursor.column).toBe(0);
+  });
+});
+
+describe('Tuplet entry and Grace entry on the staff (issue #469)', () => {
+  const quarter: Duration = { value: 4, dots: 0 };
+  const eighth: Duration = { value: 8, dots: 0 };
+  const bars = (part: Part) => writeBars(part).join(' ');
+  const triplets: StaffEntryModes = { tuplet: { n: 3, from: null }, grace: false };
+  const neither: StaffEntryModes = { tuplet: { n: null, from: null }, grace: false };
+  const G3 = 55;
+  const A3 = 57;
+  const B3 = 59;
+  /** Letters entered one after another, as the page records each: the meter writes the bar again, the caret goes on. */
+  const enterAll = (clip: Part, pitches: number[], length: Duration, modes: StaffEntryModes = triplets) => {
+    let part = clip;
+    let cursor = { bar: 0, column: 0, string: 0 };
+    let at = 0;
+    for (const pitch of pitches) {
+      const edit = enterOnStaff(part, cursor, at, pitch, length, false, modes);
+      expect(edit.problem).toBeUndefined();
+      part = rewrite(part, edit.clip);
+      ({ cursor, at } = edit);
+    }
+    return { part, cursor, at };
+  };
+
+  it('with Tuplet entry on, three quarters entered are a quarter-note triplet, then a half Gap', () => {
+    const { part } = enterAll(clipOf('r.1 |'), [G3, A3, B3], quarter);
+    expect(bars(part)).toBe('0.3.4{tu 3} 2.3.4{tu 3} 0.2.4{tu 3} r.2 |');
+  });
+
+  it('the first note starts the tuplet and says so; the caret goes on by one tuplet note', () => {
+    const first = enterOnStaff(clipOf('r.1 |'), { bar: 0, column: 0, string: 0 }, 0, G3, quarter, false, triplets);
+    expect(first.tupletStarted).toBe(true);
+    expect(first.note).toEqual({ bar: 0, column: 0, string: 2 });
+    expect(first.cursor.column).toBe(1);
+    expect(first.at).toBe(0);
+  });
+
+  it('past the tuplet\'s end the next note starts another (a full bar gets a new bar after it, as always)', () => {
+    const { part } = enterAll(clipOf('r.1 |'), [G3, A3, B3, G3, A3, B3], quarter);
+    expect(bars(part)).toBe('0.3.4{tu 3} 2.3.4{tu 3} 0.2.4{tu 3} 0.3.4{tu 3} 2.3.4{tu 3} 0.2.4{tu 3} | r.1 |');
+  });
+
+  it('eighths with Tuplet entry on make an eighth triplet over a quarter', () => {
+    const { part } = enterAll(clipOf('r.1 |'), [G3, A3, B3], eighth);
+    expect(bars(part)).toBe('0.3.8{tu 3} 2.3.8{tu 3} 0.2.8{tu 3} r.4 r.2 |');
+  });
+
+  it('in a tuplet\'s Gap a note is a tuplet note, Tuplet entry on or off, and a note that doesn\'t fit does nothing', () => {
+    const gap = clipOf('0.3.4{tu 3} r.2{tu 3} r.2 |');
+    const typed = enterOnStaff(gap, { bar: 0, column: 1, string: 0 }, 0, A3, quarter, false, neither);
+    expect(bars(rewrite(gap, typed.clip))).toBe('0.3.4{tu 3} 2.3.4{tu 3} r.4{tu 3} r.2 |');
+    expect(typed.tupletStarted).toBe(false);
+    // A half in a triplet is two triplet quarters: it fits the Gap; a whole doesn't.
+    const half = enterOnStaff(gap, { bar: 0, column: 1, string: 0 }, 0, A3, { value: 2, dots: 0 }, false, neither);
+    expect(bars(rewrite(gap, half.clip))).toBe('0.3.4{tu 3} 2.3.2{tu 3} r.2 |');
+    const whole = enterOnStaff(gap, { bar: 0, column: 1, string: 0 }, 0, A3, { value: 1, dots: 0 }, false, neither);
+    expect(whole.clip).toBe(gap);
+    expect(whole.note).toBeNull();
+  });
+
+  it('Enter on a note already at the pitch still takes it away, Tuplet entry on', () => {
+    const clip = clipOf('0.3.4{tu 3} 2.3.4{tu 3} 0.2.4{tu 3} r.2 |');
+    const gone = enterOnStaff(clip, { bar: 0, column: 1, string: 0 }, 0, A3, quarter, true, triplets);
+    expect(bars(rewrite(clip, gone.clip))).toBe('0.3.4{tu 3} r.4{tu 3} 0.2.4{tu 3} r.2 |');
+  });
+
+  it('a note added to a tuplet note is a chord in it, not a new tuplet', () => {
+    const clip = clipOf('0.3.4{tu 3} r.2{tu 3} r.2 |');
+    const chord = enterOnStaff(clip, { bar: 0, column: 0, string: 0 }, 0, B3, quarter, false, triplets);
+    expect(bars(rewrite(clip, chord.clip))).toBe('(0.2 0.3).4{tu 3} r.2{tu 3} r.2 |');
+  });
+
+  it('with Grace entry on a letter is a grace note before the caret\'s note, and the caret stays', () => {
+    const clip = clipOf('0.3.4 r.4 r.2 |');
+    const grace = enterOnStaff(clip, { bar: 0, column: 0, string: 0 }, 0, A3, quarter, false, { ...neither, grace: true });
+    expect(bars(rewrite(clip, grace.clip))).toBe('2.3.8{gr} 0.3.4 r.4 r.2 |');
+    expect(grace.cursor).toEqual({ bar: 0, column: 1, string: 2 });
+    expect(grace.note).toEqual({ bar: 0, column: 0, string: 2 });
+  });
+
+  it('with neither on, a note is entered as before', () => {
+    const { part } = enterAll(clipOf('r.1 |'), [G3, A3, B3], quarter, neither);
+    expect(bars(part)).toBe('0.3.4 2.3.4 0.2.4 r.4 |');
   });
 });
 
