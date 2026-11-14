@@ -31,7 +31,7 @@ export function LyricField({ initial, line, x, y, nudge, onNudge, zoom = 1, onDo
 }) {
   const [value, setValue] = useState(initial);
   const inputRef = useRef<HTMLInputElement>(null);
-  useEffect(() => inputRef.current?.focus(), []);
+  useEffect(() => inputRef.current?.focus({ preventScroll: true }), []);
   // A key and then the blur it causes would both finish; only the first counts.
   const done = useRef(false);
   const finish = (move: LyricMove, byKey: boolean) => {
@@ -90,7 +90,7 @@ export function LyricField({ initial, line, x, y, nudge, onNudge, zoom = 1, onDo
   };
   const onGripUp = () => {
     drag.current = null;
-    inputRef.current?.focus();
+    inputRef.current?.focus({ preventScroll: true });
   };
 
   const caption = `Lyric line ${line + 1}`;

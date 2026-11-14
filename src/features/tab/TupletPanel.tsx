@@ -30,7 +30,7 @@ export function TupletPanel({ x, y, current, onPick, onClose }: {
   usePanelInside(boxRef, x);
   usePanelClose(boxRef, onClose);
   // The keys come here while it is open, and go back to the tab when it closes.
-  useEffect(() => boxRef.current?.focus(), []);
+  useEffect(() => boxRef.current?.focus({ preventScroll: true }), []);
 
   const onKeyDown = (e: KeyboardEvent) => {
     const { key } = e;

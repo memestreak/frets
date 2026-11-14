@@ -83,7 +83,7 @@ export function TempoPanel({ clip, bar, x, y, onChange, onDone }: {
     if (e.key === 'Enter' && (typing || onPanel)) finish(true);
     // A digit starts typing the bpm afresh; the key itself lands in the field.
     else if (onPanel && /^\d$/.test(e.key)) {
-      bpmInput()?.focus();
+      bpmInput()?.focus({ preventScroll: true });
       bpmInput()?.select();
     }
     else if (onPanel && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {

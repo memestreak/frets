@@ -31,7 +31,7 @@ export function usePanel({ x, y, above = y, align = 'start', focus, onClose }: {
       left: Math.max(margin, Math.min(left, window.innerWidth - width - margin)),
       top: y + height + margin > window.innerHeight ? Math.max(margin, above - height) : y,
     });
-    (focus ? el.querySelector<HTMLElement>(focus) : el)?.focus();
+    (focus ? el.querySelector<HTMLElement>(focus) : el)?.focus({ preventScroll: true });
   }, [x, y, above, align, focus]);
 
   const close = useEffectEvent(onClose);

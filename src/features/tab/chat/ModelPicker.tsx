@@ -95,7 +95,7 @@ export function ModelPicker({ value, onChange, presets, models, disabled }: Mode
       <button
         type="button" className="tab-chat-picker-toggle" aria-label="Show models" tabIndex={-1} disabled={disabled}
         onMouseDown={e => e.preventDefault()}
-        onClick={() => { if (open) close(); else { inputRef.current?.focus(); show(); } }}
+        onClick={() => { if (open) close(); else { inputRef.current?.focus({ preventScroll: true }); show(); } }}
       >
         <svg viewBox="0 0 10 6" width="10" height="6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.5" /></svg>
       </button>

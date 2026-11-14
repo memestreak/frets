@@ -59,7 +59,7 @@ export function useVoicePick(editor: EditorState, { whole, track, voice, setVoic
     chooseVoice(next, { cursor: { bar: hit.bar, column: hit.column, string: hit.string }, selection: null });
     setColumnOnly(false);
     setStaffPitch(null);
-    editorRef.current?.focus();
+    editorRef.current?.focus({ preventScroll: true });
   };
   /**
    * Alt+1–4 (Q8) or the menu's Move to voice: the picked or selected notes go into Voice `to` (Q11), stay

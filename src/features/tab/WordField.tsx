@@ -71,7 +71,7 @@ export function WordField({ kind, initial, x, y, onDone }: WordFieldProps) {
   const digits = NUMBER_LENGTH[kind];
   const inputRef = useRef<HTMLInputElement & HTMLTextAreaElement>(null);
   // The field opens from a press or a key on the tab, so typing goes straight into it.
-  useEffect(() => inputRef.current?.focus(), []);
+  useEffect(() => inputRef.current?.focus({ preventScroll: true }), []);
   // Enter and then the blur it causes would both finish; only the first counts.
   const done = useRef(false);
   const finish = (result: string | null, byKey: boolean) => {
