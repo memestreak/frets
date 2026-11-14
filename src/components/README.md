@@ -46,7 +46,8 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   `docs/specs/2026-11-01-deselect-design.md`),
   `src/components/NumberField.tsx` (a number with up and down buttons:
   type, step, or drag up or down, `dragStep` a drag's step and Shift the
-  button step; `resetOnDoubleClick` for its row) and `VolumeKnob.tsx` (a
+  button step; `compact` a text line tall with no buttons, for a number
+  inside a line of words; `resetOnDoubleClick` for its row) and `VolumeKnob.tsx` (a
   small rotary knob for a volume or level; `reset` for a double-click,
   `disabled` to grey it), shared by Tab and the Metronome,
   `src/components/TapPulse.tsx` (`useTapPulse`: a Tap button's green
@@ -79,7 +80,9 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   `docs/specs/2026-10-29-settings-design.md`): `SettingsDialog.tsx` (the tree
   of groups and sections, on a phone a group picker and a strip of sections;
   the selected section's rows; staged values, OK / Cancel / Apply, Enter = OK,
-  a double-click or long-press on a label resetting its field), `types.ts`
+  a double-click or long-press on a label resetting its field; and
+  `SettingsFields`, a section's rows alone, which Tab's Metronome dialog
+  shows live, issue #477), `types.ts`
   (a group is a list of sections, each one saved key; a field is one of its
   values; neighbouring fields with the same `box` name are drawn in one named
   box), `fields.tsx` (the check box and segmented fields every page uses)

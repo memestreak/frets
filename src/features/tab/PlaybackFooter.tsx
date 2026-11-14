@@ -2,11 +2,11 @@
 
 /**
  * Playback, in a footer under the tab (Jeremy picked it from three mocks, 2026-10-26): a round Play
- * (from the cursor, else from the start), Loop (sets the loop points), Hear notes, Metronome (its
- * right-click menu: count-in and click volume), Speed, Transpose, Volume and Sound. The
+ * (from the cursor, else from the start), Loop (sets the loop points), Hear notes, Metronome (a
+ * right-click opens the Metronome dialog), Speed, Transpose, Volume and Sound. The
  * playhead and the loop points are drawn over the tab by `Playhead`. The sound is `playback.ts`.
  */
-import { useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from 'react';
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode, type RefObject } from 'react';
 import { PlayIcon } from '@/components/icons';
 import type { Part } from './clip';
 import { columnCount, placeOf } from './editing';
@@ -15,7 +15,10 @@ import { columnAt } from './hitTest';
 import { NumberField, resetOnDoubleClick } from '@/components/NumberField';
 import { BpmField, SpeedPercent, useTapTempo } from './BpmField';
 import { MAX_LOOP_PAUSE, MIN_LOOP_PAUSE, PlaybackOptions, type PlaybackOptionValues } from './PlaybackOptions';
-import { ClickOptions } from './ClickOptions';
+import { isClickSound, type ClickSound } from '@/lib/clickSounds';
+import {
+  CLICK_ON_VALUES, DEFAULT_LEVELS, DEFAULT_PATTERN, SUBDIVIDE_VALUES, type ClickOn, type ClickPattern, type Subdivide,
+} from './metronomeClicks';
 import { VolumeKnob } from '@/components/VolumeKnob';
 import { DEFAULT_ROLLS, type Rolls } from './rolls';
 import { MAX_COUNT_IN_BARS, SOUND_FAMILIES, TabPlayer, speedRange, type HeardPosition, type PlayerView, type Sound } from './playback';
@@ -120,9 +123,31 @@ export interface MetronomeSettings {
   countInBars: number;
   /** How loud the clicks are, 0 to 1, under the Volume knob. */
   clickVolume: number;
+  /** The clicks' sound, the Metronome page's (issue #477). */
+  sound: ClickSound;
+  /** What each beat is split into, with a quieter click between the beats. */
+  subdivide: Subdivide;
+  /** Which beats click: every one, the backbeat, or only beat one. A count-in clicks every beat. */
+  clickOn: ClickOn;
+  /** How loud beat one, the other beats and the subdivisions are, 0 to 1, under the click volume. */
+  beatOneVolume: number;
+  beatsVolume: number;
+  subdivisionsVolume: number;
 }
 
-export const DEFAULT_METRONOME: MetronomeSettings = { on: false, countIn: false, countInBars: 1, clickVolume: 0.8 };
+export const DEFAULT_METRONOME: MetronomeSettings = {
+  on: false, countIn: false, countInBars: 1, clickVolume: 0.8,
+  sound: DEFAULT_PATTERN.sound, subdivide: DEFAULT_PATTERN.subdivide, clickOn: DEFAULT_PATTERN.clickOn,
+  beatOneVolume: DEFAULT_LEVELS.one, beatsVolume: DEFAULT_LEVELS.beats, subdivisionsVolume: DEFAULT_LEVELS.subdivisions,
+};
+
+/** The click pattern Tab › Metronome sets. */
+export function patternOf(m: Pick<MetronomeSettings, 'sound' | 'subdivide' | 'clickOn' | 'beatOneVolume' | 'beatsVolume' | 'subdivisionsVolume'>): ClickPattern {
+  return {
+    sound: m.sound, subdivide: m.subdivide, clickOn: m.clickOn,
+    levels: { one: m.beatOneVolume, beats: m.beatsVolume, subdivisions: m.subdivisionsVolume },
+  };
+}
 
 export function parseMetronome(saved: unknown): MetronomeSettings {
   const fields = fieldsOf(saved);
@@ -133,6 +158,12 @@ export function parseMetronome(saved: unknown): MetronomeSettings {
     countInBars: Number.isInteger(fields.countInBars) && (fields.countInBars as number) >= 1 && (fields.countInBars as number) <= MAX_COUNT_IN_BARS
       ? fields.countInBars as number : d.countInBars,
     clickVolume: isLevel(fields.clickVolume) ? fields.clickVolume : d.clickVolume,
+    sound: isClickSound(fields.sound) ? fields.sound : d.sound,
+    subdivide: SUBDIVIDE_VALUES.includes(fields.subdivide as Subdivide) ? fields.subdivide as Subdivide : d.subdivide,
+    clickOn: CLICK_ON_VALUES.includes(fields.clickOn as ClickOn) ? fields.clickOn as ClickOn : d.clickOn,
+    beatOneVolume: isLevel(fields.beatOneVolume) ? fields.beatOneVolume : d.beatOneVolume,
+    beatsVolume: isLevel(fields.beatsVolume) ? fields.beatsVolume : d.beatsVolume,
+    subdivisionsVolume: isLevel(fields.subdivisionsVolume) ? fields.subdivisionsVolume : d.subdivisionsVolume,
   };
 }
 
@@ -189,7 +220,7 @@ export interface MidiRoute {
 
 const NO_MIDI: MidiRoute = { port: null, channel: 1, builtIn: true, bendRange: 2 };
 
-export function usePlayback(clip: Part, sound: Sound, volume: number, { loopPause, transpose, metronome, countIn, countInBars, clickVolume, effects, rolls = DEFAULT_ROLLS, midi = NO_MIDI, onStopAt }: {
+export function usePlayback(clip: Part, sound: Sound, volume: number, { loopPause, transpose, metronome, countIn, countInBars, clickVolume, pattern = DEFAULT_PATTERN, effects, rolls = DEFAULT_ROLLS, midi = NO_MIDI, onStopAt }: {
   /** The rest between loops, in seconds; 0 loops straight round. */
   loopPause: number;
   /** Semitones everything heard is moved by. */
@@ -199,6 +230,8 @@ export function usePlayback(clip: Part, sound: Sound, volume: number, { loopPaus
   countIn: boolean;
   countInBars: number;
   clickVolume: number;
+  /** The clicks' sound, subdivisions, beats and levels (Tab › Metronome); the default when left out. */
+  pattern?: ClickPattern;
   /** Distortion and reverb as set, heard at once. */
   effects: FxSettings;
   /** How much each kind of chord mark rolls its chord, heard at once; alphaTab-like defaults when left out. */
@@ -248,6 +281,9 @@ export function usePlayback(clip: Part, sound: Sound, volume: number, { loopPaus
   useEffect(() => {
     player.current?.setClickVolume(clickVolume);
   }, [clickVolume]);
+  useEffect(() => {
+    player.current?.setClickPattern(pattern);
+  }, [pattern]);
   // By value: the same rolls as a new object each render change nothing.
   const { strokes, strums, rolledChords } = rolls;
   useEffect(() => {
@@ -277,6 +313,7 @@ export function usePlayback(clip: Part, sound: Sound, volume: number, { loopPaus
       p.setMetronome(metronome);
       p.setCountIn(countIn, countInBars);
       p.setClickVolume(clickVolume);
+      p.setClickPattern(pattern);
       p.setRolls(rolls);
       p.setEffects(heardFx);
       const m = midiNow.current;
@@ -428,7 +465,7 @@ export function trackLabel(name: string, index: number): string {
   return chars.length <= TRACK_LABEL_LENGTH ? full : `${chars.slice(0, TRACK_LABEL_LENGTH - 1).join('')}…`;
 }
 
-export function PlaybackFooter({ clip, playback, from, until, selection, onLoop, shown, onShow, track, sound, onSound, soundNote, midiNote = null, volume, onVolume, hearNotes, onHearNotes, transpose, onTranspose, effects, onEffects, options, onOptions, metronome, onMetronome, countIn, onCountIn, countInBars, onCountInBars, clickVolume, onClickVolume }: {
+export function PlaybackFooter({ clip, playback, from, until, selection, onLoop, shown, onShow, track, sound, onSound, soundNote, midiNote = null, volume, onVolume, hearNotes, onHearNotes, transpose, onTranspose, effects, onEffects, options, onOptions, metronome, onMetronome, onMetronomeOptions }: {
   clip: Part;
   playback: Playback;
   /** The track shown and played: its name ('' for none) and place, which label its Sound and FX. */
@@ -465,25 +502,15 @@ export function PlaybackFooter({ clip, playback, from, until, selection, onLoop,
   /** The options a right-click on Play opens. */
   options: PlaybackOptionValues;
   onOptions: (options: PlaybackOptionValues) => void;
-  /** The metronome toggle after Hear notes; its right-click menu sets the count-in and the clicks' volume. */
+  /** The metronome toggle after Hear notes; a right-click on it opens the Metronome dialog (`MetronomeDialog.tsx`). */
   metronome: boolean;
   onMetronome: (on: boolean) => void;
-  countIn: boolean;
-  onCountIn: (on: boolean) => void;
-  countInBars: number;
-  onCountInBars: (bars: number) => void;
-  clickVolume: number;
-  onClickVolume: (volume: number) => void;
+  onMetronomeOptions: () => void;
 }) {
   const label = trackLabel(track.name, track.index);
   const fullName = track.name.trim() || `Track ${track.index + 1}`;
-  // Where the options menu opened; null while it is shut. Likewise the clicks' menu.
+  // Where the options menu opened; null while it is shut.
   const [optionsAt, setOptionsAt] = useState<{ x: number; y: number } | null>(null);
-  const [clickOptionsAt, setClickOptionsAt] = useState<{ x: number; y: number } | null>(null);
-  const openClickOptions = (e: ReactMouseEvent) => {
-    e.preventDefault();
-    setClickOptionsAt({ x: e.clientX, y: e.clientY });
-  };
   const row = useRef<HTMLDivElement>(null);
   const { view, loop, speed } = playback;
   const playing = view.state === 'playing';
@@ -542,8 +569,11 @@ export function PlaybackFooter({ clip, playback, from, until, selection, onLoop,
           </button>
           <button
             type="button" className="btn btn-secondary btn-toggle btn-icon" aria-label="Metronome" aria-pressed={metronome}
-            data-tip="Metronome. Right-click for count-in and click volume" onMouseDown={e => e.preventDefault()} onClick={() => onMetronome(!metronome)}
-            onContextMenu={openClickOptions}
+            data-tip="Metronome. Right-click for its settings" aria-haspopup="dialog" onMouseDown={e => e.preventDefault()} onClick={() => onMetronome(!metronome)}
+            onContextMenu={e => {
+              e.preventDefault();
+              onMetronomeOptions();
+            }}
           >
             <MetronomeIcon />
           </button>
@@ -596,9 +626,6 @@ export function PlaybackFooter({ clip, playback, from, until, selection, onLoop,
       )}
       {optionsAt && (
         <PlaybackOptions x={optionsAt.x} y={optionsAt.y} values={options} onChange={onOptions} onClose={() => setOptionsAt(null)} />
-      )}
-      {clickOptionsAt && (
-        <ClickOptions x={clickOptionsAt.x} y={clickOptionsAt.y} countIn={countIn} onCountIn={onCountIn} bars={countInBars} onBars={onCountInBars} volume={clickVolume} onVolume={onClickVolume} onClose={() => setClickOptionsAt(null)} />
       )}
     </div>
   );

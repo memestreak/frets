@@ -10,11 +10,14 @@ import { useState } from 'react';
 import { usePersist } from '@/hooks/usePersist';
 import { loadJson } from '@/lib/storage';
 import { Segmented } from '@/components/controls';
-import { checkField, choiceField } from '@/components/settings/fields';
+import { CheckBox, checkField, choiceField } from '@/components/settings/fields';
 import { section, type SettingsField, type SettingsGroup } from '@/components/settings/types';
-import { NumberField } from '@/components/NumberField';
+import { NumberField, resetOnDoubleClick } from '@/components/NumberField';
 import { VolumeKnob } from '@/components/VolumeKnob';
 import { chooseScheme } from './ViewOptions';
+import { CLICK_SOUNDS, type ClickSound } from '@/lib/clickSounds';
+import { CLICK_ONS, SUBDIVIDES, type ClickOn, type Subdivide } from './metronomeClicks';
+import { previewClick } from './clickPreview';
 import {
   DEFAULT_METRONOME, DEFAULT_PLAYBACK, MAX_ROLL, MAX_TRANSPOSE, METRONOME_KEY, MIN_ROLL, ROLL_STEP, PLAYBACK_KEY, parseMetronome, parsePlaybackSettings,
   type MetronomeSettings, type PlaybackSettings,
@@ -214,6 +217,93 @@ function channelsField(): SettingsField<MidiSettings> {
  * Settings' Tab group, on the page's state. `savePlayback` saves Playback (hiding the controls stops
  * playback).
  */
+/**
+ * The metronome on or off, and its sound, on one line at the top (Jeremy, 2026-11-14). The sound is
+ * not greyed out while it is off: the count-in plays it too. A sound picked is heard once.
+ */
+function metronomeField(): SettingsField<MetronomeSettings> {
+  return {
+    key: 'on', label: 'Metronome',
+    control: ({ value, set, labelId, disabled }) => (
+      <>
+        <CheckBox on={value.on} labelledBy={labelId} disabled={disabled} onChange={on => set({ ...value, on })} />
+        <span className="settings-after settings-sound-name" aria-hidden="true">Sound</span>
+        <select
+          className="input settings-sound" aria-label="Sound" disabled={disabled} value={value.sound}
+          onChange={e => {
+            const sound = e.target.value as ClickSound;
+            set({ ...value, sound });
+            previewClick(sound, 1);
+          }}
+        >
+          {CLICK_SOUNDS.map(([v, name]) => <option key={v} value={v}>{name}</option>)}
+        </select>
+      </>
+    ),
+  };
+}
+
+/** The metronome's four volumes, and their names under them. */
+const METRONOME_VOLUMES = [
+  ['clickVolume', 'Clicks'], ['beatOneVolume', 'Beat one'], ['beatsVolume', 'Beats'], ['subdivisionsVolume', 'Subdivisions'],
+] as const;
+
+/**
+ * The metronome's volumes in one row, each knob with its name under it, as the footer's Volume is
+ * (Jeremy, 2026-11-14): every click's, then beat one's, the other beats' and the subdivisions'.
+ */
+function volumesField(): SettingsField<MetronomeSettings> {
+  return {
+    key: 'clickVolume', label: 'Volumes',
+    control: ({ value, set, labelId }) => (
+      <span className="settings-knobs" role="group" aria-labelledby={labelId}>
+        {METRONOME_VOLUMES.map(([key, name]) => (
+          <span key={key} className="settings-knob">
+            <VolumeKnob value={value[key]} labelledBy={`${labelId}-${key}`} name={name} onChange={v => set({ ...value, [key]: v })} />
+            <span id={`${labelId}-${key}`} className="settings-knob-name">{name}</span>
+          </span>
+        ))}
+      </span>
+    ),
+  };
+}
+
+/**
+ * Count in and how many bars, on one line (Jeremy, 2026-11-14): the check box, then the bars, greyed
+ * out while Count in is off.
+ */
+function countInField(): SettingsField<MetronomeSettings> {
+  return {
+    key: 'countIn', label: 'Count in',
+    control: ({ value, set, labelId, disabled }) => (
+      <>
+        <CheckBox on={value.countIn} labelledBy={labelId} disabled={disabled} onChange={countIn => set({ ...value, countIn })} />
+        {/* A double-click on the bars or their word puts back 1. */}
+        {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- a mouse shortcut only; from the keyboard, type 1 */}
+        <span className="settings-count-in" role="group" aria-label="Count-in bars" onDoubleClick={e => resetOnDoubleClick(e, () => set({ ...value, countInBars: 1 }))}>
+          <NumberField
+            compact value={value.countInBars} min={1} max={MAX_COUNT_IN_BARS} step={1} disabled={disabled || !value.countIn}
+            label="Count-in bars" upLabel="More bars" downLabel="Fewer bars" onChange={countInBars => set({ ...value, countInBars })}
+          />
+          <span className="settings-after">{value.countInBars === 1 ? 'bar' : 'bars'}</span>
+        </span>
+      </>
+    ),
+  };
+}
+
+/**
+ * Tab › Metronome's fields, in Settings and in the Metronome dialog a right-click on the footer's
+ * Metronome opens (issue #477), so both show the same.
+ */
+export const METRONOME_FIELDS: SettingsField<MetronomeSettings>[] = [
+  metronomeField(),
+  countInField(),
+  choiceField<MetronomeSettings, 'subdivide', Subdivide>('subdivide', 'Subdivide', SUBDIVIDES),
+  choiceField<MetronomeSettings, 'clickOn', ClickOn>('clickOn', 'Click on', CLICK_ONS),
+  volumesField(),
+];
+
 export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: PlaybackSettings) => void): SettingsGroup {
   return {
     id: 'tab',
@@ -246,14 +336,7 @@ export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: Playback
       }),
       section<MetronomeSettings>({
         id: 'metronome', name: 'Metronome', value: prefs.metronome, defaults: DEFAULT_METRONOME, save: prefs.setMetronome,
-        fields: [
-          checkField('on', 'Metronome'),
-          checkField('countIn', 'Count in'),
-          numberField('countInBars', 'Count-in bars', {
-            min: 1, max: MAX_COUNT_IN_BARS, step: 1, upLabel: 'More bars', downLabel: 'Fewer bars', enabled: v => v.countIn,
-          }),
-          knobField('clickVolume', 'Click volume'),
-        ],
+        fields: METRONOME_FIELDS,
       }),
       section<MidiSettings>({
         id: 'midi', name: 'MIDI output', value: prefs.midi, defaults: DEFAULT_MIDI, save: prefs.setMidi,

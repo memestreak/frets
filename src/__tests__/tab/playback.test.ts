@@ -6,10 +6,12 @@ import { readFileSync } from 'node:fs';
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { writePart } from '@/features/tab/alphatex';
-import { clickSoundFont, ACCENT_KEY, BEAT_KEY } from '@/features/tab/click';
+import { clickKeys, clickSoundFont, ACCENT_KEY, BEAT_KEY } from '@/features/tab/click';
+import { DEFAULT_PATTERN, type ClickPattern } from '@/features/tab/metronomeClicks';
+import { CLICK_SOUNDS } from '@/lib/clickSounds';
 import { clickWave } from '@/lib/click';
 import {
-  midiUntil, noteAlone, shapeAlone, columnAtTick, heardAt, countInBefore, countOf, COUNT_IN_CHANNEL, DEFAULT_SOUND, isSound, METRONOME_CHANNEL, perform, OWN_FONTS,
+  midiUntil, noteAlone, shapeAlone, columnAtTick, heardAt, countInBefore, COUNT_IN_CHANNEL, DEFAULT_SOUND, isSound, METRONOME_CHANNEL, perform, OWN_FONTS,
   SOUND_FAMILIES, speedRange, tickOf, ticksOf, withCountIn,
 } from '@/features/tab/playback';
 import { parseMetronome, parsePlaybackSettings } from '@/features/tab/PlaybackFooter';
@@ -93,10 +95,20 @@ describe('playback sounds', () => {
   });
 
   it('reads the saved Metronome section, each field checked', () => {
-    const off = { on: false, countIn: false, countInBars: 1, clickVolume: 0.8 };
+    const off = {
+      on: false, countIn: false, countInBars: 1, clickVolume: 0.8,
+      sound: 'wood', subdivide: 'off', clickOn: 'every', beatOneVolume: 1, beatsVolume: 1, subdivisionsVolume: 0.6,
+    };
     expect(parseMetronome(null)).toEqual(off);
-    expect(parseMetronome({ on: true, countIn: true, countInBars: 3, clickVolume: 0.35 })).toEqual({ on: true, countIn: true, countInBars: 3, clickVolume: 0.35 });
-    expect(parseMetronome({ on: 1, countIn: 'yes', countInBars: 5, clickVolume: 1.5 })).toEqual(off);
+    const set = {
+      on: true, countIn: true, countInBars: 3, clickVolume: 0.35,
+      sound: 'cowbell', subdivide: 'triplets', clickOn: 'backbeat', beatOneVolume: 0.5, beatsVolume: 0.25, subdivisionsVolume: 0,
+    };
+    expect(parseMetronome(set)).toEqual(set);
+    expect(parseMetronome({
+      on: 1, countIn: 'yes', countInBars: 5, clickVolume: 1.5,
+      sound: 'gong', subdivide: 'quintuplets', clickOn: 'two', beatOneVolume: -1, beatsVolume: '1', subdivisionsVolume: 2,
+    })).toEqual(off);
   });
 });
 
@@ -368,19 +380,6 @@ describe('speed range', () => {
 });
 
 describe('metronome', () => {
-  it('clicks each beat, marking each group of three in compound time', () => {
-    expect(countOf(4, 4)).toEqual({ ticks: Q, clicks: 4, group: 0 });
-    expect(countOf(3, 4)).toEqual({ ticks: Q, clicks: 3, group: 0 });
-    expect(countOf(2, 2)).toEqual({ ticks: 2 * Q, clicks: 2, group: 0 });
-    // 6/8 clicks six eighths, the 1 and the 4 marked (Jeremy, 2026-10-28).
-    expect(countOf(6, 8)).toEqual({ ticks: Q / 2, clicks: 6, group: 3 });
-    expect(countOf(9, 8)).toEqual({ ticks: Q / 2, clicks: 9, group: 3 });
-    expect(countOf(12, 8)).toEqual({ ticks: Q / 2, clicks: 12, group: 3 });
-    // Three eighths, and odd meters, click every eighth with no groups.
-    expect(countOf(3, 8)).toEqual({ ticks: Q / 2, clicks: 3, group: 0 });
-    expect(countOf(7, 8)).toEqual({ ticks: Q / 2, clicks: 7, group: 0 });
-  });
-
   it('puts its clicks in the MIDI, beat one higher, following time signature changes', () => {
     const clip = clipOf('\\ts (2 4) 0.6.2 | \\ts (6 8) 0.6.2{d} | 0.6.4{tu 3} 0.6.4{tu 3} 0.6.4{tu 3} 0.6.4 |');
     const played = perform(alphaTab, clip);
@@ -425,7 +424,7 @@ describe('metronome', () => {
     const from = tickOf(clip, played, 4);
     const countIn = countInBefore(played, from)!;
     // One bar of 6/8: six eighths.
-    expect(countIn).toEqual({ start: from - 3 * Q, end: from, count: { ticks: Q / 2, clicks: 6, group: 3 }, bars: 1 });
+    expect(countIn).toEqual({ start: from - 3 * Q, end: from, count: { ticks: Q / 2, clicks: 6, groupStarts: [3] }, bars: 1 });
     const midi = withCountIn(alphaTab, played.midi, countIn);
     expect(clicksOn(midi, COUNT_IN_CHANNEL)).toEqual([0, 1, 2, 3, 4, 5].map(k => [countIn.start + k * Q / 2, k === 0]));
     // The notes and clicks of the bar before are gone; the ones from Play on are where they were.
@@ -463,6 +462,73 @@ describe('metronome', () => {
     expect(clicksOn(withCountIn(alphaTab, played.midi, countIn), COUNT_IN_CHANNEL).map(([t, accent]) => [(t - countIn.start) / Q, accent]))
       .toEqual(Array.from({ length: 12 }, (_, k) => [k / 2, k % 6 === 0]));
   });
+
+  /** The clicks on the metronome's channel with a pattern: each one's beat (from the clip's start), key and velocity. */
+  const clicksWith = (text: string, change: Partial<ClickPattern>) => {
+    const played = perform(alphaTab, clipOf(text), undefined, { pattern: { ...DEFAULT_PATTERN, ...change } });
+    return played.midi.events
+      .filter((e): e is alphaTab.midi.NoteOnEvent => e instanceof alphaTab.midi.NoteOnEvent && e.channel === METRONOME_CHANNEL)
+      .map(e => ({ beat: (e.tick - played.start) / Q, key: e.noteKey, velocity: e.noteVelocity }));
+  };
+
+  it('plays the sound picked, beat one on its high click and the rest on its low one (issue #477)', () => {
+    const keys = clickKeys('cowbell');
+    expect(clicksWith('0.6.1 |', { sound: 'cowbell' }).map(c => c.key)).toEqual([keys.high, keys.low, keys.low, keys.low]);
+    // The wood block keeps General MIDI's wood block keys.
+    expect(clickKeys('wood')).toEqual({ high: ACCENT_KEY, low: BEAT_KEY });
+  });
+
+  it('subdivides each beat, quieter between the beats', () => {
+    expect(clicksWith('0.6.1 |', { subdivide: 'eighths' }).map(c => c.beat)).toEqual([0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5]);
+    const triplets = clicksWith('\\ts (2 4) 0.6.2 |', { subdivide: 'triplets' });
+    expect(triplets.map(c => c.beat * 3)).toEqual([0, 1, 2, 3, 4, 5]);
+    expect(triplets[1].velocity).toBeLessThan(triplets[3].velocity);
+    expect(clicksWith('\\ts (1 4) 0.6.4 |', { subdivide: 'sixteenths' }).map(c => c.beat)).toEqual([0, 0.25, 0.5, 0.75]);
+  });
+
+  it('clicks only the backbeat, or only beat one, with their subdivisions', () => {
+    expect(clicksWith('0.6.1 |', { clickOn: 'backbeat' }).map(c => c.beat)).toEqual([1, 3]);
+    expect(clicksWith('0.6.1 |', { clickOn: 'backbeat', subdivide: 'eighths' }).map(c => c.beat)).toEqual([1, 1.5, 3, 3.5]);
+    expect(clicksWith('0.6.1 |', { clickOn: 'one' }).map(c => c.beat)).toEqual([0]);
+    // 7/8 as 2+2+3: the group starts after the first.
+    expect(clicksWith('\\ts (7 8) 0.6.2{d} 0.6.8 |', { clickOn: 'backbeat' }).map(c => c.beat * 2)).toEqual([2, 4]);
+  });
+
+  it("follows the bar's Beat groups in 7/8, a group's first click harder", () => {
+    const groups = (text: string) => {
+      const clicks = clicksWith(text, {});
+      const plainVelocity = clicks[1].velocity;
+      return clicks.flatMap((c, k) => (k > 0 && c.velocity > plainVelocity ? [k] : []));
+    };
+    expect(groups('\\ts (7 8) 0.6.2{d} 0.6.8 |')).toEqual([2, 4]);
+    expect(groups('\\ts (7 8) \\beaming (8 3 2 2) 0.6.2{d} 0.6.8 |')).toEqual([3, 5]);
+    expect(groups('\\ts (6 8) 0.6.2{d} |')).toEqual([3]);
+  });
+
+  it('sets each kind of click by its own level, and a level of 0 leaves it out', () => {
+    const full = clicksWith('0.6.1 |', { subdivide: 'eighths' });
+    const half = clicksWith('0.6.1 |', { subdivide: 'eighths', levels: { one: 0.5, beats: 1, subdivisions: 0 } });
+    expect(half.map(c => c.beat)).toEqual([0, 1, 2, 3]);
+    expect(half[0].velocity).toBe(Math.round(full[0].velocity / 2));
+    expect(half[1].velocity).toBe(full[2].velocity);
+  });
+
+  it('counts in every beat even when only the backbeat clicks, subdivided as the clicks are', () => {
+    const clip = clipOf('0.6.1 |');
+    const pattern: ClickPattern = { ...DEFAULT_PATTERN, clickOn: 'backbeat', subdivide: 'eighths' };
+    const played = perform(alphaTab, clip, undefined, { pattern });
+    const countIn = countInBefore(played, tickOf(clip, played, 0))!;
+    expect(clicksOn(withCountIn(alphaTab, played.midi, countIn, pattern), COUNT_IN_CHANNEL).map(([t]) => (t - countIn.start) / Q))
+      .toEqual([0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5]);
+  });
+
+  it('sounds every one of its sounds from its own soundfont in alphaTab', () => {
+    const font = clickSoundFont();
+    for (const [sound] of CLICK_SOUNDS) {
+      const clicks = perform(alphaTab, clipOf('r.1 |'), undefined, { pattern: { ...DEFAULT_PATTERN, sound } });
+      expect(peakOf(clicks.midi, [font]), sound).toBeGreaterThan(0.05);
+    }
+  }, 60_000);
 
   it('makes a click that starts and ends at silence, so it never pops', () => {
     for (const accent of [true, false]) {

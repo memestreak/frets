@@ -247,6 +247,9 @@ html:has(.settings-dialog[open]) { overflow: hidden; }
 .number-field input:focus { outline: none; cursor: text; }
 .number-field:focus-within { border-color: var(--primary); }
 .number-field-unit { margin: 0 6px 0 1px; color: var(--ink-muted); }
+/* A number inside a line of words: as tall as the line, no buttons; still dragged, typed or stepped with ↑ ↓. */
+.number-field-compact { height: 26px; padding: 0 2px 0 6px; font: 600 14px/20px var(--font-sans); }
+.number-field-compact .number-field-unit { margin-right: 4px; }
 .number-field-steps { display: grid; grid-template-rows: 1fr 1fr; align-self: stretch; border-left: 1px solid var(--line); }
 .number-field-steps button {
   display: grid; place-items: center; width: 20px; padding: 0; border: 0; background: transparent;

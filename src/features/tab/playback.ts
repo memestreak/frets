@@ -10,10 +10,11 @@
 import type * as AlphaTabModule from '@coderline/alphatab';
 import { writePart } from './alphatex';
 import { loadAlphaTab } from './alphatexRead';
-import { DEFAULT_BPM, MAX_BPM, MIN_BPM, STRING_COUNT, TREMOLO_VALUES, WHOLE, ticks, type Part, type Note } from './clip';
+import { DEFAULT_BPM, MAX_BPM, MIN_BPM, STRING_COUNT, TREMOLO_VALUES, WHOLE, groupCountsAt, ticks, type Part, type Note } from './clip';
 import { indexOf, placeOf } from './editing';
 import { WebAudioOutput } from './audioOutput';
-import { ACCENT_KEY, BEAT_KEY, CLICK_BANK, CLICK_PROGRAM, clickSoundFont } from './click';
+import { CLICK_BANK, CLICK_PROGRAM, clickKeys, clickSoundFont } from './click';
+import { DEFAULT_PATTERN, barClicks, clickVelocity, countOf, samePattern, type ClickKind, type ClickPattern, type Count } from './metronomeClicks';
 import { keepDry } from './dryChannels';
 import { loopSeamlessly } from './seamlessLoop';
 import { DEFAULT_ROLLS, rollChords, sameRolls, type Rolls } from './rolls';
@@ -116,44 +117,8 @@ const RING_OUT_TICKS = 2 * 960;
  */
 export const METRONOME_CHANNEL = 10;
 export const COUNT_IN_CHANNEL = 11;
-/**
- * How hard a click is struck, out of 127: beat one (its own, higher click), the start of each group
- * of three in compound time (the 4 in 6/8), and every other click.
- */
-const ACCENT_VELOCITY = 110;
-const GROUP_VELOCITY = 120;
-const CLICK_VELOCITY = 80;
 /** How long a click's note is held, in ticks; the click itself has died away by then. */
 const CLICK_TICKS = 120;
-
-/**
- * How the metronome counts a bar: how far apart its clicks are (ticks), how many there are, and
- * every how many clicks a group starts (marked louder), or 0 for no groups.
- */
-export interface Count {
-  ticks: number;
-  clicks: number;
-  group: number;
-}
-
-/**
- * How the metronome counts a time signature: a click per beat, the bottom number's note. Compound
- * time (6/8, 9/8, 12/8, or the same over 16) marks each group of three a little louder, so 6/8
- * clicks six eighths with the 1 and the 4 standing out (Jeremy, 2026-10-28: two clicks a bar of 6/8
- * was too few).
- */
-export function countOf(beats: number, value: number): Count {
-  const note = (4 / value) * 960;
-  return { ticks: note, clicks: beats, group: value >= 8 && beats > 3 && beats % 3 === 0 ? 3 : 0 };
-}
-
-/** How a bar's click `k` (from 0) sounds: beat one, a group's start, or plain. */
-function clickKind(count: Count, k: number): ClickKind {
-  const n = k % count.clicks;
-  return n === 0 ? 'one' : count.group > 0 && n % count.group === 0 ? 'group' : 'plain';
-}
-
-type ClickKind = 'one' | 'group' | 'plain';
 
 export interface Performance {
   score: Score;
@@ -206,7 +171,8 @@ function pickAtTremoloValue(score: Score) {
  * signature. `rolls` is how much each kind of chord mark rolls its chord (`rolls.ts`).
  */
 export function perform(
-  at: AlphaTab, clip: Part, sound: Sound = DEFAULT_SOUND, { clicks = true, rolls = DEFAULT_ROLLS }: { clicks?: boolean; rolls?: Rolls } = {},
+  at: AlphaTab, clip: Part, sound: Sound = DEFAULT_SOUND,
+  { clicks = true, rolls = DEFAULT_ROLLS, pattern = DEFAULT_PATTERN }: { clicks?: boolean; rolls?: Rolls; pattern?: ClickPattern } = {},
 ): Performance {
   const settings = new at.Settings();
   // alphaTab's wide vibrato is faster as well as wider (a period of 240 ticks to the slight one's
@@ -238,7 +204,7 @@ export function perform(
   const bars = masterBars.map(b => ({
     start: b.start + midi.tickShift,
     end: b.end + midi.tickShift,
-    count: countOf(b.masterBar.timeSignatureNumerator, b.masterBar.timeSignatureDenominator),
+    count: countOf(b.masterBar.timeSignatureNumerator, b.masterBar.timeSignatureDenominator, groupCountsAt(clip, b.masterBar.index)),
   }));
   // Room before the first bar for the longest count-in before any bar: a bar's count-in comes before it.
   const preroll = clicks ? Math.max(0, ...bars.map(b => MAX_COUNT_IN_BARS * b.count.ticks * b.count.clicks - b.start)) : 0;
@@ -255,10 +221,10 @@ export function perform(
   if (clicks) {
     for (const channel of [METRONOME_CHANNEL, COUNT_IN_CHANNEL]) clickSound(at, midi, channel);
     for (const bar of bars) {
-      for (let k = 0; k < bar.count.clicks; k++) {
-        const tick = bar.start + k * bar.count.ticks;
+      for (const click of barClicks(bar.count, pattern)) {
+        const tick = bar.start + click.offset;
         if (tick >= bar.end) break;
-        addClick(at, midi, METRONOME_CHANNEL, tick, clickKind(bar.count, k));
+        addClick(at, midi, METRONOME_CHANNEL, tick, click.kind, pattern);
       }
     }
   }
@@ -273,10 +239,12 @@ function clickSound(at: AlphaTab, midi: AlphaTabModule.midi.MidiFile, channel: n
   midi.addEvent(new at.midi.ProgramChangeEvent(0, 0, channel, CLICK_PROGRAM));
 }
 
-/** A click: beat one's higher click, or the other click, louder at a group's start. */
-function addClick(at: AlphaTab, midi: AlphaTabModule.midi.MidiFile, channel: number, tick: number, kind: ClickKind) {
-  const key = kind === 'one' ? ACCENT_KEY : BEAT_KEY;
-  const velocity = kind === 'one' ? ACCENT_VELOCITY : kind === 'group' ? GROUP_VELOCITY : CLICK_VELOCITY;
+/** A click in the pattern's sound: beat one's high click, or the low one, as hard as its kind and level say. */
+function addClick(at: AlphaTab, midi: AlphaTabModule.midi.MidiFile, channel: number, tick: number, kind: ClickKind, pattern: ClickPattern) {
+  const keys = clickKeys(pattern.sound);
+  const key = kind === 'one' ? keys.high : keys.low;
+  const velocity = clickVelocity(kind, pattern.levels);
+  if (velocity === 0) return;
   midi.addEvent(new at.midi.NoteOnEvent(0, tick, channel, key, velocity));
   midi.addEvent(new at.midi.NoteOffEvent(0, tick + CLICK_TICKS, channel, key, 0));
 }
@@ -315,7 +283,7 @@ function cloneAt<E extends AlphaTabModule.midi.MidiEvent>(event: E, tick: number
  * end with every tick where it was. Tempo and other changes in that bar, or where it ends, take
  * effect from its start, so it counts at the tempo Play starts in.
  */
-export function withCountIn(at: AlphaTab, source: AlphaTabModule.midi.MidiFile, countIn: CountIn): AlphaTabModule.midi.MidiFile {
+export function withCountIn(at: AlphaTab, source: AlphaTabModule.midi.MidiFile, countIn: CountIn, pattern: ClickPattern = DEFAULT_PATTERN): AlphaTabModule.midi.MidiFile {
   const { count, bars } = countIn;
   const midi = new at.midi.MidiFile();
   midi.format = source.format;
@@ -333,7 +301,12 @@ export function withCountIn(at: AlphaTab, source: AlphaTabModule.midi.MidiFile, 
     }
     midi.addEvent(event);
   }
-  for (let k = 0; k < bars * count.clicks; k++) addClick(at, midi, COUNT_IN_CHANNEL, countIn.start + k * count.ticks, clickKind(count, k));
+  const barTicks = count.ticks * count.clicks;
+  for (let b = 0; b < bars; b++) {
+    for (const click of barClicks(count, pattern, { countIn: true })) {
+      addClick(at, midi, COUNT_IN_CHANNEL, countIn.start + b * barTicks + click.offset, click.kind, pattern);
+    }
+  }
   return midi;
 }
 
@@ -832,6 +805,8 @@ export class TabPlayer {
   private countIn = false;
   private countInBars = 1;
   private clickVolume = 1;
+  /** What the clicks sound like and which fall (Tab › Metronome): in the MIDI, so a change makes it again. */
+  private pattern: ClickPattern = DEFAULT_PATTERN;
   /**
    * The count-in of the Play under way, until it has been heard and the playhead goes back (a loop
    * coming round, or a press on the tab): then the clip's own MIDI takes over, since the count-in
@@ -949,7 +924,7 @@ export class TabPlayer {
       this.clip = clip;
       this.sound = sound;
       this.setVolume(this.volume);
-      this.performance = perform(this.at, clip, sound, { rolls: this.rolls });
+      this.performance = perform(this.at, clip, sound, { rolls: this.rolls, pattern: this.pattern });
       this.loaded = null;
     }
     this.setSpeed(speed);
@@ -1058,7 +1033,7 @@ export class TabPlayer {
   /** The clip's MIDI stopping at a tick (or not, for null), with the count-in under way if any. */
   private midiFor(performance: Performance, end: number | null): AlphaTabModule.midi.MidiFile {
     const midi = end === null ? performance.midi : midiUntil(this.at, performance, end);
-    return this.counted ? withCountIn(this.at, midi, this.counted) : midi;
+    return this.counted ? withCountIn(this.at, midi, this.counted, this.pattern) : midi;
   }
 
   /** Puts the clip's MIDI in the synthesizer, stopping at `end` or not, with the count-in if any. */
@@ -1100,14 +1075,29 @@ export class TabPlayer {
   setRolls(rolls: Rolls) {
     if (sameRolls(rolls, this.rolls)) return;
     this.rolls = rolls;
+    this.remake();
+  }
+
+  /** Makes the clip's MIDI again (new rolls or clicks); a clip playing goes on from where it is. */
+  private remake() {
     if (!this.clip || !this.performance) return;
     const playing = !this.ended && this.resting === null;
     const tick = this.synth.tickPosition;
-    this.performance = perform(this.at, this.clip, this.sound, { rolls });
+    this.performance = perform(this.at, this.clip, this.sound, { rolls: this.rolls, pattern: this.pattern });
     this.load(this.performance, null);
     this.moveTo(tick);
     this.setLoop(this.loop);
     if (playing) this.synth.play();
+  }
+
+  /**
+   * The clicks' sound, subdivisions, which beats click and their levels (issue #477); a clip playing
+   * goes on from where it is with the new clicks, as with new rolls.
+   */
+  setClickPattern(pattern: ClickPattern) {
+    if (samePattern(pattern, this.pattern)) return;
+    this.pattern = pattern;
+    this.remake();
   }
 
   /** The rest between loops, in seconds; 0 loops straight round. */
@@ -1315,7 +1305,7 @@ export class TabPlayer {
       if (loaded) this.onView({ state: 'idle' });
       return;
     }
-    this.performance = perform(this.at, this.clip, sound, { rolls: this.rolls });
+    this.performance = perform(this.at, this.clip, sound, { rolls: this.rolls, pattern: this.pattern });
     this.load(this.performance, null);
     this.moveTo(tick);
     this.setLoop(this.loop);

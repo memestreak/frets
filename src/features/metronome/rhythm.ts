@@ -6,12 +6,8 @@
  * level. Every beat is split into steps, and each step plays one voice or none. A polyrhythm layer
  * adds a second, independent run of even clicks across the bar.
  */
+import type { ClickSound } from '@/lib/clickSounds';
 
-export type SoundId = 'wood' | 'beep' | 'cowbell' | 'stick' | 'hihat' | 'clave' | 'kick';
-export const SOUNDS: readonly (readonly [SoundId, string])[] = [
-  ['wood', 'Wood block'], ['beep', 'Beep'], ['cowbell', 'Cowbell'], ['stick', 'Side stick'],
-  ['hihat', 'Hi-hat'], ['clave', 'Clave'], ['kick', 'Kick'],
-];
 
 /** A voice: A (0) to D (3). A step plays one voice, or none (null). */
 export type VoiceId = 0 | 1 | 2 | 3;
@@ -19,7 +15,7 @@ export type Step = VoiceId | null;
 export const VOICE_NAMES = ['A', 'B', 'C', 'D'] as const;
 
 export interface Voice {
-  sound: SoundId;
+  sound: ClickSound;
   /** The sound's high (accent) sample, or its low one. */
   high: boolean;
   /** 0 to 1. */
@@ -31,7 +27,7 @@ export interface Poly {
   on: boolean;
   /** Even clicks across the bar (3 over 4, 5 over 4…), 1 to `MAX_POLY`. */
   count: number;
-  sound: SoundId;
+  sound: ClickSound;
   /** The sound's high sample, or its low one, as for a voice. */
   high: boolean;
   level: number;
@@ -164,7 +160,7 @@ export function withVoice(r: Rhythm, v: VoiceId, patch: Partial<Voice>): Rhythm 
 }
 
 /** The main Sound: every voice to one sound. */
-export function withSound(r: Rhythm, sound: SoundId): Rhythm {
+export function withSound(r: Rhythm, sound: ClickSound): Rhythm {
   return { ...r, voices: r.voices.map(v => ({ ...v, sound })) };
 }
 

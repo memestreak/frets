@@ -1,18 +1,25 @@
 /**
- * Tab's metronome click (issue #148) as a tiny SoundFont 2 file, so alphaTab's synthesizer plays it
- * in time with the clip (`playback.ts`). The click itself is `clickWave` (`src/lib/click.ts`), shared
- * with the Metronome page.
+ * Tab's metronome clicks (issues #148, #477) as a tiny SoundFont 2 file, so alphaTab's synthesizer
+ * plays them in time with the clip (`playback.ts`). The sounds are the Metronome page's
+ * (`src/lib/clickSounds.ts`), each a high and a low click on keys of its own.
  */
-import { CLICK_SAMPLE_RATE, clickWave } from '@/lib/click';
+import { CLICK_SAMPLE_RATE } from '@/lib/click';
+import { CLICK_SOUNDS, clickSoundWaves, type ClickSound } from '@/lib/clickSounds';
 
 /* — the clicks as a SoundFont 2 file, for alphaTab's synthesizer — */
 
 /** The SoundFont bank and program the clicks are in: a bank no General MIDI sound uses. */
 export const CLICK_BANK = 120;
 export const CLICK_PROGRAM = 0;
-/** The keys that play the clicks: General MIDI's high and low wood block. */
+/** The keys that play the wood block's clicks: General MIDI's high and low wood block. */
 export const ACCENT_KEY = 76;
 export const BEAT_KEY = 77;
+
+/** The keys a sound's high (beat one's) and low click are on: the wood block's, then two more for each sound after it. */
+export function clickKeys(sound: ClickSound): { high: number; low: number } {
+  const i = CLICK_SOUNDS.findIndex(([id]) => id === sound);
+  return { high: ACCENT_KEY + 2 * i, low: BEAT_KEY + 2 * i };
+}
 
 // SoundFont 2 generator numbers (SF2.04, section 8.1.2).
 const GEN_INSTRUMENT = 41;
@@ -71,12 +78,21 @@ function list(kind: string, ...chunks: Uint8Array[]): Uint8Array {
 }
 
 /**
- * Both clicks as a SoundFont 2 file: one preset (`CLICK_BANK`, `CLICK_PROGRAM`) whose `ACCENT_KEY`
- * plays beat one's click and `BEAT_KEY` the others', each at its own pitch whatever the key.
+ * Every sound's clicks as a SoundFont 2 file: one preset (`CLICK_BANK`, `CLICK_PROGRAM`) in which
+ * each sound's high and low click have a key of their own (`clickKeys`), each at its own pitch
+ * whatever the key.
  */
 export function clickSoundFont(): Uint8Array {
-  const waves = [clickWave(true), clickWave(false)];
-  const keys = [ACCENT_KEY, BEAT_KEY];
+  const waves: Float32Array[] = [];
+  const keys: number[] = [];
+  const names: string[] = [];
+  for (const [sound] of CLICK_SOUNDS) {
+    const [high, low] = clickSoundWaves(sound, CLICK_SAMPLE_RATE);
+    const key = clickKeys(sound);
+    waves.push(high, low);
+    keys.push(key.high, key.low);
+    names.push(`${sound} high`, `${sound} low`);
+  }
 
   const smpl = new Bytes();
   const shdr = new Bytes();
@@ -86,7 +102,7 @@ export function clickSoundFont(): Uint8Array {
     wave.forEach((x, j) => (pcm[j] = Math.round(Math.max(-1, Math.min(1, x)) * 32767)));
     smpl.push(new Uint8Array(pcm.buffer));
     const end = start + wave.length;
-    shdr.text(i === 0 ? 'Click accent' : 'Click', 20).numbers(4, start, end, start, end, CLICK_SAMPLE_RATE)
+    shdr.text(names[i], 20).numbers(4, start, end, start, end, CLICK_SAMPLE_RATE)
       .numbers(1, keys[i], 0).numbers(2, 0, MONO);
     start = end + SAMPLE_PAD;
   });

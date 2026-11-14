@@ -6,9 +6,10 @@ import { NumberField, resetOnDoubleClick } from '@/components/NumberField';
 import { useTapPulse } from '@/components/TapPulse';
 import { letGoOfFields } from '@/hooks/useLetGoAfterUse';
 import { VolumeKnob } from '@/components/VolumeKnob';
+import { CLICK_SOUNDS, type ClickSound } from '@/lib/clickSounds';
 import {
-  DEFAULT_BEATS, DEFAULT_BPM, MAX_BEATS, MAX_BPM, MIN_BPM, RESET_LEVEL, SOUNDS, VOICE_NAMES, clampBpm, withBeats,
-  withSound, type SoundId, type Step,
+  DEFAULT_BEATS, DEFAULT_BPM, MAX_BEATS, MAX_BPM, MIN_BPM, RESET_LEVEL, VOICE_NAMES, clampBpm, withBeats,
+  withSound, type Step,
 } from './rhythm';
 import { VIEWS, type ViewId } from './storage';
 import type { Metronome } from './useMetronomeCore';
@@ -155,16 +156,16 @@ export function BeatsField({ m }: { m: Metronome }) {
 }
 
 export function SoundSelect({ label, value, disabled, onChange }: {
-  label: string; value: SoundId | null; disabled?: boolean; onChange: (s: SoundId) => void;
+  label: string; value: ClickSound | null; disabled?: boolean; onChange: (s: ClickSound) => void;
 }) {
   return (
     <select
       className="input metronome-select" aria-label={label} value={value ?? ''} disabled={disabled}
-      onChange={e => onChange(e.target.value as SoundId)}
+      onChange={e => onChange(e.target.value as ClickSound)}
     >
       {/* Advanced gave the voices different sounds: none of them is the sound. */}
       {value === null && <option value="" disabled>Mixed</option>}
-      {SOUNDS.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+      {CLICK_SOUNDS.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
     </select>
   );
 }

@@ -8,9 +8,10 @@
  *   no Settings: there is too little to set (Jeremy, 2026-10-31).
  * - `frets.metronome.playback`: the volume, a live control on the page, so not in Settings.
  */
+import { isClickSound } from '@/lib/clickSounds';
 import {
-  DEFAULT_VOICES, MAX_BEATS, MAX_POLY, MAX_STEPS, MAX_SWING, MIN_SWING, SOUNDS, clampBpm, defaultRhythm,
-  defaultSteps, type Poly, type Rhythm, type SoundId, type Step, type Voice,
+  DEFAULT_VOICES, MAX_BEATS, MAX_POLY, MAX_STEPS, MAX_SWING, MIN_SWING, clampBpm, defaultRhythm,
+  defaultSteps, type Poly, type Rhythm, type Step, type Voice,
 } from './rhythm';
 
 export const RHYTHM_KEY = 'frets.metronome.works.current';
@@ -34,7 +35,6 @@ export const DEFAULT_PLAYBACK: Playback = { volume: 0.8 };
 const fieldsOf = (raw: unknown) => (raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {}) as Record<string, unknown>;
 const isInt = (x: unknown, min: number, max: number): x is number => Number.isInteger(x) && (x as number) >= min && (x as number) <= max;
 const isLevel = (x: unknown): x is number => typeof x === 'number' && x >= 0 && x <= 1;
-const isSound = (x: unknown): x is SoundId => SOUNDS.some(([id]) => id === x);
 const isStep = (x: unknown): x is Step => x === null || isInt(x, 0, 3);
 
 export function parseDisplay(raw: unknown): Display {
@@ -50,7 +50,7 @@ export function parsePlayback(raw: unknown): Playback {
 function parseVoice(raw: unknown, fallback: Voice): Voice {
   const f = fieldsOf(raw);
   return {
-    sound: isSound(f.sound) ? f.sound : fallback.sound,
+    sound: isClickSound(f.sound) ? f.sound : fallback.sound,
     high: typeof f.high === 'boolean' ? f.high : fallback.high,
     level: isLevel(f.level) ? f.level : fallback.level,
   };
@@ -61,7 +61,7 @@ function parsePoly(raw: unknown, fallback: Poly): Poly {
   return {
     on: typeof f.on === 'boolean' ? f.on : fallback.on,
     count: isInt(f.count, 1, MAX_POLY) ? f.count : fallback.count,
-    sound: isSound(f.sound) ? f.sound : fallback.sound,
+    sound: isClickSound(f.sound) ? f.sound : fallback.sound,
     high: typeof f.high === 'boolean' ? f.high : fallback.high,
     level: isLevel(f.level) ? f.level : fallback.level,
   };

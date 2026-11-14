@@ -25,7 +25,7 @@ export function resetOnDoubleClick(e: MouseEvent<HTMLElement>, reset: () => void
 const DRAG_PX_PER_STEP = 10;
 const DRAG_THRESHOLD_PX = 3;
 
-export function NumberField({ value, min, max, step, dragStep = step, decimals = 0, chars = 0, unit, label, upLabel, downLabel, disabled, onChange }: {
+export function NumberField({ value, min, max, step, dragStep = step, decimals = 0, chars = 0, unit, label, upLabel, downLabel, disabled, compact = false, onChange }: {
   value: number;
   min: number;
   max: number;
@@ -48,6 +48,11 @@ export function NumberField({ value, min, max, step, dragStep = step, decimals =
   downLabel: string;
   /** Shown but not usable: in Settings, while the field it needs is off. */
   disabled?: boolean;
+  /**
+   * A text line tall, with no up and down buttons, for a number inside a line of words ("☑ 2 bars",
+   * Jeremy, 2026-11-14): typed, dragged or stepped with ↑ ↓ as any other.
+   */
+  compact?: boolean;
   onChange: (value: number) => void;
 }) {
   const scale = 10 ** decimals;
@@ -138,7 +143,7 @@ export function NumberField({ value, min, max, step, dragStep = step, decimals =
   // Room for the longest value, its sign included.
   const width = Math.max(chars, max.toFixed(decimals).length, min.toFixed(decimals).length) + (signed && max > 0 ? 1 : 0);
   return (
-    <span className="number-field" data-disabled={disabled || undefined}>
+    <span className={compact ? 'number-field number-field-compact' : 'number-field'} data-disabled={disabled || undefined}>
       <input disabled={disabled}
         ref={input} type="text" inputMode={signed ? 'text' : decimals > 0 ? 'decimal' : 'numeric'} aria-label={label}
         role="spinbutton" aria-valuemin={min} aria-valuemax={max} aria-valuenow={value}
@@ -149,14 +154,14 @@ export function NumberField({ value, min, max, step, dragStep = step, decimals =
         onPointerUp={onPointerUp} onPointerCancel={() => { drag.current = null; }}
       />
       <span className="number-field-unit" aria-hidden="true">{unit ?? ''}</span>
-      <span className="number-field-steps">
+      {!compact && <span className="number-field-steps">
         <button type="button" aria-label={upLabel} tabIndex={-1} disabled={disabled} onMouseDown={keepFocusInField} onClick={() => set(value + step)}>
           <svg width={8} height={5} viewBox="0 0 8 5" aria-hidden="true"><path d="M0.5 4.5 4 1l3.5 3.5" fill="none" stroke="currentColor" strokeWidth={1.5} /></svg>
         </button>
         <button type="button" aria-label={downLabel} tabIndex={-1} disabled={disabled} onMouseDown={keepFocusInField} onClick={() => set(value - step)}>
           <svg width={8} height={5} viewBox="0 0 8 5" aria-hidden="true"><path d="M0.5 0.5 4 4l3.5-3.5" fill="none" stroke="currentColor" strokeWidth={1.5} /></svg>
         </button>
-      </span>
+      </span>}
     </span>
   );
 }

@@ -15,8 +15,8 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { addTap, tapBpm } from '@/lib/tapTempo';
-import { BPM_RANGE, barClicks, retempo, timeAt, type Anchor, type Rhythm, type SoundId } from './rhythm';
-import { soundWaves } from './sounds';
+import { BPM_RANGE, barClicks, retempo, timeAt, type Anchor, type Rhythm } from './rhythm';
+import { clickSoundWaves, type ClickSound } from '@/lib/clickSounds';
 
 /** How far ahead clicks are scheduled, and how often the timer looks. */
 const LOOKAHEAD_S = 0.12;
@@ -36,7 +36,7 @@ export interface Now {
 interface Audio {
   ctx: AudioContext;
   out: GainNode;
-  buffers: Map<SoundId, [high: AudioBuffer, low: AudioBuffer]>;
+  buffers: Map<ClickSound, [high: AudioBuffer, low: AudioBuffer]>;
 }
 
 /** Where the metronome starts: its rhythm and volume (0 to 1). */
@@ -75,11 +75,11 @@ export function useMetronomeCore(initial: () => MetronomeStart) {
     return audio.current;
   }, []);
 
-  const playSound = useCallback((sound: SoundId, high: boolean, level: number, at: number) => {
+  const playSound = useCallback((sound: ClickSound, high: boolean, level: number, at: number) => {
     const a = ensureAudio();
     let pair = a.buffers.get(sound);
     if (!pair) {
-      pair = soundWaves(sound, a.ctx.sampleRate).map(wave => {
+      pair = clickSoundWaves(sound, a.ctx.sampleRate).map(wave => {
         const buffer = a.ctx.createBuffer(1, wave.length, a.ctx.sampleRate);
         buffer.copyToChannel(new Float32Array(wave), 0);
         return buffer;
@@ -184,7 +184,7 @@ export function useMetronomeCore(initial: () => MetronomeStart) {
   }, []);
 
   /** A new sound chosen: heard at once, so it can be judged. */
-  const preview = useCallback((sound: SoundId, high = true, level = 1) => {
+  const preview = useCallback((sound: ClickSound, high = true, level = 1) => {
     playSound(sound, high, level, ensureAudio().ctx.currentTime + 0.01);
   }, [ensureAudio, playSound]);
 
