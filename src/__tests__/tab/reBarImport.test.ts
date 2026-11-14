@@ -82,6 +82,14 @@ describe('Re-bar by time signature', () => {
     expect(even(clip)).toBe(true);
   });
 
+  it('a time signature that goes to bar 1 is the clip’s own, and bar 1 is full in it', () => {
+    // Source bar 1 is a 16th long in 6/8, so source bar 2's 7/8 goes to bar 1's line (found by fuzzing).
+    const { clip } = reBarred('\\ts (6 8)\n5.1.16 | \\ts (7 8) 7.1.4 7.1.4 7.1.4 7.1.8 | 9.1.4{d} 9.1.4{d} |');
+    expect(clip.time).toEqual({ beats: 7, value: 8 });
+    expect(clip.masterBars[0].time).toBeUndefined();
+    expect(even(clip)).toBe(true);
+  });
+
   it("a repeat's end closes the bar before the one the next source bar goes to", () => {
     const { clip } = reBarred('\\ts (4 4)\n\\ro 5.1.1 | \\rc 2 5.1.4 5.1.4 5.1.4 5.1.8{d} | 7.1.1 |');
     expect(clip.masterBars[1].repeatEnd).toBe(2);

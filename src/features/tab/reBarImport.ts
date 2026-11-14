@@ -194,7 +194,10 @@ export function reBarImport(clip: Clip, { pasted = false }: ReBarOptions = {}): 
     a = b;
   }
 
-  const out: Clip = { ...clip, masterBars, tracks: clip.tracks.map((track, t) => ({ ...track, bars: trackBars[t] })) };
+  // A time signature that went to bar 1 is the clip's own: bar 1 keeps none (`timeAt`).
+  const opening = masterBars[0]?.time;
+  if (opening) delete masterBars[0].time;
+  const out: Clip = { ...clip, time: opening ?? clip.time, masterBars, tracks: clip.tracks.map((track, t) => ({ ...track, bars: trackBars[t] })) };
   if (clip.systemsLayout?.length) out.systemsLayout = linesMapped(clip.systemsLayout, where, n, masterBars.length);
   const parts = clip.tracks.map((_track, t) => writtenByMeter(partOf(out, t), laidBars));
   const made = withTrackParts(out, parts);
