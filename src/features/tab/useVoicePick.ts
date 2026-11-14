@@ -20,7 +20,7 @@ export function useActiveVoice(opened: string, track: number) {
 /**
  * Picking the Active voice, and the edits that cross Voices (step 9,
  * `docs/specs/2026-11-03-tab-voices-design.md`): a press on another Voice's note, Alt+1–4, Move to voice,
- * Select only voice, an edit of every Voice a selection covers, and Alt+← → across Voices.
+ * Select only voice, an edit of every Voice a selection covers, and Ctrl/⌘+Alt+← → across Voices.
  */
 export function useVoicePick(editor: EditorState, { whole, track, voice, setVoice, stepToElement }: {
   /** The whole clip, every track. */
@@ -30,7 +30,7 @@ export function useVoicePick(editor: EditorState, { whole, track, voice, setVoic
   /** The Active voice and its setter (`useActiveVoice`). */
   voice: number;
   setVoice: (next: number) => void;
-  /** Alt+← → in the Active voice alone (`useTabPicking`). */
+  /** Ctrl/⌘+Alt+← → in the Active voice alone (`useTabPicking`). */
   stepToElement: (step: 1 | -1) => void;
 }) {
   const {
@@ -98,7 +98,7 @@ export function useVoicePick(editor: EditorState, { whole, track, voice, setVoic
     editor.commitVoices(next, partOf(next, track, voice), cursor, selection, true);
     return true;
   };
-  /** Alt+← →: the next note or rest by time in whichever Voice comes first (Q13), else the Active voice's next element. */
+  /** Ctrl/⌘+Alt+← →: the next note or rest by time in whichever Voice comes first (Q13), else the Active voice's next element. */
   const stepElement = (step: 1 | -1) => {
     const across = picked ? null : stepAcrossVoices(clip, cursor, step);
     if (!across) return stepToElement(step);

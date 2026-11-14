@@ -1,9 +1,10 @@
 import { memo, useEffect, useId, useMemo, useRef, useState, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { barNumber, bendCarries, bendRaises, bendLandings, legatoStarts, slideDirections, startsFreeTime, STRING_COUNT, timeAt, type Part, type Note } from './clip';
-import { layoutClip, stringY, type Layout, type Parts, type System } from './layout';
+import { layoutClip, lineAt, stringY, type Layout, type Parts, type System } from './layout';
 import { SPACE, STRING_GAP, stepY, type Rows } from './rows';
 import { gridLines, stopNear, type GridLook } from './grid';
-import { boundaryAt, cursorSpot, hitTest, rhythmAt, type FretDrag, type Hit, type SpanDrag, staffAt, type StaffDrag, type StaffHit } from './hitTest';
+import { boundaryAt, cursorSpot, hitTest, rhythmAt, type FretDrag, type Hit, type SpanDrag, staffAt, type StaffDrag, type StaffHit, type TimeDrag } from './hitTest';
+import { timeAtX } from './timeMoves';
 import { sameWord, textAt, type TextHit, type WordHit } from './layoutText';
 import { type NoteDrawnAt, previousDrawnAt, legatoArcs, type LegatoArc } from './runs';
 import { ShadowNote, StaffCursor, StaffDrawing, type NoteAt } from './StaffDrawing';
@@ -73,7 +74,7 @@ export interface DoubleClickPlace {
   rest: { bar: number; column: number } | null;
 }
 
-export const TabClip = memo(function TabClip({ clip, layout: given, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, typing = null, errors, onPick, onPickText, onPickMark, onPickColumn, onPickRhythm, onPickStaff, onDragStaff, onDragFret, onDragSpan, onDragRange, onPickRect, onPickWarning, onMiss, onMenuPress, onDoubleClick, columnReach = 0, shadow = null, gridStep = null, gridLook = null, mutedVoices = false, voiceSelections, onPickVoice, chordDiagrams = false, x, y }: {
+export const TabClip = memo(function TabClip({ clip, layout: given, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, typing = null, errors, onPick, onPickText, onPickMark, onPickColumn, onPickRhythm, onPickStaff, onDragStaff, onDragFret, onDragTime, timeStep, keepsPick, onDragSpan, onDragRange, onPickRect, onPickWarning, onMiss, onMenuPress, onDoubleClick, columnReach = 0, shadow = null, gridStep = null, gridLook = null, mutedVoices = false, voiceSelections, onPickVoice, chordDiagrams = false, x, y }: {
   clip: Part;
   /** A diagram under every chord name with a shape (issue #242), when `layout` isn't given; a given layout says so itself. */
   chordDiagrams?: boolean;
@@ -141,6 +142,19 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
    * is still `onPick`, at once, so the note is selected before it moves.
    */
   onDragFret?: (drag: FretDrag) => void;
+  /**
+   * A note head or fret number dragged left or right (issue #473, normal mode): its chord, or the selection
+   * it is in, moves in time. The drag's first few pixels tell it from a drag up or down. Without it, a drag
+   * of a head or number only goes up or down.
+   */
+  onDragTime?: (drag: TimeDrag) => void;
+  /**
+   * Whether a press on this note is inside what is picked (a selection, or a chord picked whole): it keeps
+   * the pick until the pointer lets go without moving, so a drag moves all of it (Jeremy, 2026-11-14).
+   */
+  keepsPick?: (hit: Hit) => boolean;
+  /** The step a drag in time from this note moves by, for the Grid drawn in the bar under the drag (Jeremy, 2026-11-14). */
+  timeStep?: (hit: Hit) => number | null;
   /** A picked Span's Handle dragged (step 8): the column it is over, as it moves and when it lets go. */
   onDragSpan?: (drag: SpanDrag) => void;
   /**
@@ -365,12 +379,15 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
     }
     if (hit && onDragFret && e.button === 0 && !e.shiftKey && clip.bars[hit.bar]?.columns[hit.column]?.notes[hit.string]?.fret != null) {
       // A fret number: selected now, and dragged to another string if the pointer moves up or down.
-      fretPress.current = { hit, y: e.clientY, string: hit.string };
+      const keep = !e.altKey && !!keepsPick?.(hit);
+      fretPress.current = { hit, x: e.clientX, y: e.clientY, string: hit.string, axis: null, time: timeAtX(layout, clip, px, py), by: 0, keep, drawn: { layout, clip } };
       e.currentTarget.setPointerCapture?.(e.pointerId);
+      // Inside what is picked: picked only when the pointer lets go without moving.
+      if (keep) return;
     }
     if (staff && staff.string !== null && onDragStaff && e.button === 0) {
       // A head: a drag or a press, told apart when the pointer moves or lets go.
-      headPress.current = { hit: { ...staff, string: staff.string }, y: e.clientY, shift: e.shiftKey, alt: e.altKey, last: null };
+      headPress.current = { hit: { ...staff, string: staff.string }, x: e.clientX, y: e.clientY, shift: e.shiftKey, alt: e.altKey, last: null, axis: null, time: timeAtX(layout, clip, px, py), by: 0, drawn: { layout, clip } };
       e.currentTarget.setPointerCapture?.(e.pointerId);
       return;
     }
@@ -424,8 +441,63 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
     }
     return true;
   };
-  /** A press on a staff head: where it started, Shift then, and what the drag last reported. */
-  const headPress = useRef<{ hit: StaffDrag['hit']; y: number; shift: boolean; alt: boolean; last: StaffDrag | null } | null>(null);
+  /**
+   * Whether the pointer has gone far enough from a head's or number's press to tell which way it is dragged:
+   * mostly left or right is a drag in time (when `onDragTime` is given), else up or down as before.
+   */
+  const chooseAxis = (press: AxisPress & { x: number; y: number }, e: PointerEvent<SVGSVGElement>): boolean => {
+    if (press.axis) return true;
+    const dx = e.clientX - press.x;
+    const dy = e.clientY - press.y;
+    if (Math.hypot(dx, dy) < AXIS_START) return false;
+    press.axis = onDragTime && press.time !== null && Math.abs(dx) > Math.abs(dy) ? 'time' : 'pitch';
+    return true;
+  };
+  /** The time under the pointer now, from the drawing's own units. */
+  const pointerTime = (e: PointerEvent<SVGSVGElement>, press: AxisPress): number | null => {
+    const box = e.currentTarget.getBoundingClientRect();
+    const scale = box.width > 0 ? width / box.width : 1;
+    // Read on the drawing as it was pressed: the preview moves the bars' columns under the pointer.
+    return timeAtX(press.drawn.layout, press.drawn.clip, (e.clientX - box.left) * scale, (e.clientY - box.top) * scale);
+  };
+  /** The bar under a drag in time, on the staff or the tab, with the step it moves by: its Grid is drawn there. */
+  const [timeGrid, setTimeGrid] = useState<{ system: number; bar: number; staff: boolean; step: number } | null>(null);
+  const showTimeGrid = (e: PointerEvent<SVGSVGElement>, press: AxisPress, hit: Hit, staff: boolean) => {
+    // Found once, from the music as it was pressed: the preview has moved it since.
+    if (press.step === undefined) press.step = timeStep?.(hit) ?? null;
+    const step = press.step;
+    const box = e.currentTarget.getBoundingClientRect();
+    const scale = box.width > 0 ? width / box.width : 1;
+    const px = (e.clientX - box.left) * scale;
+    const line = lineAt(layout, (e.clientY - box.top) * scale);
+    const bars = line?.system.bars ?? [];
+    const placed = bars.find(b => px < b.x1) ?? bars[bars.length - 1];
+    const next = step && line && placed ? { system: line.si, bar: placed.index, staff, step } : null;
+    setTimeGrid(old => (old?.system === next?.system && old?.bar === next?.bar && old?.staff === next?.staff && old?.step === next?.step ? old : next));
+  };
+  const dragTime = (e: PointerEvent<SVGSVGElement>, press: AxisPress, hit: Hit, staff = false) => {
+    showTimeGrid(e, press, hit, staff);
+    const now = pointerTime(e, press);
+    if (now === null || press.time === null) return;
+    const by = now - press.time;
+    if (by === press.by) return;
+    press.by = by;
+    onDragTime!({ hit, by, done: false, cancelled: false });
+  };
+  const dropTime = (e: PointerEvent<SVGSVGElement>, press: AxisPress, hit: Hit, cancelled: boolean) => {
+    setTimeGrid(null);
+    e.currentTarget.releasePointerCapture?.(e.pointerId);
+    // Let go off the drawing, it goes back where it was.
+    const box = e.currentTarget.getBoundingClientRect();
+    const outside = box.width > 0 && (e.clientX < box.left || e.clientX > box.right || e.clientY < box.top || e.clientY > box.bottom);
+    onDragTime!({ hit, by: press.by, done: true, cancelled: cancelled || outside });
+  };
+  /**
+   * A press on a staff head: where it started, Shift then, and what the drag last reported; `axis` once the
+   * pointer has gone far enough to tell a drag up or down (`pitch`) from one left or right (`time`, issue #473),
+   * the time under the press, and how far in time the drag last reported.
+   */
+  const headPress = useRef<{ hit: StaffDrag['hit']; x: number; y: number; shift: boolean; alt: boolean; last: StaffDrag | null } & AxisPress | null>(null);
   /**
    * Where the mouse's shadow note is drawn in note input mode: on the staff at a step, or on a string of the tab;
    * in the drawing's units, with the bar under it for the Grid. The mouse never moves the caret, as in Dorico
@@ -454,6 +526,11 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
     showShadow(e);
     const press = headPress.current;
     if (!press) return;
+    if (!chooseAxis(press, e)) return;
+    if (press.axis === 'time') {
+      dragTime(e, press, { bar: press.hit.bar, column: press.hit.column, string: press.hit.string }, layout.parts !== 'tab');
+      return;
+    }
     const box = e.currentTarget.getBoundingClientRect();
     const scale = box.width > 0 ? width / box.width : 1;
     // A line or space for each half a staff space the pointer goes up or down.
@@ -469,15 +546,21 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
     const press = headPress.current;
     if (!press) return;
     headPress.current = null;
-    if (press.last) onDragStaff!({ ...press.last, steps: cancelled ? 0 : press.last.steps, done: true });
+    if (press.axis === 'time') dropTime(e, press, { bar: press.hit.bar, column: press.hit.column, string: press.hit.string }, cancelled);
+    else if (press.last) onDragStaff!({ ...press.last, steps: cancelled ? 0 : press.last.steps, done: true });
     else if (!cancelled) onPickStaff!(press.hit, press.shift, press.alt);
     e.currentTarget.releasePointerCapture?.(e.pointerId);
   };
-  /** A press on a fret number: the note, where the pointer started, and the string it was last over. */
-  const fretPress = useRef<{ hit: Hit; y: number; string: number } | null>(null);
+  /** A press on a fret number: the note, where the pointer started, the string it was last over, and as for a head (`AxisPress`). */
+  const fretPress = useRef<{ hit: Hit; x: number; y: number; string: number; keep: boolean } & AxisPress | null>(null);
   const dragFret = (e: PointerEvent<SVGSVGElement>) => {
     const press = fretPress.current;
     if (!press) return false;
+    if (!chooseAxis(press, e)) return true;
+    if (press.axis === 'time') {
+      dragTime(e, press, press.hit);
+      return true;
+    }
     const box = e.currentTarget.getBoundingClientRect();
     const scale = box.width > 0 ? width / box.width : 1;
     // A string for each string gap the pointer goes down (up toward the high e), as far as the staff goes.
@@ -491,7 +574,13 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
     const press = fretPress.current;
     if (!press) return false;
     fretPress.current = null;
+    if (press.axis === 'time') {
+      dropTime(e, press, press.hit, cancelled);
+      return true;
+    }
     e.currentTarget.releasePointerCapture?.(e.pointerId);
+    // A press inside what is picked that never moved: the note is picked now.
+    if (press.keep && press.axis === null && !cancelled) onPick?.(press.hit, false);
     // Let go off the drawing, the note goes back where it was.
     const box = e.currentTarget.getBoundingClientRect();
     const outside = box.width > 0 && (e.clientX < box.left || e.clientX > box.right || e.clientY < box.top || e.clientY > box.bottom);
@@ -536,10 +625,10 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
       x={x} y={y} width={width * zoom} height={layout.height * zoom} viewBox={`0 0 ${width} ${layout.height}`}
       role="img" aria-label={title} fontFamily="var(--font-sans), sans-serif"
       className="block" onPointerDown={onPick ? pick : undefined} onDoubleClick={onDoubleClick ? e => { const { text, mark, hit, staff, rest } = target(e); onDoubleClick(text, !!mark, { hit, staff, rest }); } : undefined}
-      onPointerMove={onDragStaff || onDragFret || onDragSpan || onDragRange || shadow !== null || onPickRect ? e => { if (!dragRange(e) && !dragSpan(e) && !drawRect(e) && !dragFret(e)) dragHead(e); } : undefined}
+      onPointerMove={onDragStaff || onDragFret || onDragTime || onDragSpan || onDragRange || shadow !== null || onPickRect ? e => { if (!dragRange(e) && !dragSpan(e) && !drawRect(e) && !dragFret(e)) dragHead(e); } : undefined}
       onPointerLeave={shadow !== null ? () => setHover(null) : undefined}
-      onPointerUp={onDragStaff || onDragFret || onDragSpan || onDragRange || onPickRect ? e => { if (!dropRange(e, false) && !dropSpan(e, false) && !dropRect(e, false) && !dropFret(e, false) && onDragStaff) dropHead(e, false); } : undefined}
-      onPointerCancel={onDragStaff || onDragFret || onDragSpan || onDragRange || onPickRect ? e => { if (!dropRange(e, true) && !dropSpan(e, true) && !dropRect(e, true) && !dropFret(e, true) && onDragStaff) dropHead(e, true); } : undefined} onMouseDown={onPick ? keepFocus : undefined}
+      onPointerUp={onDragStaff || onDragFret || onDragTime || onDragSpan || onDragRange || onPickRect ? e => { if (!dropRange(e, false) && !dropSpan(e, false) && !dropRect(e, false) && !dropFret(e, false) && onDragStaff) dropHead(e, false); } : undefined}
+      onPointerCancel={onDragStaff || onDragFret || onDragTime || onDragSpan || onDragRange || onPickRect ? e => { if (!dropRange(e, true) && !dropSpan(e, true) && !dropRect(e, true) && !dropFret(e, true) && onDragStaff) dropHead(e, true); } : undefined} onMouseDown={onPick ? keepFocus : undefined}
       style={columnReach ? { overflow: 'visible' } : undefined}
     >
       {columnReach > 0 && (
@@ -696,30 +785,36 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
               )}
             </g>
           ))}
-          {gridLook && gridStep && highlight?.input && highlight.cursor && (() => {
+          {(() => {
             // The Grid over the part the caret is on, the staff or the tab (Jeremy, 2026-11-07), and, as Dorico
             // draws it, over the bar under the mouse too, on the part the mouse is over (issue #396).
             const onStaff = (staff: boolean) => (rows.score && rows.tab ? staff : !!rows.score);
-            const wanted = [{ bar: highlight.cursor!.bar, staff: onStaff(highlight.staffPitch != null) }];
-            if (hover?.system === si) wanted.push({ bar: hover.bar, staff: onStaff(hover.step !== null) });
+            const wanted: { bar: number; staff: boolean; step: number }[] = [];
+            if (gridLook && gridStep && highlight?.input && highlight.cursor) {
+              wanted.push({ bar: highlight.cursor.bar, staff: onStaff(highlight.staffPitch != null), step: gridStep });
+              if (hover?.system === si) wanted.push({ bar: hover.bar, staff: onStaff(hover.step !== null), step: gridStep });
+            }
+            // A drag in time: the Grid it snaps to, in the bar under the pointer (Jeremy, 2026-11-14).
+            if (timeGrid?.system === si) wanted.push({ bar: timeGrid.bar, staff: onStaff(timeGrid.staff), step: timeGrid.step });
             const grids = wanted.filter((w, k) => wanted.findIndex(o => o.bar === w.bar && o.staff === w.staff) === k);
-            return grids.map(({ bar, staff }) => {
+            const look = gridLook ?? 'lines';
+            return grids.map(({ bar, staff, step }) => {
               const placed = system.bars.find(b => b.index === bar);
               if (!placed) return null;
-              const lines = gridLines(placed, gridStep);
+              const lines = gridLines(placed, step);
               const top = staff ? rows.score!.top : rows.staffTop;
               const bottom = staff ? rows.score!.bottom : rows.staffBottom;
               // Over the tab the ruler sits a little higher, clear of the top string's numbers.
               const rule = top - (staff ? 9 : 14);
               return (
-                <g key={`${bar}:${staff}`} pointerEvents="none" data-testid="grid-lines" data-bar={bar} data-part={staff ? 'staff' : 'tab'} data-look={gridLook} stroke="var(--ink-muted)" fill="var(--ink-muted)">
-                  {gridLook === 'ruler' && (
+                <g key={`${bar}:${staff}`} pointerEvents="none" data-testid="grid-lines" data-bar={bar} data-part={staff ? 'staff' : 'tab'} data-look={look} stroke="var(--ink-muted)" fill="var(--ink-muted)">
+                  {look === 'ruler' && (
                     <>
                       <line x1={placed.x0} x2={placed.x1} y1={rule} y2={rule} strokeWidth={0.75} strokeOpacity={0.6} />
                       {lines.map((l, k) => <line key={k} x1={l.x} x2={l.x} y1={rule} y2={rule - (l.beat ? 6 : 3)} strokeWidth={l.beat ? 1.25 : 0.75} strokeOpacity={0.7} />)}
                     </>
                   )}
-                  {gridLook === 'lines' && lines.map((l, k) => (
+                  {look === 'lines' && lines.map((l, k) => (
                     <line key={k} x1={l.x} x2={l.x} y1={top - 4} y2={bottom + 4} strokeWidth={1} strokeOpacity={l.beat ? 0.3 : 0.15} />
                   ))}
                 </g>
@@ -782,6 +877,20 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
     </svg>
   );
 });
+
+/** How far (in pixels) a press on a head or number goes before it is a drag up or down, or one in time. */
+const AXIS_START = 6;
+
+/** Which way a head or number is being dragged, once told, and the time under its press. */
+interface AxisPress {
+  axis: 'pitch' | 'time' | null;
+  time: number | null;
+  by: number;
+  /** The drawing when pressed, which a drag in time is measured on. */
+  drawn: { layout: Layout; clip: Part };
+  /** A drag in time's step, for its Grid, found when it starts. */
+  step?: number | null;
+}
 
 /** How far (in screen pixels) a Shift+press on blank space moves before it draws a rectangle. */
 const RECT_START = 4;

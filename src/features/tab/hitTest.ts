@@ -98,6 +98,18 @@ export interface SpanDrag {
   cancelled: boolean;
 }
 
+/**
+ * A note head or fret number dragged left or right (issue #473, normal mode): the note pressed, how far
+ * the pointer has gone in time, in ticks (not yet snapped to the grid; negative is earlier), and `done`
+ * when it lets go (`cancelled` off the drawing, or when the browser took the pointer).
+ */
+export interface TimeDrag {
+  hit: Hit;
+  by: number;
+  done: boolean;
+  cancelled: boolean;
+}
+
 export interface FretDrag {
   hit: Hit;
   string: number;

@@ -152,7 +152,7 @@ Alt+1–4 on picked or selected notes, or the right-click menu's
   "Select only voice ›" 1–4: the selection keeps that Voice's notes, and
   that Voice becomes active.
 - Insert and Ctrl/⌘+Delete push and pull every Voice, as now.
-- Alt+← → visit every Voice's notes and Marks by time, Voice 1 first at
+- Ctrl/⌘+Alt+← → visit every Voice's notes and Marks by time, Voice 1 first at
   the same time (Q13).
 
 ## Exports (Q14)
@@ -209,7 +209,7 @@ form go, under the clip and on import. "Bar 3 has two voices on string
   (`tabLook.ts` gains the muted ink); the Active voice's number beside
   the cursor.
 - `hitTest.ts`, `marks.ts`, `elements.ts`, `attachment.ts`: a hit says
-  its Voice; Alt+← → by time across Voices.
+  its Voice; Ctrl/⌘+Alt+← → by time across Voices.
 - `useEditorState.ts`: the Active voice (`voice`, from 0), reset to 0
   when the cursor leaves the tab; `partOf(clip, track, voice)` for it.
 - `voices.ts` (new): moving notes into another Voice (`moveToVoice`),
@@ -265,7 +265,7 @@ page), with the existing round trips:
 - Copy and paste: copying two Voices writes `\voice`; pasting puts each
   back in its own Voice; the "Pasted voice 1 only." notice is gone.
 - Select only voice 2 keeps Voice 2's notes and makes it active.
-- Alt+← → visit Voice 1's note, then Voice 2's at the same time.
+- Ctrl/⌘+Alt+← → visit Voice 1's note, then Voice 2's at the same time.
 - ASCII: a two-Voice bar writes both Voices' frets, sharing a column
   where they start together.
 - MusicXML: a two-Voice bar has `<voice>1</voice>`, a `<backup>`, then

@@ -8,7 +8,7 @@
  * lines and spells every piece by the meter, a note tied on; the commit's rewrite (`rewrite.ts`)
  * then writes every bar whose rhythm changed by the meter, as for every edit.
  */
-import { barLength, barSpan, barTicks, beatGroupsAt, isRest, meterOffset, partOf, STRING_COUNT, ticks, timeAt, withTrackParts, type Bar, type Clip, type Column, type OtherVoice, type Part, type TimeSignature } from './clip';
+import { barLength, barSpan, barTicks, beatGroupsAt, isRest, meterOffset, partOf, STRING_COUNT, ticks, timeAt, withTrackParts, type Bar, type Clip, type Column, type Note, type OtherVoice, type Part, type TimeSignature } from './clip';
 import { continuation, meterOf, readVoice, spell, writeVoice } from './sounding';
 
 /** A stretch of a Voice's stream: one Column, a whole tuplet group, or a grace note (no time). */
@@ -172,6 +172,13 @@ function tiedInto(items: Item[], index: number): Set<number> {
  * stay with the Column they were written for.
  */
 const MOVED = ['chord', 'text', 'fermata', 'wah', 'dynamic'] as const;
+
+/** `column` without the marks of its time (`MOVED`): what a moved Column leaves behind is a bare Gap. */
+export function withoutTimeMarks(column: Column): Column {
+  const next: Column = { ...column };
+  for (const key of MOVED) delete next[key];
+  return next;
+}
 
 /** Joins a moved text to the one already there, unless it is the same text. */
 const TEXT_JOIN = ' / ';
@@ -554,6 +561,45 @@ export function writeOver(part: Part, at: number, columns: Column[], clearTo = 0
 export function writeSpan(part: Part, at: number, column: Column, length: number): Part | null {
   const incoming: Item[] = [{ columns: [column], length, kind: 'column' }];
   return editTimeline(part, { at, end: at + length, shift: 0, own: (items, base) => overStream(items, at - base, incoming, at + length - base) });
+}
+
+/**
+ * One note `length` long written over string `string` of the Part's Voice from `at`, the other strings
+ * as they were: the Columns it reaches are cut at its start and end, it takes the first and is tied on
+ * through the rest (a Gap there becomes a note). A note it cuts off loses its tied-on pieces. Null when
+ * it would reach into a tuplet.
+ */
+export function writeNote(part: Part, at: number, string: number, note: Note, length: number): Part | null {
+  const end = at + length;
+  return editTimeline(part, { at, end, shift: 0, own: (items, base) => noteStream(items, at - base, end - base, string, note) });
+}
+
+function noteStream(items: Item[], at: number, end: number, string: number, note: Note): Item[] | null {
+  // Past the Voice's end, a Gap to write it over (bars are added for it).
+  const short = end - lengthOf(items);
+  let out: Item[] | null = short > 0 ? [...items, rest(short)] : items;
+  out = cutAt(out, at);
+  out = out && cutAt(out, end);
+  if (!out) return null;
+  const from = indexAt(out, at, true);
+  const to = indexAt(out, end, false);
+  if (out.slice(from, to).some(item => item.kind === 'tuplet')) return null;
+  let first = true;
+  const next = out.map((item, i) => {
+    if (i < from || i >= to || item.kind !== 'column') return item;
+    const notes = [...item.columns[0].notes];
+    notes[string] = first ? withoutTie(note) : continuation(note);
+    first = false;
+    return { ...item, columns: [{ ...item.columns[0], notes }] };
+  });
+  const cutOff = tiedInto(out, to);
+  return dropTiedOn(next, to, cutOff.has(string) ? new Set([string]) : new Set());
+}
+
+function withoutTie(note: Note): Note {
+  const played = { ...note };
+  delete played.tie;
+  return played;
 }
 
 /** A Gap `length` long put in at `at` in every Voice of the Part, the music after it later. */

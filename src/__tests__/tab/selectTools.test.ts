@@ -15,7 +15,7 @@ function clipOf(text: string): Part {
 const name = (e: Element) =>
   e.kind === 'note' ? `note ${e.index}/${e.string}` : e.kind === 'rest' ? `rest ${e.index}` : e.kind === 'mark' ? `${e.mark} ${e.index}` : 'bar' in e ? `${e.kind} bar ${e.bar}` : `${e.kind} ${e.index}`;
 
-describe('elementsOf and stepElement (Alt+← →, issue #238)', () => {
+describe('elementsOf and stepElement (Ctrl/⌘+Alt+← →, issue #238)', () => {
   const clip = clipOf('\\ts (4 4)\n\\section "Intro"\n:4 (5.1 7.2){ch "A"} 7.3{v} r 3.4{ac} |');
   const list = elementsOf(clip, layoutClip(clip, 800, 'tab'));
 
@@ -38,7 +38,7 @@ describe('elementsOf and stepElement (Alt+← →, issue #238)', () => {
   });
 });
 
-describe('Alt+← → stops added in step 8', () => {
+describe('Ctrl/⌘+Alt+← → stops added in step 8', () => {
   it('steps onto a time signature, before its bar’s words, and onto a let ring Span with its first column’s marks', () => {
     const clip = clipOf('\\ts (4 4)\n5.1.4 7.3{lr}.4 8.3{lr}.4 r.4 |\n\\ts (3 4)\n\\section "B"\n3.4.2{d} |');
     const list = elementsOf(clip, layoutClip(clip, 800, 'tab')).map(name);
