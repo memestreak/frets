@@ -187,7 +187,7 @@ export function ChatTab({ part, view: asked, loop: askedLoop, onOpen, onHeard }:
           <TabClip
             clip={part} layout={layout} width={width} parts={parts} title={`The line, drawn as ${VIEWS.find(v => v.view === view)!.label.toLowerCase()}`}
             highlight={{ cursor: null, range: selected, boxed: true }}
-            onPick={(hit: Hit, extend) => pickColumn(hit, !!part.bars[hit.bar].columns[hit.column]?.notes[hit.string], extend)}
+            onPick={(hit: Hit, extend) => pickColumn(hit, !hit.beside, extend)}
             onPickStaff={(hit, extend) => pickColumn(hit, hit.string !== null, extend)} onPickRhythm={pickRest} onMiss={letGo}
           />
         )}

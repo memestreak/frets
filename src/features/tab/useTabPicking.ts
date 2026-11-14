@@ -199,7 +199,7 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
   };
 
   /** A press on the tab: the cursor there, a note entered (note input mode) or a bar selected (normal mode); with Shift, the selection grows. */
-  const onPick = ({ at: into = 0, ...hit }: Hit, extend: boolean, alone = false, menu = false) => {
+  const onPick = ({ at: into = 0, beside, ...hit }: Hit, extend: boolean, alone = false, menu = false) => {
     lastDigitRef.current = null;
     setStaffPitch(null);
     setColumnOnly(false);
@@ -210,7 +210,9 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
     } else {
       // A press in another bar leaves the cursor's bar, which fills up when Settings says to; the rests go after its last
       // column, so the bar pressed keeps its columns.
-      const there = hasColumn && noteAt(clip, hit);
+      // Normal mode picks a note only when the press lands on its number (issue #478); note input mode takes the note at its
+      // column and string, so a press there never writes over it.
+      const there = hasColumn && (noteInputMode || !beside) && noteAt(clip, hit);
       // A right-click only moves the caret, for the bar menu (Jeremy, 2026-11-09).
       if (noteInputMode && hasColumn && !there && !menu) {
         // In note input mode a press on a string enters an open string there, as MuseScore's does; digits then change it.

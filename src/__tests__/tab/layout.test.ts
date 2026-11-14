@@ -119,7 +119,8 @@ describe('pressing the drawing', () => {
   const [first, second] = layout.systems[0].bars[0].columns;
 
   it('lands on the staff only, not over or under it or past the last bar', () => {
-    expect(hitTest(layout, first.x, rows.staffTop)).toEqual({ bar: 0, column: 0, string: 0 });
+    // No note on the top string there: the press is beside the notes (issue #478).
+    expect(hitTest(layout, first.x, rows.staffTop)).toEqual({ bar: 0, column: 0, string: 0, beside: true });
     expect(hitTest(layout, first.x, rows.palmMute!)).toBeNull();
     expect(hitTest(layout, first.x, rows.stemBottom)).toBeNull();
     expect(hitTest(layout, layout.systems[0].bars[0].x1 + 20, rows.staffTop)).toBeNull();

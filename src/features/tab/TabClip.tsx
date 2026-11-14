@@ -2,6 +2,7 @@ import { memo, useEffect, useId, useMemo, useRef, useState, type MouseEvent, typ
 import { barNumber, bendCarries, bendRaises, bendLandings, legatoStarts, slideDirections, startsFreeTime, STRING_COUNT, timeAt, type Part, type Note } from './clip';
 import { layoutClip, lineAt, stringY, type Layout, type Parts, type System } from './layout';
 import { SPACE, STRING_GAP, stepY, type Rows } from './rows';
+import { labelWidth } from './widths';
 import { gridLines, stopNear, type GridLook } from './grid';
 import { boundaryAt, cursorSpot, hitTest, rhythmAt, type FretDrag, type Hit, type SpanDrag, staffAt, type StaffDrag, type StaffHit, type TimeDrag } from './hitTest';
 import { timeAtX } from './timeMoves';
@@ -13,7 +14,7 @@ import { staffMarks } from './staffMarks';
 import { showsBarNumber, type BarNumbers } from './viewOptions';
 import { markAt, markLights, type MarkHit, type MarkLit } from './marks';
 import { columnsInRectangle, type Rectangle } from './rectangle';
-import { ColumnDrawing, type Joins, hiddenNumber, labelWidth } from './TabColumn';
+import { ColumnDrawing, type Joins, hiddenNumber } from './TabColumn';
 import { Stems } from './TabStems';
 import { litLook, PAGE_LOOK, type TabLook } from './tabLook';
 import { whammyDrawings, whammyJoins, type WhammyDrawing } from './whammy';
@@ -345,7 +346,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
     const { text, mark, rest, staff, hit, column, px, py } = target(e);
     if (onMenuPress && (e.button === 2 || e.pointerType === 'touch') && !text && !mark) {
       // A note is what a left press would pick as one; a rest or blank space is the bar's.
-      const ownNote = (staff && staff.string !== null) || (hit && !!clip.bars[hit.bar]?.columns[hit.column]?.notes[hit.string]);
+      const ownNote = (staff && staff.string !== null) || onOwnNote(hit);
       onMenuPress(!!ownNote || otherVoiceAt(px, py, staff, hit) !== null);
     } else onMenuPress?.(null);
     // A right-click inside the selection keeps it, for its menu, as Dorico, MuseScore and GP8 do (step 9).
@@ -366,7 +367,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
       return;
     }
     // Shift on blank space (no note, mark or word): a rectangle, if the pointer moves before it lets go.
-    const onNote = (staff && staff.string !== null) || (hit && !!clip.bars[hit.bar]?.columns[hit.column]?.notes[hit.string]);
+    const onNote = (staff && staff.string !== null) || onOwnNote(hit);
     if (onPickRect && e.shiftKey && e.button === 0 && !text && !mark && !onNote) {
       const press = () => {
         if (staff) onPickStaff!(staff, true);
@@ -377,7 +378,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
       e.currentTarget.setPointerCapture?.(e.pointerId);
       return;
     }
-    if (hit && onDragFret && e.button === 0 && !e.shiftKey && clip.bars[hit.bar]?.columns[hit.column]?.notes[hit.string]?.fret != null) {
+    if (hit && onDragFret && e.button === 0 && !e.shiftKey && onOwnNote(hit) && clip.bars[hit.bar].columns[hit.column].notes[hit.string]!.fret !== null) {
       // A fret number: selected now, and dragged to another string if the pointer moves up or down.
       const keep = !e.altKey && !!keepsPick?.(hit);
       fretPress.current = { hit, x: e.clientX, y: e.clientY, string: hit.string, axis: null, time: timeAtX(layout, clip, px, py), by: 0, keep, drawn: { layout, clip } };
@@ -398,18 +399,19 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
     else if (column !== null) onPickColumn!(column, e.shiftKey);
     else onMiss?.();
   };
+  /** Whether a press on the tab landed on a note of the part's own Voice: on its number, not beside it (issue #478). */
+  const onOwnNote = (hit: Hit | null): boolean => !!hit && !hit.beside && !!clip.bars[hit.bar]?.columns[hit.column]?.notes[hit.string];
   /** Another Voice's note under a press that finds no note of the part's own Voice there. */
   const otherVoiceAt = (px: number, py: number, staff: StaffHit | null, hit: Hit | null): { voice: number; hit: Hit } | null => {
-    const ownNote = (staff && staff.string !== null) || (hit && clip.bars[hit.bar]?.columns[hit.column]?.notes[hit.string]);
+    const ownNote = (staff && staff.string !== null) || onOwnNote(hit);
     if (ownNote) return null;
     for (const v of voiceViews) {
       const onHead = layout.parts !== 'tab' ? staffAt(v.layout, px, py) : null;
       if (onHead && onHead.string !== null) return { voice: v.voice, hit: { bar: onHead.bar, column: onHead.column, string: onHead.string } };
       const onTab = hitTest(v.layout, px, py);
       if (!onTab) continue;
-      const placed = v.layout.systems.flatMap(system => system.bars).find(bar => bar.index === onTab.bar)?.columns[onTab.column];
-      // Near enough the note's number across, as a press on the part's own note is.
-      if (placed && placed.column.notes[onTab.string] && Math.abs(placed.x - px) <= ON_NOTE_REACH) return { voice: v.voice, hit: onTab };
+      // On the note's number, as a press on the part's own note must be (issue #478).
+      if (!onTab.beside) return { voice: v.voice, hit: onTab };
     }
     return null;
   };
@@ -894,8 +896,6 @@ interface AxisPress {
 
 /** How far (in screen pixels) a Shift+press on blank space moves before it draws a rectangle. */
 const RECT_START = 4;
-/** How far across from another Voice's fret number a press still picks it: about the number's half width and a little. */
-const ON_NOTE_REACH = 10;
 /** A bar's number: its size, and how far in from the bar's opening line it starts. */
 const BAR_NUMBER_SIZE = 9;
 const BAR_NUMBER_INSET = 2;

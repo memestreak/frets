@@ -98,6 +98,11 @@ export function chordWidth(chord: string): number {
   return chord.length * 7;
 }
 
+/** How much of the string line a note's number keeps clear: also how wide a press on the number is (issue #478). */
+export function labelWidth(note: Note, column: Column): number {
+  return noteLabel(note).length * (charWidth(column) - 0.5) + 4;
+}
+
 /**
  * What is written on the string for a note: "5", "X" (a capital, as printed tab has it, issue #177), "<12>" for a natural harmonic, and in brackets
  * a tie, "(5)" with an arc from the note before, or a ghost note, "(5)" or "(X)" alone.

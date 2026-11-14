@@ -7,17 +7,12 @@ import { type ReactNode } from 'react';
 import { columnAccent, type Bend, type Column, type Note } from './clip';
 import { stringY, type PlacedBar, type PlacedColumn } from './layout';
 import { BEND_LABEL_RAISE, BEND_LABEL_STEP, BEND_PEAK, BEND_RISE, bendShape, TAP_RADIUS, type Rows } from './rows';
-import { charWidth, GRACE_SIZE, noteLabel } from './widths';
+import { GRACE_SIZE, noteLabel } from './widths';
 import { type NoteDrawnAt } from './runs';
 import { bendLabel, bendLabelLines } from './staffMarks';
 import { type DrawnMark } from './marks';
 import { litLook, type TabLook } from './tabLook';
 import { TapSign } from './TapSign';
-
-/** How much of the string line a note's number keeps clear. */
-export function labelWidth(note: Note, column: Column): number {
-  return noteLabel(note).length * (charWidth(column) - 0.5) + 4;
-}
 
 /**
  * Whether a note's number is left out, as Guitar Pro prints Sweet Child O' Mine. A released bend's note
