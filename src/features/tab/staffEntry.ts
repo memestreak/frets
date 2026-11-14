@@ -12,6 +12,7 @@ import { clearNote, columnAt, MAX_FRET, normalize, placeOf, selectedRange, setFr
 import { keyAccidentals, spellPitch } from '@/lib/theory/keys';
 import { LETTER_PCS } from '@/lib/theory/notes';
 import { writtenStrings, staffStep, WRITTEN_OCTAVE } from './notation';
+import { enterGrace, enterTupletNote, type TupletEntry } from './tuplets';
 /** `staffStep` counts from E4, the bottom line: letter 2 of octave 4. */
 const STEP_ZERO = 4 * 7 + 2;
 /** How far the staff cursor may go: two octaves of ledger lines below the staff and above it. */
@@ -114,6 +115,9 @@ function placeAmong(clip: Part, notes: readonly (Note | null)[], pitch: number, 
   return best;
 }
 
+/** What the line under the clip says when no string can take a note entered on the staff. */
+const NO_FREE_STRING = 'No free string can play that note here.';
+
 /** What Enter on the staff did: the clip after it, and the string of the note now at the cursor (null after a removal). */
 export interface StaffEdit {
   clip: Part;
@@ -130,7 +134,7 @@ export function toggleStaffNote(clip: Part, at: Place, pitch: number, length?: D
   const there = stringAtPitch(clip, at, pitch);
   if (there !== null) return { clip: clearNote(clip, { ...at, string: there }), string: null };
   const place = choosePlace(clip, at, pitch);
-  if (!place) return { clip, string: null, problem: 'No free string can play that note here.' };
+  if (!place) return { clip, string: null, problem: NO_FREE_STRING };
   return { clip: setFret(clip, { ...at, string: place.string }, place.fret, length), string: place.string };
 }
 
@@ -249,7 +253,7 @@ export function moveNotes(clip: Part, places: readonly Cursor[], move: PitchMove
     const aim = frets.length ? frets.reduce((x, y) => x + y, 0) / frets.length : aimFret(clip, { bar, column });
     for (const l of off.sort((a, b) => b.pitch - a.pitch)) {
       const place = placeAmong(clip, left, l.pitch, aim);
-      if (!place) return { clip, string: null, moved: [], problem: 'No free string can play that note here.' };
+      if (!place) return { clip, string: null, moved: [], problem: NO_FREE_STRING };
       left[place.string] = { ...l.note, fret: place.fret };
       moved.push({ bar, column, string: place.string });
     }
@@ -277,13 +281,47 @@ export function pitchOfLetter(clip: Part, bar: number, letter: string, near: num
   return inKey - keyAccidentals(keyAt(clip, bar))[wanted] + sign;
 }
 
+/** Note input mode's Tuplet entry and Grace entry, which a note entered on the staff follows as a typed fret does. */
+export interface StaffEntryModes {
+  tuplet: TupletEntry;
+  grace: boolean;
+}
+
+const NO_ENTRY_MODES: StaffEntryModes = { tuplet: { n: null, from: null }, grace: false };
+
+/** What a note entered on the staff did: the caret after it, the note itself, and whether it started a tuplet. */
+export type StaffEntered = StaffEdit & { cursor: Cursor; at: number; note: Cursor | null; tupletStarted?: boolean };
+
 /**
  * A note put on the staff in note input mode at the caret (`at` ticks into its column, splitting a rest there),
  * and the caret on past it by its length, as Dorico's goes on (Jeremy, 2026-11-07, issue #396). A note
  * already at the pitch is taken away when `toggle` (Enter), the caret staying; else it stays and the caret
- * goes on past it.
+ * goes on past it. As a fret typed on the tab (issue #469): with Grace entry on it is a grace note before the
+ * caret's column, the caret staying; in a tuplet's Gap, or with Tuplet entry on, it is a tuplet note, and the
+ * caret goes on by that note's length.
  */
-export function enterOnStaff(clip: Part, cursor: Cursor, at: number, pitch: number, length: Duration, toggle: boolean): StaffEdit & { cursor: Cursor; at: number; note: Cursor | null } {
+export function enterOnStaff(clip: Part, cursor: Cursor, at: number, pitch: number, length: Duration, toggle: boolean, modes: StaffEntryModes = NO_ENTRY_MODES): StaffEntered {
+  const unchanged = (problem?: string): StaffEntered => ({ clip, string: null, problem, cursor, at, note: null });
+  // A note entered on its own, in a Column of its own (a grace note, a new tuplet note): any free string.
+  const placeAlone = (part: Part, place: Place) => placeAmong(part, [], pitch, aimFret(part, place));
+  if (modes.grace) {
+    const here = splitRestAt(clip, cursor, at);
+    const place = placeAlone(here.clip, here.cursor);
+    if (!place) return unchanged(NO_FREE_STRING);
+    const entered = enterGrace(here.clip, { ...here.cursor, string: place.string }, place.fret);
+    const note = { ...entered.cursor, column: entered.cursor.column - 1 };
+    return { clip: entered.clip, string: place.string, cursor: entered.cursor, at: 0, note };
+  }
+  if (stringAtPitch(clip, cursor, pitch) === null) {
+    const place = placeAlone(clip, cursor);
+    const typed = place && enterTupletNote(clip, { ...cursor, string: place.string }, at, place.fret, length, modes.tuplet);
+    if (typed && 'problem' in typed) return unchanged(typed.problem ?? undefined);
+    if (typed) {
+      const column = typed.clip.bars[typed.cursor.bar].columns[typed.cursor.column];
+      const moved = advance(typed.clip, typed.cursor, 0, ticks(column.duration));
+      return { clip: moved.clip, string: place.string, cursor: moved.cursor, at: moved.at, note: typed.cursor, tupletStarted: typed.started };
+    }
+  }
   const here = splitRestAt(clip, cursor, at);
   const there = stringAtPitch(here.clip, here.cursor, pitch);
   if (there !== null && toggle) return { ...toggleStaffNote(here.clip, here.cursor, pitch), cursor: here.cursor, at: 0, note: null };
