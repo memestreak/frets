@@ -91,7 +91,7 @@ Metronome page's Tempo, Beats, Tap and presets have no place here.
   - Subdivide and Click on (segmented switches).
   - Volumes: four knobs in one row, each with its name under it, as the
     footer's Volume (Jeremy, 2026-11-14): Clicks (the click volume), Beat
-    one, Beats, Subdivisions, inside a fine rounded box (a 1px `--line` border).
+    one, Beats, Subdivisions.
 - Each change in the dialog takes effect at once, heard as the clip plays,
   and is saved; there is no OK. A double-click on a label puts back its
   default, as in Settings. Esc, a click outside it or its × closes it.
