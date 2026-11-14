@@ -534,6 +534,9 @@
   font: 13px/1.4 var(--font-mono); white-space: pre; overflow-wrap: normal; overflow-x: auto;
   font-variant-ligatures: none;
 }
+/* Re-bar by time signature under the Import dialog's box: the check box, then its name over its hint. */
+.tab-import-rebar { display: flex; align-items: flex-start; gap: 10px; }
+.tab-import-rebar .settings-check { flex: none; margin-top: 2px; }
 .settings-after { font: 400 14px/20px var(--font-sans); color: var(--ink-muted); }
 /* The metronome's volumes in a row, each knob over its name (issue #477). */
 .settings-knobs { display: flex; flex-wrap: wrap; gap: 8px 20px; }

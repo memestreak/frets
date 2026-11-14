@@ -312,10 +312,12 @@ Comparison:
 - **Short or long bars.** Dorico: can't be; gaps are rests, and bars come from the time signature
   (m). MuseScore: voice 1 can't be short; a bar's own "actual duration" makes pickups and odd bars
   on purpose (u). Guitar Pro: allowed; they "appear in red" (except the one being edited), and an
-  LCD shows what's left (m). Frets: only from an import or a link, marked by a ⚠ under the bar.
+  LCD shows what's left (m). Frets: only from an import with Re-bar by time signature off, or a
+  link, marked by a ⚠ under the bar.
 - **Filling.** Dorico, MuseScore: not needed. Guitar Pro: Bar Arranger adds rests to short bars and
   moves extra notes on; Check Bar Duration lists uneven bars (m). Frets: the Uneven bar's ⚠ fixes one
-  bar.
+  bar; Re-bar by time signature, Import's option, lays a whole file as Bar Arranger does and lists
+  the Source bar lines that miss a downbeat (`docs/specs/2026-11-14-tab-rebar-import-design.md`).
 - **Where short bars come from.** Dorico: nowhere (m). MuseScore: only explicit actions, Ctrl/⌘+Delete
   (remove selected range) or a bar's own length set on purpose (m). Guitar Pro: typing, length
   changes, deletes. Frets: only an import or a link.

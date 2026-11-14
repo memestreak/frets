@@ -19,7 +19,7 @@ const isOpeningLink = (hash: string) => isTabLink(hash) || hash.startsWith(EXAMP
  * clip is edited, saved or replaced, so a reload before then opens the link again. Each says on the
  * page what it guessed, or why it couldn't.
  */
-export function useClipImport({ openNew, confirmLeave, open, onNotice, showTab, toStart }: {
+export function useClipImport({ openNew, confirmLeave, open, onNotice, showTab, toStart, reBar }: {
   /** Opens a clip as a new arrangement, not saved yet; its id. */
   openNew: (clip: Clip) => string;
   /** Runs `then` once unsaved changes are saved or let go; `onCancel` when the person keeps them. */
@@ -31,15 +31,23 @@ export function useClipImport({ openNew, confirmLeave, open, onNotice, showTab, 
   showTab: () => void;
   /** Puts the cursor on the first column, with nothing selected. */
   toStart: () => void;
+  /**
+   * Tab › Import's Re-bar by time signature, which a drop follows; Import passes its own, and links and
+   * built-ins never re-bar (`docs/specs/2026-11-14-tab-rebar-import-design.md`).
+   */
+  reBar: boolean;
 }) {
   // The arrangement a link opened, while its hash is in the address.
   const linked = useRef<string | null>(null);
   // The link last followed, so React's second run of an effect in development doesn't open it twice.
   const followed = useRef('');
 
-  /** Reads `text`; on success opens it as a new arrangement and returns null, else the errors. `hash` is the link it came from. */
-  const importText = async (text: string, hash = ''): Promise<string[] | null> => {
-    const result = await readTab(text);
+  /**
+   * Reads `text`, re-barred by time signature with `reBarIt`; on success opens it as a new arrangement and
+   * returns null, else the errors. `hash` is the link it came from.
+   */
+  const importText = async (text: string, hash = '', reBarIt = false): Promise<string[] | null> => {
+    const result = await readTab(text, { reBar: reBarIt });
     if (!result.ok) return result.errors;
     const id = openNew(result.clip);
     toStart();
@@ -68,8 +76,8 @@ export function useClipImport({ openNew, confirmLeave, open, onNotice, showTab, 
   };
 
   /** Imports `text`, or says on the page why it couldn't (and takes a link that failed out of the address). */
-  const importOrSay = async (text: string, hash = '') => {
-    const errors = await importText(text, hash);
+  const importOrSay = async (text: string, hash = '', reBarIt = false) => {
+    const errors = await importText(text, hash, reBarIt);
     if (errors) failed(errors, hash);
   };
 
@@ -122,7 +130,7 @@ export function useClipImport({ openNew, confirmLeave, open, onNotice, showTab, 
   }, [open.id, open.unsaved, open.kept]);
 
   /** A file or text dropped on the page opens, once unsaved changes are saved or let go. */
-  const onDrop = useEffectEvent((text: string) => confirmLeave(() => void importOrSay(text)));
+  const onDrop = useEffectEvent((text: string) => confirmLeave(() => void importOrSay(text, '', reBar)));
 
   // A file or text dropped anywhere on the page replaces the clip.
   useEffect(() => {

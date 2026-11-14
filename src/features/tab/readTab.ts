@@ -5,6 +5,7 @@
  */
 import { readAscii, type ReadResult } from './ascii';
 import { readAlphaTex } from './alphatexRead';
+import { missReport, reBarImport } from './reBarImport';
 
 /**
  * Whether the text is ASCII tab: it has two dashes in a row anywhere, or a
@@ -16,8 +17,28 @@ export function looksLikeAscii(text: string): boolean {
   return /-{2,}/.test(unquoted) || /^[ \t]*[A-Ga-g1-6]?[#b♯♭]?[ \t]*\|:?-/m.test(unquoted);
 }
 
-export async function readTab(text: string): Promise<ReadResult> {
-  return looksLikeAscii(text) ? readAscii(text) : readAlphaTex(text);
+/** A reader's warning that a bar doesn't add up (`unevenMessage`): a re-barred clip has none. */
+export const UNEVEN_WARNING = /doesn't add up to/;
+
+export interface ReadOptions {
+  /**
+   * Re-bar by time signature (`docs/specs/2026-11-14-tab-rebar-import-design.md`): the notes laid into
+   * bars by the time signatures, and the Source bar lines that miss a downbeat listed in the warnings.
+   */
+  reBar?: boolean;
+  /** Being pasted into an empty clip: a short first bar is a copy, placed to end on a bar line. */
+  pasted?: boolean;
+}
+
+export async function readTab(text: string, { reBar = false, pasted = false }: ReadOptions = {}): Promise<ReadResult> {
+  const result = looksLikeAscii(text) ? readAscii(text) : await readAlphaTex(text);
+  if (!reBar || !result.ok) return result;
+  const laid = reBarImport(result.clip, { pasted });
+  if (!laid.ok) return { ok: false, errors: [laid.error] };
+  if (laid.clip === result.clip) return result;
+  const report = missReport(result.clip, laid.misses, laid.pickupHint);
+  const warnings = result.warnings.filter(line => !UNEVEN_WARNING.test(line));
+  return { ok: true, clip: laid.clip, warnings: report ? [...warnings, report] : warnings };
 }
 
 /**

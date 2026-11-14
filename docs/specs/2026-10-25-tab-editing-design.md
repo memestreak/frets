@@ -128,7 +128,8 @@ and the keys use.
   before the cursor's column, each later bar becomes a new bar, and the
   rest of the cursor's bar follows the last one.
 - **Paste into an empty clip:** the paste comes in whole, with its name,
-  time and tuning.
+  time and tuning; Uneven bars are re-barred as Import re-bars them
+  (`2026-11-14-tab-rebar-import-design.md`).
 - **Replacing the clip:** Import…, a dropped file and a `#tab=` link still
   replace it. Import…'s Open file… (Jeremy, 2026-10-27) picks a file from the
   computer: text, or alphaTex's own `.atex`, `.alphatex` and `.tex` (our

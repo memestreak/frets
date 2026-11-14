@@ -278,7 +278,7 @@ function heldThrough(items: Item[], a: number, b: number, s: number): boolean {
 /* — laying a stream into bars — */
 
 /** One bar's room as the stream is laid: its length, time signature and where the meter counts it from. */
-interface Span {
+export interface Span {
   length: number;
   time: TimeSignature;
   offset: number;
@@ -665,10 +665,11 @@ export function reBar(before: Part, after: Part, from: number, to: number, minBa
  * Several Voices' bars (`voices[v][i]` the Columns of the stretch's bar i, [] where the Voice is
  * absent, counted as a Gap `rooms[i]` long) laid into bars by `spanOf`, every Voice into as many bars
  * as the longest needs, and at least `minBars`; with `trimEnd`, without the Gap each Voice ends in.
+ * `lead` is a Gap put before every Voice (a pasted copy's short first bar, `reBarImport.ts`).
  */
-function layVoices(voices: Column[][][], rooms: number[], spanOf: (i: number) => Span, minBars: number, trimEnd: boolean): Column[][][] | null {
+export function layVoices(voices: Column[][][], rooms: number[], spanOf: (i: number) => Span, minBars: number, trimEnd: boolean, lead = 0): Column[][][] | null {
   const streams = voices.map(bars => {
-    const items = bars.flatMap((columns, i) => itemsOf(columns, columns.length > 0 ? 0 : rooms[i]));
+    const items = [...(lead > 0 ? [rest(lead)] : []), ...bars.flatMap((columns, i) => itemsOf(columns, columns.length > 0 ? 0 : rooms[i]))];
     if (trimEnd) while (items.length > 0 && isPlainRestItem(items[items.length - 1])) items.pop();
     return items;
   });
@@ -703,6 +704,11 @@ function writeOtherVoices(part: Part, bars: number[]): Part {
     };
   }
   return result;
+}
+
+/** Every Voice of the Part's bars `bars` written by the meter, as `reBar` writes the bars it lays. */
+export function writtenByMeter(part: Part, bars: number[]): Part {
+  return writeOtherVoices(writeVoice(part, readVoice(part), { bars }), bars);
 }
 
 /** A bar's time signature fields, which the meter reads. */
