@@ -28,8 +28,9 @@ and the Penpot page "Tab Chords panel (issue 400)".
   more than one page; a short last page keeps a full page's room, so
   nothing below moves. A small solid dot on the bottom right corner of
   each tile's diagram, just over it, says how many times the chord is used
-  ("99+" past 99); a chord no column uses has none, and nothing else marks
-  it (Jeremy, 2026-11-09: it was tinted; dot b of four mocks). A chord
+  ("99+" past 99); a chord no column uses has a dot saying 0, and nothing
+  else marks it (Jeremy, 2026-11-15: it had no dot; 2026-11-09: it was
+  tinted; dot b of four mocks). A chord
   with no shape has no diagram and keeps no room for one: its dot sits
   centred right under its name (Jeremy, 2026-11-14: it hung off an empty
   corner). Every page's rows keep the tallest tile's room, a name over
@@ -40,10 +41,10 @@ and the Penpot page "Tab Chords panel (issue 400)".
   double-click opens Edit chord; a right-click (or a long press, or
   Shift+F10) opens its menu: **Insert** (at the cursor, as the button),
   **Edit**, **Rename**, **Copy to new chord**, and **Delete** while no
-  column uses it. The section folds from its heading (a 16px chevron,
-  down while open), kept across visits in `frets.tab.chordPanel`
-  `{ folded }`, like the open panel, not a preference; the + to add a
-  chord sits at the heading's right, folded or not. Moving the cursor
+  column uses it. Its heading, "Chord set", is plain text that never
+  folds (Jeremy, 2026-11-15: it folded from a chevron, kept in
+  `frets.tab.chordPanel`; the palette itself folds), with the + to add a
+  chord at its right. Moving the cursor
   changes nothing in the panel but Insert's label (Jeremy, 2026-11-06).
 - **Insert's button**, under the tiles with Name | Notes | Both, says
   where it writes: "Insert at bar 3, beat 2" (¼ ½ ¾ for beats between),
@@ -105,7 +106,7 @@ and the Penpot page "Tab Chords panel (issue 400)".
     "These notes are" (or "The notes at the cursor are") offers up to four
     names for its notes, each filling Name.
   - Nothing changes until a button: **Add chord** (new) puts the chord in
-    the set with the shape (none for a name with no shape, "Riff A"),
+    the set with the shape (none for a name with no shape, "Dm7"),
     picks it for Insert, and leaves the columns as they were. **Save
     chord** (on a chord) renames the chord and gives it the shape, then
     goes back to Edit chord on it; with nothing changed it just goes back
@@ -199,7 +200,7 @@ Settled while building (my calls, open to change):
 - `playback.ts`: `shapeAlone`, `Player.hearShape`; `PlaybackFooter.tsx`:
   `hearShape`, and `hearChords` in the Playback settings; `tabSettings.tsx`
   lists it.
-- `ChordPanel.tsx`: the panel; `Fold`, `parseChordPanel`,
+- `ChordPanel.tsx`: the panel;
   `HearChordsToggle` (which `TabRail` shows in the panel's head through
   `chordsHead`), `insertedColumn`, `freeName` (the copy's "C 2"),
   `cursorPlace` (Insert's "bar 3, beat 2"); the tiles, pager and menu
@@ -228,12 +229,12 @@ Settled while building (my calls, open to change):
 
 ## Tests
 
-- The dot's count: none for 0, "1", "99", "99+" for 100.
+- The dot's count: "0" for 0, "1", "99", "99+" for 100.
 - A chord with no shape used twice: its tile is its name then its dot
   "2", with no diagram's room.
 - Following a picked chord focuses the editor with `preventScroll`.
 - The Chord set is tiles: a used one's title "Used 1 time" and its dot
-  "1"; an unused one "Not used", with no dot and no tint; each has a diagram; no Edit or Delete icons, no
+  "1"; an unused one "Not used", its dot "0" and no tint; each has a diagram; no Edit or Delete icons, no
   name field, no shapes; + in the heading; no pager for two chords.
 - Ten chords: page 1 has the first eight, "1 / 2", Previous grey; More
   shows Bm and Em, "2 / 2", More grey, six empty tiles keeping the room.
@@ -279,7 +280,7 @@ Settled while building (my calls, open to change):
   x-x-0-2-3-0; Add chord defines `0 3 2 0 x x` as "Dsus2", unused and
   picked for Insert, no column changed; the editor closes. Another shape
   picked is the one added; Enter in Name adds. The magnifier: "Em"
-  Enter gives Root E, Type minor; "Hendrix" says "No chord". "Riff A"
+  Enter gives Root E, Type minor; "Hendrix" says "No chord". "Dm7"
   typed with no shape is added with none. "G" can't be added again.
 - With the cursor on the C column: the cursor's fingering x-3-2-0-1-0
   "at the cursor" is picked, Name's placeholder "C", "The notes at the
@@ -308,7 +309,7 @@ Settled while building (my calls, open to change):
 - `parseLayout` reads `chords`.
 - `shapeAlone`: nothing for no strings; a quarter at 120 bpm, strummed
   down. `parsePlaybackSettings` reads `hearChords`, false by default.
-- The Chord set folds, + staying, kept; `parseChordPanel` drops ids it doesn't know.
+- The Chord set's heading is a heading, not a button, with + at its right.
 - Hear is off at first, in the panel's head; its toggle turns it on and
   saves `hearChords`.
 - An unused chord's menu Delete takes its definition out and leaves
