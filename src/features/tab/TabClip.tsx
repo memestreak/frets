@@ -44,6 +44,8 @@ export interface Highlight {
    * selected, filled, as MuseScore colours a selected note.
    */
   input?: boolean;
+  /** Insert mode is on (`docs/specs/2026-11-14-tab-insert-mode-design.md`): the cursor has ▼ ▲ notches above and below its column, as Dorico's caret. */
+  insert?: boolean;
   /** How far into its rest note input mode's cursor is, in ticks (issue #293): drawn that far along the rest. */
   at?: number;
   /**
@@ -679,6 +681,18 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
               stroke="var(--select)" strokeWidth={2} data-testid="tab-caret"
             />
           )}
+          {/* Insert mode: ▼ over the cursor's column and ▲ under it, as Dorico's caret shows it, in both modes. */}
+          {highlight.insert && (rows.tab || rows.score) && (() => {
+            // Over the staff, over the notes that reach past its top line too, so a high note doesn't hide it.
+            const top = rows.score ? Math.min(rows.score.top - 12, (rows.score.above ?? rows.score.top) + 1) : stringY(rows, 0) - 12;
+            const bottom = rows.tab ? stringY(rows, STRING_COUNT - 1) + 12 : Math.max(rows.score!.bottom + 12, (rows.score!.below ?? rows.score!.bottom) - 1);
+            return (
+              <g fill="var(--select)" pointerEvents="none" data-testid="insert-notches">
+                <path d={`M${spot.x - 5} ${top - 5}h10l-5 6z`} />
+                <path d={`M${spot.x - 5} ${bottom + 5}h10l-5 -6z`} />
+              </g>
+            );
+          })()}
           {/* The Active voice's number by the cursor, when it isn't Voice 1 (step 9, Q5). */}
           {!highlight.range && (clip.voice ?? 0) > 0 && (rows.tab || rows.score) && (
             <text

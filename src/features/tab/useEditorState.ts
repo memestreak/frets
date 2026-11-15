@@ -70,6 +70,14 @@ export interface EditorState {
   noteInputMode: boolean;
   setNoteInputMode: (on: boolean) => void;
   /**
+   * Insert mode (`docs/specs/2026-11-14-tab-insert-mode-design.md`, Dorico's): I or the palette's Insert button turns it
+   * on and off, in note input mode and normal mode alike. While it is on, entering a note, a longer note, a dot and
+   * paste push the music after them later, and Delete, a shorter note and cut pull it back. Every visit starts
+   * with it off: it is never saved (Jeremy, 2026-11-14).
+   */
+  insertMode: boolean;
+  setInsertMode: (on: boolean) => void;
+  /**
    * Note input mode's length (`inputLength.ts`): the next note entered on a rest takes it, as MuseScore's
    * does. Set on the way in from the notes there, then by the length keys and the Duration buttons.
    */
@@ -144,6 +152,7 @@ export function useEditorState({ clip, dispatch, replace, setNotice }: {
   const [picked, setPicked] = useState<Picked | null>(null);
   const [alone, setAlone] = useState(false);
   const [noteInputMode, setNoteInputModeOnly] = useState(false);
+  const [insertMode, setInsertMode] = useState(false);
   const [inputLength, setInputLength] = useState<Duration>({ value: 4, dots: 0 });
   const [tupletEntry, setTupletEntry] = useState<number | null>(null);
   const [graceEntry, setGraceEntry] = useState(false);
@@ -237,7 +246,7 @@ export function useEditorState({ clip, dispatch, replace, setNotice }: {
 
   return {
     clip, dispatch, cursor, cursorAsSet, setCursor, selection, selectionAsSet, setSelection, tabFocused, setTabFocused,
-    columnOnly, setColumnOnly, staffPitch, setStaffPitch, picked, setPicked, alone, setAlone, noteInputMode, setNoteInputMode,
+    columnOnly, setColumnOnly, staffPitch, setStaffPitch, picked, setPicked, alone, setAlone, noteInputMode, setNoteInputMode, insertMode, setInsertMode,
     inputLength, setInputLength, tupletEntry, setTupletEntry, graceEntry, setGraceEntry, tupletFrom, setTupletFrom, cursorAt, setCursorAt, editorRef, lastDigitRef, commit, commitVoices, commitReBar, setNotice,
     startRegion, toPitch,
   };

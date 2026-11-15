@@ -17,6 +17,7 @@ import { lengthOf, stepLength } from './inputLength';
 import { advance, lastStop, splitRestAt, stepInRest } from './grid';
 import { digitOfCode, nextInChord, pitchAt, valueForDigit } from './normalMode';
 import type { EditorKeys } from './editorKeys';
+import { fretEditor, staffEditor } from './insertMode';
 
 /** How long after one digit a second one joins it into a two-digit fret. */
 const SECOND_DIGIT_MS = 1000;
@@ -122,7 +123,10 @@ export function noteInputModeKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, edit
  * otherwise on a rest a note of the Input length where the cursor is in the rest, and a second digit soon after
  * on the same spot makes a two-digit fret.
  */
-function fretKey(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys, digit: number) {
+function fretKey(e: ReactKeyboardEvent<HTMLDivElement>, given: EditorKeys, digit: number) {
+  // In Insert mode, room for the note first, the music after the caret pushed on (`insertMode.ts`).
+  const editor = fretEditor(given);
+  if (!editor) return;
   const { clip, cursor, lastDigit, commit } = editor;
   if (typeEntered(e, editor, digit)) return;
   // A Tie chain is one note: a fret typed on any of it goes on its first note, and the rest follow (step 5).
@@ -132,7 +136,8 @@ function fretKey(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys, digi
   const before = lastDigit.current;
   const joined = before && before.spot === spot && e.timeStamp - before.at < SECOND_DIGIT_MS ? before.digit * 10 + digit : null;
   if (joined !== null && joined <= MAX_FRET) {
-    lastDigit.current = null;
+    // Kept on the note, so a fret typed on it straight away retypes it in Insert mode too; as long ago, no third digit joins.
+    lastDigit.current = { spot, digit: joined, at: -Infinity };
     commit(setFret(here.clip, here.cursor, joined, editor.inputLength), here.cursor);
   } else {
     lastDigit.current = { spot, digit, at: e.timeStamp };
@@ -304,7 +309,10 @@ function letterKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys
  * A note entered on the staff at the caret, which goes on past it by its length (Jeremy, 2026-11-07, issue #396),
  * following Tuplet entry and Grace entry as a typed fret does (issue #469).
  */
-function enterAtCaret(editor: EditorKeys, pitch: number, toggle: boolean) {
+function enterAtCaret(given: EditorKeys, pitch: number, toggle: boolean) {
+  // In Insert mode, room for the note first, the music after the caret pushed on (`insertMode.ts`).
+  const editor = staffEditor(given, stringAtPitch(given.clip, given.cursor, pitch) !== null, toggle);
+  if (!editor) return;
   const modes = { tuplet: { n: editor.tupletEntry, from: editor.tupletFrom }, grace: editor.graceEntry };
   const edit = enterOnStaff(editor.clip, editor.cursor, editor.cursorAt, pitch, editor.inputLength, toggle, modes);
   if (edit.tupletStarted) editor.setTupletFrom(null);

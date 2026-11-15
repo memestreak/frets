@@ -6,7 +6,7 @@
 import { ticks, type Column, type Duration, type Note, type Part } from './clip';
 import { columnAt, indexOf, moveColumn, normalize, placeOf, selectedRange, type Cursor, type MoveOptions, type Selection } from './editing';
 import { durationOf } from './sounding';
-import { writeOver, timeOf } from './timeline';
+import { pushTime, withoutAddedRests, writeOver, timeOf } from './timeline';
 
 /** A Column's place: its bar and its index in the bar. */
 export interface Place {
@@ -236,9 +236,10 @@ export function tieForward(clip: Part, { cursor, selection }: { cursor: Cursor; 
 /**
  * `=` in note input mode (spec Q9): a note of `length` tied on after the chain at the cursor, for every note of
  * its chord whose chain ends at the same time, written over what follows and split and tied by the
- * meter. Null on a rest, or when it would put a tuplet across a bar line.
+ * meter; with `insert` (Insert mode), with room made for it first, the music after the chain pushed later in
+ * every Voice. Null on a rest, or when it would put a tuplet across a bar line.
  */
-export function tieOnInput(clip: Part, cursor: Cursor, length: Duration): Part | null {
+export function tieOnInput(clip: Part, cursor: Cursor, length: Duration, insert = false): Part | null {
   const start = chainStart(clip, cursor);
   const head = columnAt(clip, start);
   if (!head || !head.notes[cursor.string]) return null;
@@ -251,7 +252,9 @@ export function tieOnInput(clip: Part, cursor: Cursor, length: Duration): Part |
   const notes: (Note | null)[] = head.notes.map((note, string) =>
     note && !note.tie && note.fret !== null && end(string) === at ? { fret: note.fret, tie: true } : null);
   const column: Column = { duration: { ...length }, notes };
-  const written = writeOver(clip, at, [column]);
+  const pushed = insert ? pushTime(clip, at, ticks(length)) : clip;
+  const room = pushed && withoutAddedRests(clip, pushed);
+  const written = room && writeOver(room, at, [column]);
   return written ? normalize(written) : null;
 }
 

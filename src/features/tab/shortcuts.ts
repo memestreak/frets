@@ -12,6 +12,7 @@ const PAGE: ShortcutGroup = {
     { keys: ['Space'], does: 'Play or stop' },
     { keys: ['L'], does: 'Loop points on or off, round the selection if there is one' },
     { keys: ['N'], does: 'Note input mode on or off' },
+    { keys: ['I'], does: 'Insert mode on or off: entries, lengths and paste push the music on, Delete and cut pull it back' },
     { keys: ['Mod+Z'], does: 'Undo' },
     { keys: ['Mod+Shift+Z', 'Ctrl+Y'], does: 'Redo' },
     { keys: ['Mod+C', 'Mod+X', 'Mod+V'], does: 'Copy, cut (leaving rests), paste over' },

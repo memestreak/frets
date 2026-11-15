@@ -15,7 +15,7 @@ import { pastesVoices, pasteVoices, sliceVoices, spansVoices, voiceRange, voiceS
 import { clipAction, type ClipAction, type PartAction } from './clipState';
 import { useArrangements } from './useArrangements';
 import { chordFromNotes, NO_NOTES, pickedNotes, writeChordFromNotes } from './chordFromNotes';
-import { clampCursor, columnAt, indexOf, sliceClip, coversWholeBars, deleteBars, insertBar, insertPaste, isEmpty, noteAt, withRestsInEmptyBars, pasteOver, placeOf, selectedRange, START } from './editing';
+import { clampCursor, columnAt, indexOf, sliceClip, coversWholeBars, deleteBars, deleteColumns, insertBar, insertPaste, isEmpty, noteAt, withRestsInEmptyBars, pasteOver, placeOf, selectedRange, START } from './editing';
 import { isBarLine, type BarLineHit } from './barLines';
 import { beamLit, canBeamTarget, clearToRests, setBend, setOttava, setWhammy } from './noteEdits';
 import { applyTuplet, isProblem } from './tuplets';
@@ -35,6 +35,7 @@ import { pitchAtStep, type TypedAccidental } from './staffEntry';
 import { markBox, markTool, type MarkHit } from './marks';
 import { addedSpan } from './spans';
 import { litTiedNotes, tieOnInput } from './ties';
+import { withoutAddedRests } from './timeline';
 import { useClipActions } from './ClipActions';
 import { SizeField } from './ViewOptions';
 import { TabClip, type DoubleClickPlace } from './TabClip';
@@ -52,7 +53,7 @@ import { DEFAULT_FX } from './effects';
 import { instrumentTag, soundFor, substituteNote } from './instrument';
 import { AlphaTexEditor } from './AlphaTexEditor';
 import { readTab } from './readTab';
-import { applyTool, isOn, noteKinds, toolValue, WORD_TOOL, WORD_TOOLS, type ToolId } from './tools';
+import { applyTool, isLengthTool, isOn, noteKinds, toolValue, WORD_TOOL, WORD_TOOLS, type ToolId } from './tools';
 import { cycleLengthDots, lengthIsOn, lengthOf, startLength } from './inputLength';
 import { FoldedTitle, ScoreHead } from './ScoreHead';
 import { ChordChart } from './ChordChart';
@@ -236,7 +237,7 @@ export default function TabPage() {
   const editor = useEditorState({ clip, dispatch, replace: next => dispatchClip({ type: 'replace', clip: next }), setNotice });
   const {
     cursor, setCursor, selection, selectionAsSet, setSelection, tabFocused, setTabFocused, columnOnly, setColumnOnly,
-    staffPitch, setStaffPitch, picked, setPicked, noteInputMode, setNoteInputMode, inputLength, setInputLength,
+    staffPitch, setStaffPitch, picked, setPicked, noteInputMode, setNoteInputMode, insertMode, setInsertMode, inputLength, setInputLength,
     editorRef, lastDigitRef, commit, startRegion, toPitch, cursorAt, setCursorAt,
     tupletEntry, setTupletEntry, graceEntry, setGraceEntry, tupletFrom, setTupletFrom,
   } = editor;
@@ -584,15 +585,17 @@ export default function TabPage() {
     else if (id === 'tie' && picked?.kind === 'mark' && picked.mark === 'tie') deletePicked(picked);
     // In note input mode `=` adds a tied note of the input length after the note at the cursor (step 5).
     else if (noteInputMode && id === 'tie') {
-      const tied = tieOnInput(clip, cursor, inputLength);
+      const tied = tieOnInput(clip, cursor, inputLength, insertMode);
       if (tied) commit(tied, cursor);
     }
     // A dead note goes on one string; with none picked there is nothing to mark.
     else if (!(columnOnly && id === 'dead')) {
-      // On a selection, a Mark goes on every Voice's notes in its time (Q19).
-      const next = applyTool(clip, target, id);
+      // On a selection, a Mark goes on every Voice's notes in its time (Q19). In Insert mode a length changes the
+      // Active voice's notes only, and every Voice moves with them (`docs/specs/2026-11-14-tab-insert-mode-design.md`).
+      const pushes = insertMode && isLengthTool(id);
+      const next = applyTool(clip, target, id, pushes);
       const added = spanTool(id) ? addedSpan(clip, next, id, target) : null;
-      if (!picked && !ACTIVE_VOICE_ONLY.has(id) && everyVoice((part, run) => applyTool(part, { ...target, selection: run }, id))) {
+      if (!picked && !pushes && !ACTIVE_VOICE_ONLY.has(id) && everyVoice((part, run) => applyTool(part, { ...target, selection: run }, id))) {
         if (added) pickAdded(next, added);
         return;
       }
@@ -707,7 +710,7 @@ export default function TabPage() {
 
   /** The editor as the keys (and the Rest and Grace tools) find it. */
   const editorKeys = (): EditorKeys => ({
-    clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', tabShown: parts !== 'staff', lastDigit: lastDigitRef, accidental: accidentalRef, lines: drawnLines, noteInputMode, setNoteInputMode: enterNoteInput, inputLength, setInputLength, gridStep, fixedGrid, cursorAt, setCursorAt, stepElement, moveSpanEnd: picking.moveSpanEnd,
+    clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', tabShown: parts !== 'staff', lastDigit: lastDigitRef, accidental: accidentalRef, lines: drawnLines, noteInputMode, setNoteInputMode: enterNoteInput, insertMode, setInsertMode, inputLength, setInputLength, gridStep, fixedGrid, cursorAt, setCursorAt, stepElement, moveSpanEnd: picking.moveSpanEnd,
     tupletEntry, graceEntry, tupletFrom, setTupletFrom, openTuplets, voiceKey, everyVoice,
     commit, toPitch, setColumnOnly, setStaffPitch, startRegion, setPicked, deletePicked, editPicked, addBar, onTool, hearNote, onNotice: setNotice,
     dropLine, leave: () => editorRef.current?.blur(),
@@ -744,7 +747,9 @@ export default function TabPage() {
       setView('tab');
       return done;
     }
-    const pasted = (insert ? insertPaste : pasteOver)(clip, at, partOf(put));
+    const made = (insert ? insertPaste : pasteOver)(clip, at, partOf(put));
+    // In Insert mode a paste adds no bars of rests at the end, as an entry adds none (`withoutAddedRests`).
+    const pasted = insert && insertMode ? { ...made, clip: withoutAddedRests(clip, made.clip) } : made;
     let done: boolean;
     if (noteInputMode) done = commit(pasted.clip, pasted.cursor, null);
     else {
@@ -781,6 +786,15 @@ export default function TabPage() {
     // A picked note, or a selection of one Voice, is copied by itself.
     e.clipboardData.setData('text/plain', writePart(selection && !voiceOnly ? sliceVoices(clip, range) : sliceClip(clip, range)));
     if (!cut) return;
+    // In Insert mode a cut takes the time away too, as Ctrl/⌘+Delete does: the music after it is pulled back
+    // (`docs/specs/2026-11-14-tab-insert-mode-design.md`).
+    if (insertMode) {
+      const taken = deleteColumns(clip, range);
+      const at = { ...cursor, ...taken.cursor };
+      commit(taken.clip, at, null);
+      if (!noteInputMode && columnAt(taken.clip, at)) startRegion();
+      return;
+    }
     // Bars stay full (issue #238): a cut leaves rests, as MuseScore's does; Ctrl/⌘+Delete takes the time away.
     // The rests stay selected, so nothing else is left lit (Jeremy, 2026-10-31).
     if (everyVoice((part, run) => clearToRests(part, run).clip)) {
@@ -811,7 +825,8 @@ export default function TabPage() {
   // The keys that work anywhere on the page, paste, copy, cut, undo, and the tab taking and letting go of the keys.
   const { onEditorFocus, onEditorBlur } = usePageKeys(editor, {
     view, parts, range, showPlayback, setEditingPrefs: prefs.setEditing, enterNoteInput, chooseVoice,
-    paste: (text, insert) => void pasteTab(text, insert), copyOrCut,
+    // In Insert mode every paste is Insert paste (`docs/specs/2026-11-14-tab-insert-mode-design.md`).
+    paste: (text, insert) => void pasteTab(text, insert || insertMode), copyOrCut,
     undo: redo => dispatchClip({ type: redo ? 'redo' : 'undo' }),
   });
 
@@ -845,9 +860,9 @@ export default function TabPage() {
   const highlight = useMemo(() => ({
     cursor: showsCursor ? { bar: cursorBar, column: cursorColumn, string: cursorString } : null,
     range: litStart === null || litEnd === null ? null : [litStart, litEnd] as [number, number],
-    boxed, columnOnly, staffPitch: staffCursor, input: noteInputMode, at: cursorAt,
+    boxed, columnOnly, staffPitch: staffCursor, input: noteInputMode, insert: insertMode, at: cursorAt,
     tied: JSON.parse(tiedKey) as { index: number; string: number }[],
-  }), [showsCursor, cursorBar, cursorColumn, cursorString, litStart, litEnd, boxed, columnOnly, staffCursor, noteInputMode, cursorAt, tiedKey]);
+  }), [showsCursor, cursorBar, cursorColumn, cursorString, litStart, litEnd, boxed, columnOnly, staffCursor, noteInputMode, insertMode, cursorAt, tiedKey]);
   const errors = useMemo(() => barErrors(clip), [clip]);
   // A selection covers every Voice in its time (Q12), drawn selected in each; not one Select only voice made.
   const shownVoiceSelections = useMemo(
@@ -888,6 +903,12 @@ export default function TabPage() {
     editorRef.current?.focus({ preventScroll: true });
     chooseVoice(v);
   };
+  /** The palette's Insert button: Insert mode on or off, as I does, the keys back on the tab. */
+  const toggleInsertMode = () => {
+    lastDigitRef.current = null;
+    setInsertMode(!insertMode);
+    if (view === 'tab') editorRef.current?.focus({ preventScroll: true });
+  };
   /** The symbol palette, with only `groups` (all when left out); the pencil first when `input`. */
   const drawPalette = (groups?: readonly string[], className?: string, input = false) => (
     <TabPalette
@@ -904,6 +925,7 @@ export default function TabPage() {
       onOttava={o => onPanelChoice(() => setOttava(clip, target, o))}
       onWhammy={shape => onPanelChoice(() => setWhammy(clip, target, shape ? WHAMMY_SHAPES[shape] : null))} disabled={view !== 'tab'}
       noteInputMode={noteInputMode} groups={groups} className={className} onNoteInputMode={input ? () => enterNoteInput(!noteInputMode) : undefined}
+      insertMode={insertMode} onInsertMode={input ? toggleInsertMode : undefined}
       grid={fixedGrid ? grid : null} gridValue={fixedGrid ? grid : inputLength.value} onGrid={pickGrid}
       voices={input ? { active: tabFocused ? voice : null, onVoice: pressVoice, present: v => voicePresentAtCursor(v) } : undefined} />
   );
@@ -1041,9 +1063,10 @@ export default function TabPage() {
                 <div
                   // A textbox, so screen readers pass the keys through to it as they do to a text field.
                   ref={editorRef} className="tab-editor export-trigger" tabIndex={0} role="textbox" aria-multiline="true"
-                  aria-label={noteInputMode
+                  aria-label={(noteInputMode
                     ? 'Tab editor, note input mode: ↑ ↓ pick a string and digits type frets, Shift+digits or on the staff digits set the next note’s length, arrows move, Shift+arrows select; on the staff, Enter adds or removes a note; Esc or N for normal mode; Shift+F10 to insert a bar'
-                    : 'Tab editor: a press selects, arrows change the selected note, Shift+arrows select; N for note input mode; Shift+F10 to insert a bar'}
+                    : 'Tab editor: a press selects, arrows change the selected note, Shift+arrows select; N for note input mode; Shift+F10 to insert a bar')
+                    + (insertMode ? '. Insert mode: entries push the music after them on, Delete pulls it back; I to turn it off' : '')}
                   onKeyDown={onKeyDown} onFocus={onEditorFocus} onBlur={onEditorBlur}
                   // Right-click, a long press or Shift+F10: insert a bar before or after.
                   {...menuTrigger.props(openMenu)}

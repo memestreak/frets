@@ -9,7 +9,7 @@ free text (alphaTex `txt`) over the chord names, so a long note never
 pushes a chord and its diagram off the music. That also moved short words
 such as "let ring" or "P.M." away from the notes they are about.
 
-The let ring mark itself (`lr`, the I key) was already drawn under the
+The let ring mark itself (`lr`, the Alt+I key since 2026-11-14) was already drawn under the
 names, just over the tab; this is about Texts.
 
 ## What

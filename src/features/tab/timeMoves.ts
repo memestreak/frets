@@ -11,7 +11,7 @@ import { columnAt, indexOf, normalize, placeOf, selectedRange, type Cursor, type
 import { readVoice } from './sounding';
 import { lineAt, type Layout } from './layout';
 import { chainPlaces, chainTicks, lengthAnchor } from './ties';
-import { placeAtTime, timeOf, withoutTimeMarks, writeNote, writeOver, writeSpan } from './timeline';
+import { placeAtTime, pullTime, pushTime, timeOf, withoutAddedRests, withoutTimeMarks, writeNote, writeOver, writeSpan } from './timeline';
 
 export interface TimeMove {
   clip: Part;
@@ -35,6 +35,62 @@ export function moveInTime(clip: Part, target: Target, by: number, alone = false
   if (!column || column.grace || column.duration.tuplet) return null;
   if (alone && !selection && column.notes[pressed.string] && hasOthers(clip, pressed)) return moveNote(clip, pressed, by);
   return moveChord(clip, pressed, by);
+}
+
+/**
+ * Insert mode's move in time (`docs/specs/2026-11-14-tab-insert-mode-design.md`, Jeremy 2026-11-15): nothing
+ * is written over. Later, a Gap `by` long goes in before the target, so it and all the music after it move
+ * on in every Voice of the Track (bars of rests it adds at the end dropped). Earlier, the time before it is
+ * taken out, pulling it and the music after it back, but only when that time is quiet in every Voice: rests
+ * and Gaps, no note sounding into it and no mark on them. The whole Column moves (a note picked alone too:
+ * the time is the Track's). Null when nothing can move: a rest picked alone, a grace note, a note in a
+ * tuplet, a move before the clip's start or over music, or a push that would put a tuplet across a bar line.
+ */
+export function shiftInTime(clip: Part, target: Target, by: number): TimeMove | null {
+  if (by === 0) return null;
+  const { cursor, selection } = target;
+  const first = selection ? selectedRange(selection)[0] : indexOf(clip, cursor.bar, cursor.column);
+  const place = placeOf(clip, first);
+  const column = clip.bars[place.bar]?.columns[place.column];
+  if (!column || column.grace || column.duration.tuplet) return null;
+  if (!(selection && selection.anchor !== selection.focus) && !column.notes.some(Boolean)) return null;
+  const start = timeOf(clip, place.bar, place.column);
+  let moved: Part | null;
+  if (by > 0) {
+    const pushed = pushTime(clip, start, by);
+    moved = pushed && withoutAddedRests(clip, pushed);
+  } else moved = start + by >= 0 && isQuiet(clip, start + by, start) ? pullTime(clip, start + by, start) : null;
+  if (!moved) return null;
+  const after = moved;
+  // Each Column keeps its place in the music: where it starts, `by` later.
+  const mapped = (index: number) => {
+    const from = placeOf(clip, index);
+    const to = placeAtTime(after, timeOf(clip, from.bar, from.column) + by);
+    return indexOf(after, to.bar, to.column);
+  };
+  const to = placeAtTime(after, timeOf(clip, cursor.bar, cursor.column) + by);
+  return {
+    clip: after,
+    cursor: { ...cursor, ...to },
+    selection: selection && { anchor: mapped(selection.anchor), focus: mapped(selection.focus) },
+  };
+}
+
+/** Whether every Voice is quiet from `from` to `to`: plain rests (or an empty bar's room), no note sounding into it. */
+function isQuiet(clip: Part, from: number, to: number): boolean {
+  return clip.bars.every((bar, b) => {
+    const barStart = timeOf(clip, b, 0);
+    return [bar.columns, ...(bar.otherVoices ?? []).map(o => o.columns)].every(columns => {
+      let t = barStart;
+      return columns.every(c => {
+        if (c.grace) return !(t >= from && t < to);
+        const end = t + ticks(c.duration);
+        const overlaps = t < to && end > from;
+        t = end;
+        return !overlaps || (c.notes.every(n => n === null) && Object.keys(c).every(k => k === 'duration' || k === 'notes'));
+      });
+    });
+  });
 }
 
 /** Whether a Column the note at `at` is written in (any of its Tie chain's) has another note. */

@@ -20,9 +20,10 @@ import { movedPitch, moveNotes, moveToString, notesToMove, stringAtPitch, type T
 import { applyCyclingKey, toolForKey, type ToolId } from './tools';
 import { jumpCursor, jumpFocus, jumpForKey, type Lines } from './jumps';
 import { advance } from './grid';
-import { moveInTime, ownStep } from './timeMoves';
+import { moveInTime, ownStep, shiftInTime } from './timeMoves';
 import { digitOfCode, nextInChord, pitchAt, selectedNotes, stepFrets, valueForDigit } from './normalMode';
 import { noteInputModeKeyDown, toStaff, toTab } from './noteInputModeKeys';
+import { deleteTakesTime, restEditor, withRoom } from './insertMode';
 
 /** What takes Esc before note input mode does: an open panel, menu or dialog closes first, as in Dorico and MuseScore. */
 const POPUPS = '[role="dialog"], [role="menu"], dialog[open]';
@@ -63,6 +64,12 @@ export interface EditorKeys {
    */
   noteInputMode: boolean;
   setNoteInputMode: (on: boolean) => void;
+  /**
+   * Insert mode (`insertMode.ts`, `docs/specs/2026-11-14-tab-insert-mode-design.md`): entries, longer notes, dots and
+   * paste push the music after them, Delete, shorter notes and cut pull it back. I turns it on and off.
+   */
+  insertMode: boolean;
+  setInsertMode: (on: boolean) => void;
   /** Note input mode's length (`inputLength.ts`): the next note entered on a rest takes it. */
   inputLength: Duration;
   setInputLength: (length: Duration) => void;
@@ -187,8 +194,9 @@ function moveInTimeKey(editor: EditorKeys, step: 1 | -1) {
   if (noteInputMode || picked) return;
   const by = fixedGrid ? gridStep : ownStep(clip, target);
   if (!by) return;
-  // A note picked by itself moves alone; a chord picked whole (its Column) moves whole.
-  const moved = moveInTime(clip, target, step * by, !columnOnly);
+  // A note picked by itself moves alone; a chord picked whole (its Column) moves whole. In Insert mode the
+  // music after it moves too, and nothing is written over (`shiftInTime`).
+  const moved = editor.insertMode ? shiftInTime(clip, target, step * by) : moveInTime(clip, target, step * by, !columnOnly);
   if (!moved) return;
   commit(moved.clip, moved.cursor, moved.selection);
   editor.hearNote(moved.cursor);
@@ -257,13 +265,19 @@ function pickedKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys
 
 /**
  * Space on the tab never types or scrolls (while the footer shows, the page-wide key plays); N goes into note
- * input mode and back out (issue #238), as in MuseScore. True when the key was one of them.
+ * input mode and back out (issue #238), as in MuseScore; I turns Insert mode on and off, as Dorico's I does, in
+ * either mode (`docs/specs/2026-11-14-tab-insert-mode-design.md`). True when the key was one of them.
  */
 function spaceOrNKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys): boolean {
   const plain = !e.ctrlKey && !e.metaKey && !e.altKey;
   if (e.key === ' ' && plain) return true;
   if (e.key === 'n' && plain) {
     editor.setNoteInputMode(!editor.noteInputMode);
+    return true;
+  }
+  if (e.key === 'i' && plain) {
+    editor.lastDigit.current = null;
+    editor.setInsertMode(!editor.insertMode);
     return true;
   }
   return false;
@@ -315,11 +329,14 @@ function sharedKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys
     return;
   }
   // = and − are Dorico's longer and shorter, W and Q MuseScore's (issue #238); + (Shift+= on many keyboards) is
-  // = too. Here they change the selected notes' length.
+  // = too. Here they change the selected notes' length. In Insert mode only the Active voice's notes change, and
+  // every Voice moves with them.
   const longer = key === '=' || key === '+' || key === 'w';
   if (longer || key === '-' || key === 'q') {
     handled();
-    if (!(target.selection && editor.everyVoice((part, run) => stepDuration(part, { ...target, selection: run }, longer ? 1 : -1)))) commit(stepDuration(clip, target, longer ? 1 : -1));
+    const step = longer ? 1 : -1;
+    if (editor.insertMode) commit(stepDuration(clip, target, step, true));
+    else if (!(target.selection && editor.everyVoice((part, run) => stepDuration(part, { ...target, selection: run }, step)))) commit(stepDuration(clip, target, step));
     return;
   }
   if (key === 'Insert') {
@@ -406,6 +423,8 @@ function insertGap(editor: EditorKeys) {
  */
 export function deleteAtCursor(editor: EditorKeys, removeTime: boolean) {
   const { clip, cursor, selection, columnOnly, commit } = editor;
+  // In Insert mode Delete takes the time away too, but for a note of a chord or a grace note (`insertMode.ts`).
+  if (editor.insertMode && deleteTakesTime(clip, cursor, selection, columnOnly)) removeTime = true;
   const column = columnAt(clip, cursor);
   // In normal mode what is left is selected, as in MuseScore: the column the note was in (its rest, or the
   // chord's other notes), lit, with no note or staff head kept picked (Jeremy, 2026-10-31). It is the column
@@ -465,7 +484,10 @@ function cursorAfter(editor: EditorKeys, next: Part, t: number, step: number) {
 export function writeAtInput(editor: EditorKeys, part: Part, column: Column) {
   const t = cursorTime(part, editor.cursor) + editor.cursorAt;
   const length = ticks(editor.inputLength);
-  const written = writeSpan(part, t, { ...column, duration: { ...editor.inputLength } }, length);
+  // In Insert mode, room for it first, the music after the caret pushed on.
+  const room = editor.insertMode ? withRoom({ ...editor, clip: part }, t, length) : null;
+  if (editor.insertMode && !room) return;
+  const written = writeSpan(room ? room.clip : part, t, { ...column, duration: { ...editor.inputLength } }, length);
   if (!written) {
     editor.onNotice({ tone: 'error', lines: [SPLITS_TUPLET] });
     return;
@@ -479,13 +501,16 @@ export function writeAtInput(editor: EditorKeys, part: Part, column: Column) {
  * entry on, one tuplet note on, the tuplet made when its first note is typed; with Grace entry on, nothing.
  * In normal mode, what Delete does.
  */
-export function restKey(editor: EditorKeys) {
-  const { clip, cursor, inputLength } = editor;
-  if (!editor.noteInputMode) {
-    deleteAtCursor(editor, false);
+export function restKey(given: EditorKeys) {
+  if (!given.noteInputMode) {
+    deleteAtCursor(given, false);
     return;
   }
-  if (editor.graceEntry) return;
+  if (given.graceEntry) return;
+  // In Insert mode, room for the Gap first, the music after the caret pushed on (`insertMode.ts`).
+  const editor = restEditor(given);
+  if (!editor) return;
+  const { clip, cursor, inputLength } = editor;
   editor.lastDigit.current = null;
   const t = cursorTime(clip, cursor) + editor.cursorAt;
   const group = columnAt(clip, cursor)?.grace ? null : groupAt(clip, cursor);
@@ -552,14 +577,15 @@ function normalKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys
   const shiftedDigit = e.shiftKey && !chord && !e.altKey && !onStaff ? digitOfCode(e.code) : null;
   if (shiftedDigit !== null) {
     const value = valueForDigit(shiftedDigit);
-    if (value && !(target.selection && editor.everyVoice((part, run) => setValue(part, { ...target, selection: run }, value)))) commit(setValue(clip, target, value));
+    if (value && editor.insertMode) commit(setValue(clip, target, value, true));
+    else if (value && !(target.selection && editor.everyVoice((part, run) => setValue(part, { ...target, selection: run }, value)))) commit(setValue(clip, target, value));
     return true;
   }
   // A digit sets the length of what is picked, a note on the staff or the tab, a rest or a stem (issue #290),
   // as Dorico's duration keys do on a selection; it never types a fret (Jeremy, 2026-11-07, issue #396).
   if (/^[0-9]$/.test(key) && !chord && !e.altKey) {
     const value = valueForDigit(Number(key));
-    if (value && (selection || columnAt(clip, cursor))) commit(setValue(clip, target, value));
+    if (value && (selection || columnAt(clip, cursor))) commit(setValue(clip, target, value, editor.insertMode));
     return true;
   }
   if (key === 'ArrowUp' || key === 'ArrowDown') {
@@ -676,6 +702,8 @@ export interface LineKeys {
   placeLine: (index: number | null) => void;
   /** Records an edit as one undo step, lets any selection go and puts the playback line at a gap. */
   editAtLine: (next: Part, line: number) => void;
+  /** Insert mode is on: Delete takes the time away, as Ctrl/⌘+Delete does. */
+  insertMode?: boolean;
 }
 
 /**
@@ -711,7 +739,7 @@ export function deleteAtLine(clip: Part, line: number | null, selection: Selecti
  * not (Jeremy, 2026-10-27): ← → move it a column, Shift+← → select from it (or grow the selection
  * made so), Delete and Backspace take what is before it (`deleteAtLine`), and Esc drops both. On the tab, in a field or a dialog, the keys do what they did.
  */
-export function lineKeyDown(e: KeyboardEvent, { clip, count, line, selection, select, placeLine, editAtLine }: LineKeys) {
+export function lineKeyDown(e: KeyboardEvent, { clip, count, line, selection, select, placeLine, editAtLine, insertMode = false }: LineKeys) {
   // A key something on the page has handled already (a picked title's Esc) is not the line's.
   if (e.defaultPrevented) return;
   const remove = e.key === 'Delete' || e.key === 'Backspace';
@@ -720,7 +748,7 @@ export function lineKeyDown(e: KeyboardEvent, { clip, count, line, selection, se
   const target = e.target as Element | null;
   if (target?.closest?.('input, select, textarea, dialog, [role="dialog"], [role="menu"], [role="slider"], .tab-editor')) return;
   if (remove) {
-    const cut = deleteAtLine(clip, line, selection, e.ctrlKey || e.metaKey);
+    const cut = deleteAtLine(clip, line, selection, e.ctrlKey || e.metaKey || insertMode);
     if (!cut) return;
     editAtLine(cut.clip, cut.line);
     e.preventDefault();

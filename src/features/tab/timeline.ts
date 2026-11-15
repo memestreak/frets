@@ -614,6 +614,24 @@ export function pullTime(part: Part, from: number, to: number, minBars = part.ba
   return editTimeline(part, { at: from, end: from, shift: from - to, own: edit, other: edit, minBars, toEnd: true });
 }
 
+/**
+ * `after` (an edit of `before` that pushed music on) without the bars it added at the end that hold only
+ * rests, in every Voice, with no marks: the Gap a push moves past the clip's end is no music to keep, so
+ * Insert mode adds bars only for the notes it pushes there (`docs/specs/2026-11-14-tab-insert-mode-design.md`).
+ * Never fewer bars than `before` had.
+ */
+export function withoutAddedRests(before: Part, after: Part): Part {
+  let count = after.bars.length;
+  const restsOnly = (columns: Column[]) => columns.every(c => !c.grace && isRest(c) && Object.keys(c).every(k => k === 'duration' || k === 'notes'));
+  while (count > before.bars.length) {
+    const bar = after.bars[count - 1];
+    const plain = Object.keys(bar).every(k => k === 'columns' || k === 'otherVoices');
+    if (!plain || !restsOnly(bar.columns) || !(bar.otherVoices ?? []).every(o => restsOnly(o.columns))) break;
+    count--;
+  }
+  return count === after.bars.length ? after : { ...after, bars: after.bars.slice(0, count) };
+}
+
 /** The Part's whole length, in ticks. */
 export function partLength(part: Part): number {
   return part.bars.reduce((sum, _, b) => sum + writtenLength(part, b), 0);

@@ -20,7 +20,7 @@ import { WHAMMY_SHAPE_IDS, WHAMMY_SHAPE_NAMES, type WhammyShape } from './whammy
  * and off; Bend and Tuplet open a panel of choices. Their icons show the
  * cursor's kind.
  */
-export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, onWhammy, disabled, noteInputMode = false, onNoteInputMode, groups, className, grid, gridValue, onGrid, voices }: {
+export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, onWhammy, disabled, noteInputMode = false, onNoteInputMode, insertMode = false, onInsertMode, groups, className, grid, gridValue, onGrid, voices }: {
   isOn: (id: ToolId) => boolean;
   /** What the cursor has of the things the Bend, Vibrato and Tuplet icons draw. */
   kinds: ReturnType<typeof noteKinds>;
@@ -39,6 +39,10 @@ export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, on
   noteInputMode?: boolean;
   /** The pencil pressed: note input mode on or off, as N does. */
   onNoteInputMode?: () => void;
+  /** Insert mode is on (`docs/specs/2026-11-14-tab-insert-mode-design.md`): its button, after the pencil and the Grid, stays lit. */
+  insertMode?: boolean;
+  /** The Insert button pressed: Insert mode on or off, as I does. */
+  onInsertMode?: () => void;
   /** Only these groups, by label (a rail panel's, TabRail.tsx); all when left out. */
   groups?: readonly string[];
   className?: string;
@@ -116,6 +120,22 @@ export function TabPalette({ isOn, kinds, onTool, onBend, onTuplet, onOttava, on
                 tool={GRID_TOOL} current={grid} choices={GRID_VALUES} label={g => GRID_NAMES[g]} toggle={false} noneLabel={FOLLOW_NOTE_LENGTH}
                 icon={<GridGlyph value={gridValue} />} caption={gridCaption(grid)} captions={GRID_CAPTIONS} onPick={onGrid} disabled={disabled}
               />
+            )}
+            {onInsertMode && (
+              <button
+                type="button" className="btn btn-secondary btn-toggle tab-tool" aria-label="Insert mode"
+                aria-pressed={!disabled && insertMode} disabled={disabled}
+                data-tip="Insert mode: entries, lengths and paste push the music after them, Delete pulls it back (I)"
+                // Keep the focus, and so the cursor, on the tab.
+                onMouseDown={e => e.preventDefault()}
+                onClick={onInsertMode}
+              >
+                <svg width={24} height={24} viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                  {/* The caret with Insert mode's notches, as the cursor draws them, and the music it pushes on. */}
+                  <path d="M5 4h6l-3 3.5zM5 20h6l-3-3.5z" fill="currentColor" stroke="none" />
+                  <path d="M8 7.5v9M12 12h7M16 9l3 3-3 3" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
             )}
           </div>
         </div>

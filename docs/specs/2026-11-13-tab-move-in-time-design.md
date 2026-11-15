@@ -4,8 +4,9 @@ Issue #473 (Jeremy, 2026-10-30, settled 2026-11-13): "what I want to be
 able to do is select the chords from my image and move them by the
 grid", e.g. a 16th chord on beat 3 moved a 16th earlier. Use Dorico's
 keys for it, "even if it means we have to remap what we use Alt+← →
-for". Insert mode and Chord mode, where a move pushes or stacks instead
-of writing over, are issue #474; a length handle is issue #472.
+for". In Insert mode a move pushes or pulls the music after it instead
+of writing over (`2026-11-14-tab-insert-mode-design.md`); Chord mode,
+where it stacks, is issue #474; a length handle is issue #472.
 
 This changes Alt+← → in `2026-10-30-tab-musescore-selection-design.md`
 (it stepped through elements; that is now Ctrl/⌘+Alt+← →) and adds a row

@@ -86,7 +86,7 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
       { id: 'mordent', label: 'Mordent: the note, the one above it, and back', key: '' },
       { id: 'lowerMordent', label: 'Lower mordent: the note, the one below it, and back', key: '' },
       { id: 'palmMute', label: 'Palm mute', key: 'M' },
-      { id: 'letRing', label: 'Let ring', key: 'I' },
+      { id: 'letRing', label: 'Let ring', key: 'Alt+I' },
       { id: 'dead', label: 'Dead note', key: 'X' },
       { id: 'ghost', label: 'Ghost note', key: 'G' },
       { id: 'harmonic', label: 'Natural harmonic', key: 'Shift+N' },
@@ -209,17 +209,22 @@ export const WORD_TOOL: Record<WordKind, keyof typeof WORD_TOOLS> = {
   chord: 'chordName', text: 'beatText', section: 'section', tempo: 'tempo', dynamic: 'dynamic',
 };
 
-/** The clip after a palette press. */
-export function applyTool(clip: Part, target: Target, id: ToolId): Part {
+/** Whether a tool changes the target's length (a Duration button or the dot): Insert mode pushes or pulls with it. */
+export function isLengthTool(id: ToolId): boolean {
+  return VALUE[id] !== undefined || id === 'dot';
+}
+
+/** The clip after a palette press; with `insert` (Insert mode) a length tool pushes or pulls the music after the target. */
+export function applyTool(clip: Part, target: Target, id: ToolId, insert = false): Part {
   const value = VALUE[id];
-  if (value) return setValue(clip, target, value);
+  if (value) return setValue(clip, target, value, insert);
   const tremolo = TREMOLO[id];
   if (tremolo) return setTremolo(clip, chainColumns(clip, target), tremolo);
   const mark = MARK[id];
   if (mark && HELD_MARKS.has(mark[0])) return setMark(clip, chainColumns(clip, wholeColumns(clip, target)), mark);
   if (mark) return setMark(clip, COLUMN_MARKS.has(mark[0]) ? wholeColumns(clip, target) : target, mark);
   switch (id) {
-    case 'dot': return cycleDots(clip, target);
+    case 'dot': return cycleDots(clip, target, insert);
     case 'vibrato': return cycleMark(clip, target, 'vibrato', VIBRATOS);
     case 'tie': return tieForward(clip, target);
     case 'legato': return toggleLegato(clip, target);
@@ -274,10 +279,11 @@ function chainEnd(clip: Part, cursor: Target['cursor']) {
 
 /** The tool a key press does, for the keys that do exactly what one button does. */
 export function toolForKey(key: string, alt: boolean, code = ''): ToolId | null {
-  // T ties, as Dorico's T does, so Tap is Alt+T (by its code: Alt types another letter on a Mac).
-  if (alt) return code === 'KeyT' ? 'tap' : null;
+  // T ties, as Dorico's T does, so Tap is Alt+T; I is Insert mode, as Dorico's I is, so Let ring is Alt+I (by
+  // their codes: Alt types another letter on a Mac).
+  if (alt) return code === 'KeyT' ? 'tap' : code === 'KeyI' ? 'letRing' : null;
   const keys: Record<string, ToolId> = {
-    '.': 'dot', ',': 'rest', '/': 'grace', t: 'tie', h: 'legato', p: 'legato', m: 'palmMute', i: 'letRing',
+    '.': 'dot', ',': 'rest', '/': 'grace', t: 'tie', h: 'legato', p: 'legato', m: 'palmMute',
     x: 'dead', g: 'ghost', d: 'strokeDown', u: 'strokeUp', s: 'staccato',
     '[': 'repeatStart', ']': 'repeatEnd', e: 'ending',
     // Shift+Q opens the chord popover, as Dorico's does (issue #342).

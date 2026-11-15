@@ -87,6 +87,10 @@ export interface Rows {
 export interface ScoreRows {
   top: number;
   bottom: number;
+  /** The top of the room over the staff for the notes and stems that reach past its top line. */
+  above?: number;
+  /** The foot of the room under the staff for the notes and stems that reach past its bottom line. */
+  below?: number;
 }
 
 /** From a chord name's row down to the top of the diagram under it. */
@@ -241,11 +245,13 @@ export function rowsFor(
   // The staff: room over its top line and under its bottom one for what reaches past them.
   let score: ScoreRows | null = null;
   if (parts !== 'tab') {
-    const top = Math.max(y + 12, 10) + Math.max(SPACE, (reach.high - 8) * SPACE / 2 + 4);
+    const above = Math.max(y + 12, 10);
+    const top = above + Math.max(SPACE, (reach.high - 8) * SPACE / 2 + 4);
     const bottom = top + 4 * SPACE;
-    score = { top, bottom };
+    const below = bottom + Math.max(SPACE, -reach.low * SPACE / 2 + 4);
+    score = { top, bottom, above, below };
     // Then the tab's marks: the first row 26 under the staff, or under what reaches past its foot.
-    y = bottom + Math.max(SPACE, -reach.low * SPACE / 2 + 4) + 2;
+    y = below + 2;
   }
   const marksTop = {
     fermatas: row(used.fermatas),

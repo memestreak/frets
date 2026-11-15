@@ -55,6 +55,7 @@ The controls sit under that line:
   L anywhere on the page does what the button does, as Space plays (Jeremy,
   2026-11-04), but not in a field, a dialog or a menu, and not while the
   controls are hidden; Let ring moved from L to I, Guitar Pro 8's key for it.
+  (On 2026-11-14 it moved on to Alt+I, as I became Insert mode: `2026-11-14-tab-insert-mode-design.md`.)
 - **Speed.** Since issue #373 (`2026-11-05-tab-speed-bpm-design.md`),
   one bpm field with the percentage in its caption and its "bpm" a Tap
   button; what follows was the percentage field. A number field, a percentage of the clip's own tempo, with

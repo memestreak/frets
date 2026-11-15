@@ -22,9 +22,10 @@ and in its spec.
   A change to how editing behaves follows them or changes them in the
   same PR.
 - Bars are always full (P1): every edit goes through one timeline, longer
-  writes over, shorter leaves a Gap, and only Insert, Insert paste and
-  Ctrl/⌘+Delete move later music
-  (`2026-11-04-tab-bars-always-full-design.md`). Rests are Gaps written by
+  writes over, shorter leaves a Gap, and only Insert, Insert paste,
+  Ctrl/⌘+Delete and Insert mode (I) move later music
+  (`2026-11-04-tab-bars-always-full-design.md`,
+  `2026-11-14-tab-insert-mode-design.md`). Rests are Gaps written by
   the meter (P4, `2026-11-03-tab-rests-are-gaps-design.md`).
 - `layoutClip` (`layout.ts`) is the one source of where things are: the
   drawing, every hit test, the fields over the tab and the exports all work
@@ -208,11 +209,17 @@ and in its spec.
   picks; `hasEdit` (issue #276).
 - `elements.ts` — every pickable thing in reading order, for Ctrl/⌘+Alt+← →
   (MuseScore's next element, issue #238).
+- `insertMode.ts` — Insert mode's rules (I, issue #482 phase 2): when an entry
+  makes room first (`fretEditor`, `staffEditor`, `restEditor`, all through
+  `withRoom`) and when Delete takes the time (`deleteTakesTime`); length
+  changes push and pull in `noteEdits.ts` (`writeLength`) —
+  `2026-11-14-tab-insert-mode-design.md`.
 - `timeMoves.ts` — the picked note (alone), chord or selection moved earlier or later
   by the grid, written over what it lands on (`moveInTime`, Alt+← → and a
-  sideways drag); `ownStep`, a note's own length as the step when the grid
-  isn't fixed; `timeAtX`, the time under the pointer —
-  `2026-11-13-tab-move-in-time-design.md`.
+  sideways drag); in Insert mode `shiftInTime`, which pushes or pulls the
+  music after it instead; `ownStep`, a note's own length as the step when
+  the grid isn't fixed; `timeAtX`, the time under the pointer —
+  `2026-11-13-tab-move-in-time-design.md`, `2026-11-14-tab-insert-mode-design.md`.
 - `rangeBox.ts` — the box round a selected run, and its Range handles:
   where they are and where a dragged end lands —
   `2026-11-05-tab-range-handles-design.md`.
@@ -504,6 +511,11 @@ or saved. Standard tuning only.
 The principles every editing spec since step 1 follows, with Dorico,
 MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
 
+- `docs/specs/2026-11-14-tab-insert-mode-design.md`: Insert mode, Dorico's
+  toggle on I (Let ring to Alt+I): entries, longer notes, dots and paste
+  push the music after them, Delete, shorter notes and cut pull it back, in
+  every Voice of the Track; a lit button and ▼ ▲ notches on the cursor;
+  pushes run to the clip's end until Anchors (issue #482, phase 2)
 - `docs/specs/2026-11-14-tab-rebar-import-design.md`: Re-bar by time
   signature, Import's option (a Preference, on by default): notes flow into
   bars by the time signatures, bar Marks go to the nearest bar line, and

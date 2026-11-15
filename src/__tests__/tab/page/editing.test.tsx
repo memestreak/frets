@@ -115,12 +115,12 @@ describe('TabPage editing', () => {
     expect(screen.getByTestId('tab-cursor')).toBeInTheDocument();
   });
 
-  it('steps V, Shift+N, A and \\ through their kinds, and toggles I, G and S', () => {
+  it('steps V, Shift+N, A and \\ through their kinds, and toggles Alt+I, G and S', () => {
     renderAt();
     act(() => editor().focus());
     // Typing is note input mode's (issue #238).
     keys('n');
-    keys('5', 'v', 'v', 'N', 'N', 'a', 'a', '\\', 'i', 'g', 's');
+    keys('5', 'v', 'v', 'N', 'N', 'a', 'a', '\\', { key: 'ˆ', altKey: true, code: 'KeyI' }, 'g', 's');
     expect(alphaTex()).toBe('5.1{sod vw ph lr g hac st}.4 r.4 r.2 |');
     expect(vibrato()).toHaveAttribute('aria-pressed', 'true');
     keys('v', 'g');
