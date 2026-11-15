@@ -57,7 +57,26 @@ level. B, C and the trial group went.
 
 ## Clean electric guitar
 
-Jeremy, 2026-10-27: "Is there an electric guitar (not-distorted)?", then yes to a follow-up. Clean
-Electric Guitar (program 27) is now Karoryfer Samples' clean electric guitar from tonejs-instruments:
-17 recordings, about one every minor third from C♯2 to C6, each about four seconds; every one within
-7 cents of its name. 0.55 MB, at about SONiVOX's Clean Electric Guitar level.
+Jeremy, 2026-10-27: "Is there an electric guitar (not-distorted)?". Clean Electric Guitar (program
+27) first played Karoryfer Samples' clean guitar from tonejs-instruments (17 recordings, 0.55 MB).
+
+Issue #504. Jeremy, 2026-11-15: "I don't like the sound of our clean electric guitar ... I like the
+sound of the clean guitar in MuseScore." Tried as mocks on the Tab page (`?guitar=`), each on the
+`samples/clean-electric` arrangement (chords, a single-note line, eighth-note strums):
+
+| | Source | Size | Verdict |
+|---|---|---|---|
+| a | Karoryfer via tonejs-instruments, as it was | 0.55 MB | |
+| b | MuseScore 4's MS Basic (FluidR3 Mono's clean guitar) | 0.09 MB | "tinny ... more like a harpsichord" |
+| c | GeneralUser GS 2.0.3's Clean Guitar | 0.10 MB | the same |
+| d | Karoryfer Black And Green Guitars, the green guitar | 2.0 MB | |
+| e | Karoryfer Black And Green Guitars, the black guitar | 1.1 MB | "e sounds the best" |
+| f | FreePats Electric Guitar FSBS (clean) | 0.54 MB | |
+
+b and c, General MIDI fonts' short looped samples, measured two to three times as bright as the
+others above 3 kHz. Clean Electric Guitar is now **e**: the black guitar of
+[Black And Green Guitars](https://github.com/sfzinstruments/karoryfer.black-and-green-guitars)
+(CC0), one recording per semitone from E2 to D6 (the medium layer, first round robin), shortened with
+a fade, at today's level (`public/soundfont/guitar-electric-karoryfer-black.sf3`, built by
+`scripts/build-soundfonts.py notes`; its README has the command). Jeremy asked to keep looking for
+better ones; issue #504 stays open for that.

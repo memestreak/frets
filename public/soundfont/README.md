@@ -23,8 +23,12 @@ compressed:
 
     uv run --no-project scripts/build-soundfonts.py notes <tonejs samples/guitar-acoustic> public/soundfont/guitar-iowa.sf3 --name "Acoustic Guitar" --copyright "University of Iowa Electronic Music Studios, via tonejs-instruments, CC BY 3.0" --quality 4 --rate 44100 --as-program 25
 
-`guitar-electric-karoryfer.sf3` is Clean Electric Guitar's own soundfont, loaded only when that sound
-plays: a clean electric guitar from Karoryfer Samples (https://www.karoryfer.com/karoryfer-samples),
-as edited in tonejs-instruments (samples CC BY 3.0). Changed: compressed:
+`guitar-electric-karoryfer-black.sf3` is Clean Electric Guitar's own soundfont (issue #504), loaded
+only when that sound plays: the black guitar of Karoryfer Samples' Black And Green Guitars
+(https://github.com/sfzinstruments/karoryfer.black-and-green-guitars), under
+[CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). Changed: one recording per semitone
+(the mf layer's first round robin, `Samples/black/ord/twang_*_mf_rr1.wav`) kept, shortened with a
+fade and compressed. Karoryfer names notes an octave high (`twang_e3` is E2), so link each file into
+a folder under its real name (`E2.wav`, `Fs2.wav`) first:
 
-    uv run --no-project scripts/build-soundfonts.py notes <tonejs samples/guitar-electric> public/soundfont/guitar-electric-karoryfer.sf3 --name "Clean Electric Guitar" --copyright "Karoryfer Samples, via tonejs-instruments, CC BY 3.0" --quality 4 --rate 44100 --as-program 27
+    uv run --no-project scripts/build-soundfonts.py notes <black notes> public/soundfont/guitar-electric-karoryfer-black.sf3 --name "Clean Electric Black" --copyright "Karoryfer Samples, Black And Green Guitars, CC0" --quality 4 --rate 44100 --as-program 27

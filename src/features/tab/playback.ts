@@ -72,9 +72,14 @@ export const OWN_FONTS: readonly { program: number; url: string; level: number }
   { program: 0, url: '/soundfont/piano-salamander.sf3', level: 1.65 },
   // An acoustic guitar from the University of Iowa's instrument samples: a note per semitone, 1.5 MB.
   { program: 25, url: '/soundfont/guitar-iowa.sf3', level: 0.74 },
-  // A clean electric guitar from Karoryfer Samples: a note every minor third or so, 0.55 MB.
-  { program: 27, url: '/soundfont/guitar-electric-karoryfer.sf3', level: 0.79 },
+  // The black guitar of Karoryfer Samples' Black And Green Guitars: a note per semitone, 1.1 MB (issue #504).
+  { program: 27, url: '/soundfont/guitar-electric-karoryfer-black.sf3', level: 0.76 },
 ];
+
+/** A sound's own soundfont, if it has one. */
+function ownFont(program: number) {
+  return OWN_FONTS.find(f => f.program === program);
+}
 
 export type Sound = number;
 
@@ -1208,7 +1213,7 @@ export class TabPlayer {
 
   /** The sound's own level, which the volume is scaled by (`OWN_FONTS`). */
   private level(): number {
-    return OWN_FONTS.find(f => f.program === this.sound)?.level ?? 1;
+    return ownFont(this.sound)?.level ?? 1;
   }
 
   /** The metronome on or off; a clip playing clicks (or stops clicking) at once. */
@@ -1245,7 +1250,7 @@ export class TabPlayer {
    * make you wait for the instrument), so a Play finds it ready. The view stays as it is.
    */
   preload(sound: Sound) {
-    const font = OWN_FONTS.find(f => f.program === sound);
+    const font = ownFont(sound);
     if (font && !this.fonts.has(font.url)) this.fetchFont(font.url).catch(() => undefined);
   }
 
@@ -1255,7 +1260,7 @@ export class TabPlayer {
    * the synthesizer. The view shows Loading meanwhile. Whether it had to wait.
    */
   private async loadFont(sound: Sound): Promise<boolean> {
-    const font = OWN_FONTS.find(f => f.program === sound);
+    const font = ownFont(sound);
     const own = font && !this.fonts.has(font.url) ? this.fetchFont(font.url) : null;
     const waiting = [...this.loading.values()];
     if (waiting.length === 0) return false;

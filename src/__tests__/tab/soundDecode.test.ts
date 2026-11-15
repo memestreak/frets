@@ -10,7 +10,7 @@ import { decodeOnMainThread, decodeSoundFont, DECODE_CMD, lastFont, silentOutput
 import { SoundDecoder } from '@/features/tab/soundDecoder';
 
 /** The smallest of the sounds' own soundfonts, an .sf3 of Ogg Vorbis samples. */
-const ELECTRIC = 'public/soundfont/guitar-electric-karoryfer.sf3';
+const ELECTRIC = 'public/soundfont/guitar-electric-karoryfer-black.sf3';
 const electric = () => new Uint8Array(readFileSync(ELECTRIC));
 
 /** A synthesizer that plays nothing, holding a soundfont, as the Tab page's player holds one. */

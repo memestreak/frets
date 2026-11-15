@@ -62,13 +62,14 @@ Samples, as edited in [tonejs-instruments](https://github.com/nbrosowsky/tonejs-
 Nicholaus P. Brosowsky, samples under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
 Changed: shortened with a fade and compressed (`scripts/build-soundfonts.py`).
 
-## Electric guitar: Karoryfer Samples, via tonejs-instruments
+## Electric guitar: Karoryfer Samples, Black And Green Guitars
 
-`public/soundfont/guitar-electric-karoryfer.sf3` is a clean electric guitar from
-[Karoryfer Samples](https://www.karoryfer.com/karoryfer-samples), as edited in
-[tonejs-instruments](https://github.com/nbrosowsky/tonejs-instruments) by Nicholaus P. Brosowsky,
-samples under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Changed: compressed
-(`scripts/build-soundfonts.py`).
+`public/soundfont/guitar-electric-karoryfer-black.sf3` is the black guitar of
+[Black And Green Guitars](https://github.com/sfzinstruments/karoryfer.black-and-green-guitars)
+by [Karoryfer Samples](https://www.karoryfer.com/karoryfer-samples), dedicated to the public domain
+under [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). Changed: one recording per
+semitone (mf, first round robin) kept, shortened with a fade and compressed
+(`scripts/build-soundfonts.py notes`).
 
 ## Notation symbols: Bravura, via VexFlow
 
