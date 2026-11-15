@@ -81,7 +81,7 @@ import { ChatPopover } from './chat/ChatPopover';
 import { WHOLE, aboutBars, aboutThing, noteWords, pickedWords, type About } from './chat/about';
 
 /** What a press may land on and keep the selection and the playback line: controls, the drawing and the palette. */
-const TAB_KEEPS = `${KEEPS_SELECTION}, .tab-editor svg, .tab-palette, .tab-stack-strip, .tab-rail-panel`;
+const TAB_KEEPS = `${KEEPS_SELECTION}, .tab-editor svg, .tab-palette, .tab-stack-strip, .tab-rail-panel, .tab-chat`;
 /** The modifier the file shortcuts take, as the tips name it: ⌘ on a Mac, Ctrl elsewhere. */
 const MOD = isMac() ? '⌘' : 'Ctrl+';
 
@@ -643,19 +643,26 @@ export default function TabPage() {
     if (view === 'tab') setTupletPanel(cursorSpot(layout, cursor));
   };
   /**
+   * What a Chat prompt is about (issues #488, #498): the selected bars, else what is picked, else the note the
+   * cursor is on, else the whole arrangement. What is picked and the cursor's note count only while the tab
+   * has them lit, so the Chat palette, opened without touching the tab, says Whole arrangement.
+   */
+  const chatAbout = (): About => {
+    const range = selection ? selectedRange(selection) : null;
+    if (range) return aboutBars([placeOf(clip, range[0]).bar, placeOf(clip, range[1]).bar]);
+    if (!tabFocused) return WHOLE;
+    if (picked) return aboutThing(pickedWords(picked, pickedBar(picked)));
+    const note = !columnOnly ? noteAt(clip, cursor) : null;
+    return note ? aboutThing(noteWords(note.fret, cursor.string, cursor.bar, cursor.column)) : WHOLE;
+  };
+  /**
    * The Chat popover (issue #488): Ctrl/⌘+I, or the right-click menus' Chat…, opens it at the selection's start,
    * else the cursor (where a press put it). Its prompt is about the selected bars, else the whole arrangement.
    */
   const openChatPopover = () => {
     const range = selection ? selectedRange(selection) : null;
     const at = range ? { ...cursor, ...placeOf(clip, range[0]) } : cursor;
-    // The selection, else what is picked, else the note the cursor is on, else the whole arrangement.
-    const note = !columnOnly ? noteAt(clip, cursor) : null;
-    const about = range ? aboutBars([placeOf(clip, range[0]).bar, placeOf(clip, range[1]).bar])
-      : picked ? aboutThing(pickedWords(picked, pickedBar(picked)))
-        : note ? aboutThing(noteWords(note.fret, cursor.string, cursor.bar, cursor.column))
-          : WHOLE;
-    setChatAt({ ...cursorSpot(layout, at), about });
+    setChatAt({ ...cursorSpot(layout, at), about: chatAbout() });
   };
   const closeChatPopover = (byKey: boolean) => {
     setChatAt(null);
@@ -1034,7 +1041,7 @@ export default function TabPage() {
         chat={
           <ChatPanel
             prefs={prefs.chat} onModel={model => prefs.setChat(c => ({ ...c, model }))}
-            onAdvanced={advanced => prefs.setChat(c => ({ ...c, advanced }))} session={chat}
+            onAdvanced={advanced => prefs.setChat(c => ({ ...c, advanced }))} session={chat} about={chatAbout()}
             onOpenSettings={() => openSettings({ group: 'tab', section: 'chat' })}
           />
         }

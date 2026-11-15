@@ -1,6 +1,8 @@
 # Tab: the Chat popover
 
-Issue #488 ("FR: Tab: chat prompt popover over the score"). Asked
+Issue #488 ("FR: Tab: chat prompt popover over the score"); the Chat
+palette's half, issue #498 ("Tab: typing in the Chat palette drops the
+selection"). Asked
 2026-11-15 (Jeremy): "Please open a feature request that tracks a popover
 for a chat based prompt." The options were mocked (`?mock=a|b|c`) and his
 calls (Q1 to Q7) are on the questions page,
@@ -36,6 +38,16 @@ Notion AI: a field at the cursor whose answer shows in place.
   as a chord name's field does: the tab doesn't let them go while the
   popover has the keys. Esc gives the keys back with them still there; a
   press away lets them go, as it does from the tab.
+- **The Chat palette does the same (issue #498).** Jeremy, 2026-11-15:
+  "When I make selections in the arrangement and attempt to use chat via
+  the side palette, my selections disappear." Pressing and typing in the
+  Chat palette keeps the selection, the picked thing and the lit note as
+  the popover does, and the same chip, over the message box, says what
+  the message is about; it is sent as "About …: …". What is picked and
+  the cursor's note count only while the tab has them lit, so the
+  palette, used without touching the tab or after a press away, says
+  Whole arrangement and sends the message as typed. The keys going on
+  from the palette to another control, or a press away, let them go.
 - **The reply stays in the popover (Q1).** After Enter the field empties
   and the popover stays open: the tool notes as they come ("Changed bars 3
   to 4…"), then the reply's markdown and its model and cost line, then
@@ -75,6 +87,13 @@ Notion AI: a field at the cursor whose answer shows in place.
 - The bar menu ends with Chat…, which opens the popover.
 - A picked chord name is described to the model ("Picked: the chord name
   in bar 1 of track 1.").
+- In the Chat palette (issue #498): with bars 1 to 2 selected, pressing
+  and typing in the message box keeps them lit, the chip says Bars 1–2
+  and the request starts "About the selected bars 1 to 2:"; on a note it
+  stays lit and the request names it; a picked time signature stays
+  picked and is named ("About the time signature in bar 1:"); used
+  without touching the tab, it says Whole arrangement and sends the
+  message as typed; the keys going on to another control let the note go.
 - `aboutBars`, `aboutThing` and `scopedPrompt` for one bar, several
   bars, a mark, a note, a dead note and none.
 - `pickedWords` for a word, a bar line and a mark.
@@ -89,8 +108,11 @@ Notion AI: a field at the cursor whose answer shows in place.
    viewer is.
 4. `TabPage.tsx`: Ctrl/⌘+I, the menus' Chat…, where the popover opens.
 5. `shortcuts.ts`: Mod+I, and the popover's own keys.
-6. `usePageKeys.ts`: the popover is one of the places the tab keeps what
-   is picked and lit for (`TAB_KEEPERS`).
+6. `usePageKeys.ts`: the popover and the Chat palette are places the tab
+   keeps what is picked and lit for (`TAB_KEEPERS`); `TabPage`'s
+   `TAB_KEEPS` keeps the selection on a press in the Chat palette.
+7. `TabPage.tsx` `chatAbout` and `ChatPanel.tsx`: the palette's chip, and
+   `send(undefined, about)` in `useChatSession` (issue #498).
 
 ## Not yet
 

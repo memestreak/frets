@@ -7,7 +7,7 @@ import type { Picked } from '../useEditorState';
 
 const WORDS: Record<Exclude<Picked['kind'], 'mark'>, string> = {
   chord: 'the chord name',
-  text: 'the Text',
+  text: 'the text annotation',
   lyric: 'a syllable of the Lyrics',
   section: 'the section name',
   tempo: 'the tempo',

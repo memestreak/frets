@@ -49,7 +49,9 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
   OpenRouter's models that take tools. The list shows everything until the
   viewer types, then what contains the typed text; a browser's datalist would
   hide every entry not containing the saved model); the
-  conversation; a message box; **Send** (or Enter; Shift+Enter is a new line),
+  conversation; a chip saying what the message is about and a message box
+  (the chip and the kept selection as the Chat popover's, issue #498,
+  `2026-11-15-tab-chat-popover-design.md`); **Send** (or Enter; Shift+Enter is a new line),
   **Stop** while a reply runs, and **New chat** once there is something to
   forget. With no key, the box is disabled and a line offers **Open
   Settings**, which opens Settings at Tab › Chat.

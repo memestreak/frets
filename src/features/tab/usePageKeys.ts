@@ -17,8 +17,11 @@ import type { View } from './views';
 export const TEXT_FIELDS = 'input, select, textarea, dialog';
 
 /** Where the focus may go from the tab and note input mode stay on: the clip's own fields, the palettes and their collapsed strip, panels and menus. */
-/** What the tab gives the focus to for a while, staying lit and keeping what is picked (`onEditorBlur`). */
-const TAB_KEEPERS = '.shape-menu, .tab-tuplet-panel, .tab-word, .tab-chat-popover';
+/**
+ * What the tab gives the focus to for a while, staying lit and keeping what is picked (`onEditorBlur`): its own
+ * fields and panels, and the Chat palette, whose prompt is about them (issue #498).
+ */
+const TAB_KEEPERS = '.shape-menu, .tab-tuplet-panel, .tab-word, .tab-chat-popover, .tab-chat';
 const NOTE_INPUT_KEEPERS = '[data-testid="tab-paper"], .tab-palette, .tab-stack-strip, .tab-rail-panel, [role="dialog"], [role="menu"], .shape-menu, dialog';
 
 /**

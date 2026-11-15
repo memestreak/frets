@@ -898,6 +898,8 @@ body:has(.tab-stack-panel[data-dragging]) { cursor: grabbing; user-select: none;
 .tab-chat-compose { display: grid; gap: 6px; }
 .tab-chat-compose textarea { resize: vertical; min-height: 60px; font: 14px/20px var(--font-sans); }
 .tab-chat-actions { display: flex; justify-content: flex-end; gap: 6px; }
+/* The chip naming what the message is about (issue #498), over the message box. */
+.tab-chat-scope { justify-self: start; }
 .tab-chat-ask { display: grid; gap: 6px; }
 .tab-chat-ask p { margin: 0; }
 /* Images waiting to be sent, or sent with an ask (issue #465): small thumbnails, each with its remove button on the corner. */

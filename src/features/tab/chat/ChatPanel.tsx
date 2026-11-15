@@ -16,6 +16,7 @@ import { CallDetails } from './CallDetails';
 import { fetchPresets, fetchToolModels, knownBlind, type ModelInfo, type Preset, type Usage } from './openRouter';
 import { imageFiles, type ChatImage } from './images';
 import type { ChatPrefs } from './chatPrefs';
+import type { About } from './about';
 import type { ChatSession, Entry, Note } from './useChatSession';
 
 export interface ChatPanelProps {
@@ -27,9 +28,11 @@ export interface ChatPanelProps {
   session: ChatSession;
   /** Opens Settings at Tab › Chat. */
   onOpenSettings: () => void;
+  /** What a message is about: the selected bars, a picked word or mark, the lit note, or the whole arrangement (issue #498). */
+  about: About;
 }
 
-export function ChatPanel({ prefs, onModel, onAdvanced, session, onOpenSettings }: ChatPanelProps) {
+export function ChatPanel({ prefs, onModel, onAdvanced, session, onOpenSettings, about }: ChatPanelProps) {
   const { entries, working, draft, setDraft, images, addImages, removeImage, send, stop, clear } = session;
   const [models, setModels] = useState<ModelInfo[]>([]);
   /** The image shown full size, with its label. */
@@ -71,7 +74,7 @@ export function ChatPanel({ prefs, onModel, onAdvanced, session, onOpenSettings 
     e.stopPropagation();
     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
-      void send();
+      void send(undefined, about);
     }
   };
 
@@ -144,6 +147,8 @@ export function ChatPanel({ prefs, onModel, onAdvanced, session, onOpenSettings 
             )}
           </div>
         )}
+        {/* What the message is about, as the Chat popover's chip: it goes with the message as "About …:" (issue #498). */}
+        <span className="tab-chat-popover-scope tab-chat-scope" title="What the message is about">{about.label}</span>
         <textarea
           ref={boxRef} className="input" rows={3} value={draft} aria-label="Message"
           placeholder={prefs.apiKey ? 'Ask, or say what to change; paste an image to transcribe it (Enter sends)' : 'Add your OpenRouter key in Settings first'}
@@ -155,7 +160,7 @@ export function ChatPanel({ prefs, onModel, onAdvanced, session, onOpenSettings 
           )}
           {working
             ? <button type="button" className="btn btn-secondary" onClick={stop}>Stop</button>
-            : <button type="button" className="btn btn-primary" disabled={(!draft.trim() && images.length === 0) || !prefs.apiKey} onMouseDown={e => e.preventDefault()} onClick={() => void send()}>Send</button>}
+            : <button type="button" className="btn btn-primary" disabled={(!draft.trim() && images.length === 0) || !prefs.apiKey} onMouseDown={e => e.preventDefault()} onClick={() => void send(undefined, about)}>Send</button>}
         </div>
       </div>
       <Modal open={viewing !== null} onClose={() => setViewing(null)} title={viewing?.label ?? 'Image'} className="tab-chat-image-view">
