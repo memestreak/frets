@@ -39,7 +39,9 @@ Off the tab, with the playback line, Delete and Backspace follow the same rules
 ### Paste over (`pasteOver` in `editing.ts`)
 
 - The pasted columns go over the clip's time from the cursor's column on, across bar lines; the
-  pasted bar lines are not kept, so the clip's bars keep their lengths.
+  pasted bar lines are not kept, so the clip's bars keep their lengths. Whole bars over bars of the
+  same meter keep their key and tempo, and the bar after gets back its own
+  (`2026-11-15-tab-paste-keeps-key-meter-tempo-design.md`).
 - A column the paste covers only in part leaves the rest of its time as rests (the fewest that fill it).
 - A pasted note that would cross a bar line is split there and tied over (its marks stay on the first
   part). A tuplet is not split: its bar runs over, as note input mode's long notes do.

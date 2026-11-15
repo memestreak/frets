@@ -15,7 +15,7 @@ import { pastesVoices, pasteVoices, sliceVoices, spansVoices, voiceRange, voiceS
 import { clipAction, type ClipAction, type PartAction } from './clipState';
 import { useArrangements } from './useArrangements';
 import { chordFromNotes, NO_NOTES, pickedNotes, writeChordFromNotes } from './chordFromNotes';
-import { clampCursor, columnAt, indexOf, sliceClip, coversWholeBars, deleteBars, deleteColumns, insertBar, insertPaste, isEmpty, noteAt, withRestsInEmptyBars, pasteOver, placeOf, selectedRange, START } from './editing';
+import { clampCursor, columnAt, indexOf, sliceClip, coversWholeBars, columnCount, deleteBars, deleteColumns, insertBar, insertPaste, isEmpty, statedIn, type Stated, noteAt, withRestsInEmptyBars, pasteOver, placeOf, selectedRange, START } from './editing';
 import { isBarLine, type BarLineHit } from './barLines';
 import { beamLit, canBeamTarget, clearToRests, setBend, setOttava, setWhammy } from './noteEdits';
 import { applyTuplet, isProblem } from './tuplets';
@@ -258,6 +258,7 @@ export default function TabPage() {
    * The staff cursor's pitch while it has the keys: never with the tab alone. With the staff alone it is
    * always there but in a selection; after one, on the middle line until a key or press moves it.
    */
+  if ((globalThis as {DBG?:boolean}).DBG) console.log('DBG render sel', JSON.stringify(selection), JSON.stringify(cursor));
   const staffCursor = parts === 'tab' ? null : staffPitch ?? (parts === 'staff' && tabFocused && noteInputMode && !selectionAsSet ? pitchAtStep(clip, cursor.bar, 4) : null);
   /** What the Bend, Vibrato and Tuplet buttons show: the cursor's notes, or only the picked mark's own kind. */
   const cursorKinds = noteKinds(clip, lit || pickedTool ? cursor : null);
@@ -735,8 +736,10 @@ export default function TabPage() {
    * Puts a clip in at the cursor, or at the selection's start: over the time there, as MuseScore pastes
    * (issue #238: bars stay full), or with `insert` in before it, as Insert paste and Arrangements…'s Insert do.
    */
-  const putAtCursor = (put: Clip, insert: boolean) => {
-    const at = selection ? { ...cursor, ...placeOf(clip, selectedRange(selection)[0]) } : cursor;
+  const putAtCursor = (put: Clip, insert: boolean, stated?: Stated) => {
+    // The playback line past the clip's end, with the tab let go: the paste goes in after the last bar.
+    const pastEnd = !tabFocused && !selection && markAt !== null && markAt >= columnCount(clip);
+    const at = selection ? { ...cursor, ...placeOf(clip, selectedRange(selection)[0]) } : pastEnd ? { ...cursor, bar: clip.bars.length, column: 0 } : cursor;
     // Several Voices: each goes into its own Voice, from the cursor's time (step 9, Q20).
     if (pastesVoices(put)) {
       const made = pasteVoices(whole, track, clip, at, put, insert);
@@ -747,14 +750,14 @@ export default function TabPage() {
       setView('tab');
       return done;
     }
-    const made = (insert ? insertPaste : pasteOver)(clip, at, partOf(put));
+    const made = (insert ? insertPaste : pasteOver)(clip, at, partOf(put), stated);
     // In Insert mode a paste adds no bars of rests at the end, as an entry adds none (`withoutAddedRests`).
     const pasted = insert && insertMode ? { ...made, clip: withoutAddedRests(clip, made.clip) } : made;
     let done: boolean;
     if (noteInputMode) done = commit(pasted.clip, pasted.cursor, null);
     else {
       // In normal mode what was put in is selected, as MuseScore leaves a paste (Jeremy, 2026-10-31).
-      const start = isEmpty(clip) ? 0 : indexOf(clip, at.bar, clip.bars[at.bar].columns.length === 0 ? 0 : at.column);
+      const start = isEmpty(clip) ? 0 : pastEnd ? columnCount(clip) : indexOf(clip, at.bar, clip.bars[at.bar].columns.length === 0 ? 0 : at.column);
       done = commit(pasted.clip, pasted.cursor, { anchor: start, focus: indexOf(pasted.clip, pasted.cursor.bar, pasted.cursor.column) });
       if (done) startRegion();
     }
@@ -772,7 +775,8 @@ export default function TabPage() {
       return;
     }
     // A paste that would sound one string in two Voices is refused, and says so itself (step 9, Q10).
-    if (!putAtCursor(result.clip, insert)) return;
+    // What the copy says of its key, meter and tempo it keeps; what it doesn't say it takes from where it lands.
+    if (!putAtCursor(result.clip, insert, statedIn(text))) return;
     const lines = result.warnings.filter(line => !CLASH_WARNING.test(line) && !UNEVEN_WARNING.test(line));
     if (lines.length > 0) setNotice({ tone: 'info', lines });
   };
@@ -902,11 +906,14 @@ export default function TabPage() {
     editorRef.current?.focus({ preventScroll: true });
     chooseVoice(v);
   };
-  /** The palette's Insert button: Insert mode on or off, as I does, the keys back on the tab. */
+  /**
+   * The palette's Insert button: Insert mode on or off, as I does. It leaves the focus where it was: taking
+   * it to the tab would light the note the cursor was last on (Jeremy, 2026-11-15); a press there shows
+   * where an entry goes, with the notches.
+   */
   const toggleInsertMode = () => {
     lastDigitRef.current = null;
     setInsertMode(!insertMode);
-    if (view === 'tab') editorRef.current?.focus({ preventScroll: true });
   };
   /** The symbol palette, with only `groups` (all when left out); the pencil first when `input`. */
   const drawPalette = (groups?: readonly string[], className?: string, input = false) => (
@@ -1096,7 +1103,7 @@ export default function TabPage() {
                 : <pre className="tab-ascii" data-testid="tab-ascii">{shownText}</pre>}
             {/* Over the editor, so a press on a loop end drags it rather than placing the cursor. */}
             {/* The playhead's and the playback line's lines, over the selection's band. */}
-            {view === 'tab' && clipWidth > 0 && <Playhead clip={drawn} layout={layout} width={clipWidth} playback={playback} mark={markAt} markOnly={!showPlayback} layer="over" />}
+            {view === 'tab' && clipWidth > 0 && <Playhead clip={drawn} layout={layout} width={clipWidth} playback={playback} mark={markAt} markOnly={!showPlayback} layer="over" insert={insertMode && !tabFocused} />}
             {view === 'tab' && showPlayback && clipWidth > 0 && <LoopHandles layout={layout} width={clipWidth} playback={playback} />}
             {head.panels}
             {view === 'tab' && tupletPanel && (

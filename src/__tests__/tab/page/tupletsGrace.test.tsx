@@ -70,7 +70,8 @@ describe('`;` and the Tuplet panel in normal mode', () => {
     keys(';');
     fireEvent.keyDown(panel()!, { key: '5' });
     expect(alphaTex()).toBe('5.1.16{tu 5} r.4{tu 5} 7.1.4 r.2 |');
-    press(QUARTER, 1);
+    // The 7, where the quintuplet left it.
+    press('5.1.16{tu 5} r.4{tu 5} 7.1.4 r.2 |', 2);
     keys(';');
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(panel()).toBeNull();

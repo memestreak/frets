@@ -7,7 +7,8 @@
  * `normalize` runs after it so marks that join a note to the one before it
  * stay true.
  */
-import { barSpan, beatGroupsAt, defaultGroupCounts, groupCountsAt, hasPickup, isGroupingOf, sameGroups, isRest, ticks, emptyPart, hasNotes, isUneven, ownVoice, STRING_COUNT, timeAt, type Bar, type Part, type Column, type Duration, type Note, type TimeSignature } from './clip';
+import { barSpan, beatGroupsAt, defaultGroupCounts, groupCountsAt, hasOwnGroups, hasPickup, isGroupingOf, keyAt, sameGroups, isRest, ticks, emptyPart, hasNotes, isUneven, ownVoice, STRING_COUNT, timeAt, DEFAULT_BPM, WHOLE, type Bar, type Part, type Column, type Duration, type Note, type Tempo, type TimeSignature } from './clip';
+import { C_MAJOR, sameKey, type Key } from '@/lib/theory/keys';
 import { emptyBarRests } from './sounding';
 import { placeAtTime, pullTime, pushTime, timeOf, writeOver, writeSpan } from './timeline';
 import { writePart } from './alphatex';
@@ -550,6 +551,15 @@ export function sliceClip(clip: Part, [from, to]: [number, number]): Part {
     if (columns.length > 0) bars.push({ ...ownVoice(bar), columns });
   }
   const first = placeOf(clip, from).bar;
+  // The copy says the key, meter and tempo in force where it starts, even when they were set on an earlier bar,
+  // so a paste keeps them (`docs/specs/2026-11-15-tab-paste-keeps-key-meter-tempo-design.md`). A clip that sets
+  // no key (or no tempo) anywhere doesn't say one, and its paste takes the one where it lands.
+  if (bars.length > 0) {
+    const groups = hasOwnGroups(clip, first) ? { beatGroups: groupCountsAt(clip, first) } : {};
+    const key = clip.bars.some(bar => bar.key) ? { key: keyAt(clip, first) } : {};
+    const tempo = tempoAt(clip, first);
+    bars[0] = { ...bars[0], ...key, ...(tempo ? { tempo } : clip.bars.some(bar => bar.tempo) ? { tempo: { bpm: DEFAULT_BPM } } : {}), ...groups };
+  }
   return normalize({ ...emptyPart(), time: timeAt(clip, first), tuning: clip.tuning, bars: bars.length > 0 ? bars : [{ columns: [] }] });
 }
 
@@ -581,6 +591,110 @@ export function withRestsInEmptyBars(clip: Part): Part | null {
   return { ...clip, bars };
 }
 
+/**
+ * Which of the key, meter and tempo a paste states for itself: a Frets copy states all three
+ * (`sliceClip`); alphaTex from elsewhere may not, and what it leaves out it takes from where it lands.
+ */
+export interface Stated {
+  time: boolean;
+  key: boolean;
+  tempo: boolean;
+}
+const ALL_STATED: Stated = { time: true, key: true, tempo: true };
+
+/** Which of `\ts`, `\ks` and `\tempo` pasted alphaTex sets. */
+export function statedIn(text: string): Stated {
+  return { time: /\\ts\b/.test(text), key: /\\ks\b/.test(text), tempo: /\\tempo\b/.test(text) };
+}
+
+/** The tempo in force at bar `index`: the latest one at or before it; none before the first. */
+export function tempoAt(clip: Pick<Part, 'bars'>, index: number): Tempo | null {
+  for (let b = Math.min(index, clip.bars.length - 1); b >= 0; b--) {
+    const tempo = clip.bars[b].tempo;
+    if (tempo) return tempo;
+  }
+  return null;
+}
+
+/** The key, meter (with its Beat groups) and tempo a bar is in. */
+interface BarState {
+  time: TimeSignature;
+  groups: number[];
+  key: Key;
+  tempo: Tempo | null;
+}
+
+function stateAt(part: Part, index: number): BarState {
+  return { time: timeAt(part, index), groups: groupCountsAt(part, index), key: keyAt(part, index), tempo: tempoAt(part, index) };
+}
+
+const sameMeter = (a: BarState, b: BarState) => a.time.beats === b.time.beats && a.time.value === b.time.value && sameGroups(a.groups, b.groups);
+const sameTempo = (a: Tempo | null, b: Tempo | null) => (a?.bpm ?? DEFAULT_BPM) === (b?.bpm ?? DEFAULT_BPM) && (a?.label ?? '') === (b?.label ?? '');
+
+/**
+ * `part` with its key, time and tempo marks from bar `from` on rewritten so bar `b` is in `states[b - from]`:
+ * a mark only where that changes from the bar before, none that says again what is in force. Free time and
+ * a Pickup bar are left as they are.
+ */
+function withStates(part: Part, from: number, states: BarState[]): Part {
+  const bars = [...part.bars];
+  let time = part.time;
+  let before: BarState = from === 0 ? { time: part.time, groups: defaultGroupCounts(part.time), key: C_MAJOR, tempo: null } : stateAt(part, from - 1);
+  states.forEach((state, i) => {
+    const b = from + i;
+    if (b >= bars.length) return;
+    const bar: Bar = { ...bars[b] };
+    delete bar.time;
+    delete bar.beatGroups;
+    delete bar.key;
+    delete bar.tempo;
+    const ownGroups = sameGroups(state.groups, defaultGroupCounts(state.time)) ? {} : { beatGroups: state.groups };
+    // On the first bar the time is the clip's own, and its Beat groups the bar's.
+    if (b === 0) {
+      time = state.time;
+      Object.assign(bar, ownGroups);
+    } else if (!sameMeter(state, before)) Object.assign(bar, { time: state.time }, ownGroups);
+    if (!sameKey(state.key, before.key)) bar.key = state.key;
+    if (!sameTempo(state.tempo, before.tempo)) bar.tempo = state.tempo ?? { bpm: DEFAULT_BPM };
+    bars[b] = bar;
+    before = state;
+  });
+  return normalize({ ...part, time, bars });
+}
+
+/** The bars a section, repeat, ending or double bar labels; a paste never brings these (they label a place). */
+function unlabelled(bar: Bar): Bar {
+  const out = { ...bar };
+  for (const field of ['section', 'repeatStart', 'repeatEnd', 'ending', 'doubleBar', 'freeTime', 'pickup'] as const) delete out[field];
+  return out;
+}
+
+/**
+ * Whether `pasted` goes in at `cursor` as whole bars that keep their own key, meter and tempo: the cursor
+ * starts a bar, and every pasted bar is full in its own meter (`docs/specs/2026-11-15-tab-paste-keeps-key-meter-tempo-design.md`).
+ * A Pickup bar on either side stays as it is, so it doesn't.
+ */
+function pastesWholeBars(clip: Part, cursor: Cursor, given: Part, stated: Stated): boolean {
+  // A paste that doesn't say its meter is in the meter where it lands.
+  const pasted = stated.time ? given : { ...given, time: timeAt(clip, cursor.bar), bars: given.bars.map(bar => without(without(bar, 'time'), 'beatGroups')) };
+  // Past the last bar (the playback line after the clip's end) is a bar line too.
+  const atBarLine = cursor.bar >= clip.bars.length || clip.bars[cursor.bar].columns.length === 0 || cursorTime(clip, cursor) === timeOf(clip, cursor.bar, 0);
+  if (!atBarLine || hasPickup(pasted) || (cursor.bar === 0 && hasPickup(clip))) return false;
+  return pasted.bars.every((bar, b) => bar.columns.length > 0 && !isUneven(pasted, b));
+}
+
+/** The state `pasted` bar `b` is in: what it states for itself, else what is in force where it lands (`landing`). */
+function pastedState(pasted: Part, b: number, stated: Stated, landing: BarState): BarState {
+  const own = stateAt(pasted, b);
+  const tempo = tempoAt(pasted, b);
+  return {
+    time: stated.time ? own.time : landing.time,
+    groups: stated.time ? own.groups : landing.groups,
+    key: stated.key ? own.key : landing.key,
+    tempo: stated.tempo && tempo ? tempo : landing.tempo,
+  };
+}
+
 /** The pasted part's own Voice as one run of Columns, bar lines dropped, and how long it is. */
 function pastedColumns(pasted: Part): { columns: Column[]; length: number; last: number } {
   const columns = pasted.bars.flatMap(b => b.columns.map(c => ({ ...c })));
@@ -596,9 +710,10 @@ function pastedColumns(pasted: Part): { columns: Column[]; length: number; last:
  * an empty clip, the pasted clip comes whole, with its name, time and tuning. The cursor ends on the
  * last pasted column.
  */
-export function insertPaste(clip: Part, cursor: Cursor, pasted: Part): { clip: Part; cursor: Cursor } {
+export function insertPaste(clip: Part, cursor: Cursor, pasted: Part, stated: Stated = ALL_STATED): { clip: Part; cursor: Cursor } {
   const incoming = pasted.bars.filter(b => b.columns.length > 0);
   if (incoming.length === 0) return { clip, cursor };
+  if (!isEmpty(clip) && pastesWholeBars(clip, cursor, { ...pasted, bars: incoming }, stated)) return insertBars(clip, cursor.bar, { ...pasted, bars: incoming }, stated, cursor);
   if (isEmpty(clip)) {
     const whole = normalize({ ...pasted, bars: incoming });
     const last = incoming.length - 1;
@@ -609,7 +724,7 @@ export function insertPaste(clip: Part, cursor: Cursor, pasted: Part): { clip: P
     return writePasted(fresh, { ...cursor, bar: 0, column: 0 }, pasted);
   }
   const { columns, length, last } = pastedColumns({ ...pasted, bars: incoming });
-  const at = clip.bars[cursor.bar].columns.length === 0 ? timeOf(clip, cursor.bar, 0) : cursorTime(clip, cursor);
+  const at = clip.bars[cursor.bar]?.columns.length === 0 ? timeOf(clip, cursor.bar, 0) : cursorTime(clip, cursor);
   const pushed = pushTime(clip, at, length);
   const written = pushed && writeOver(pushed, at, columns);
   if (!written) return { clip, cursor };
@@ -623,18 +738,66 @@ export function insertPaste(clip: Part, cursor: Cursor, pasted: Part): { clip: P
  * covered note's uncovered part a Gap; bars are added past the clip's end. Into an empty clip the
  * pasted clip comes whole, with its name, time and tuning. The cursor ends on the last pasted column.
  */
-export function pasteOver(clip: Part, cursor: Cursor, pasted: Part): { clip: Part; cursor: Cursor } {
+export function pasteOver(clip: Part, cursor: Cursor, pasted: Part, stated: Stated = ALL_STATED): { clip: Part; cursor: Cursor } {
   const incoming = pasted.bars.filter(b => b.columns.length > 0);
   if (incoming.length === 0) return { clip, cursor };
-  if (isEmpty(clip)) return insertPaste(clip, cursor, pasted);
-  return writePasted(clip, cursor, pasted);
+  if (isEmpty(clip)) return insertPaste(clip, cursor, pasted, stated);
+  const written = writePasted(clip, cursor, pasted);
+  const whole = { ...pasted, bars: incoming };
+  if (written.clip === clip || !pastesWholeBars(clip, cursor, whole, stated)) return written;
+  // Whole bars over bars of the same lengths keep their key and tempo (their meter is the same), and the bars
+  // after them keep theirs: a mark goes in only where that changes. The bars written over keep their labels.
+  const p0 = cursor.bar;
+  const n = incoming.length;
+  const lines = incoming.every((_, i) => p0 + i >= clip.bars.length || barSpan(clip, p0 + i) === barSpan(whole, i));
+  const landing = stateAt(clip, p0);
+  const stateOf = (r: number): BarState => {
+    if (r < p0 + n) {
+      const own = pastedState(whole, r - p0, stated, landing);
+      return lines ? { ...stateAt(clip, Math.min(r, clip.bars.length - 1)), key: own.key, tempo: own.tempo } : stateAt(clip, Math.min(r, clip.bars.length - 1));
+    }
+    return stateAt(clip, Math.min(r, clip.bars.length - 1));
+  };
+  const states = written.clip.bars.slice(p0).map((_, i) => stateOf(p0 + i));
+  return { clip: withStates(written.clip, p0, states), cursor: written.cursor };
+}
+
+/**
+ * Insert paste of whole bars at a bar line (`pastesWholeBars`): the bars go in before bar `p0` as they are,
+ * each in the key, meter and tempo it states (else what is in force there), and every bar after keeps its
+ * own: a mark goes in only where that changes. The bars after slide on with their labels (a section, a
+ * repeat), as Insert mode moves them (Jeremy, 2026-11-15); the pasted bars bring none.
+ */
+function insertBars(clip: Part, p0: number, pasted: Part, stated: Stated, cursor: Cursor): { clip: Part; cursor: Cursor } {
+  const n = pasted.bars.length;
+  const landing = stateAt(clip, p0);
+  const ownVoiceIndex = clip.voice ?? 0;
+  const made: Bar[] = pasted.bars.map((bar, i) => {
+    const columns = bar.columns.map(c => ({ ...c }));
+    const plain: Bar = { ...without(unlabelled(ownVoice(bar)), 'origin'), columns };
+    delete plain.time;
+    delete plain.beatGroups;
+    delete plain.key;
+    delete plain.tempo;
+    // Another Voice is active: Voice 1 is never absent from a bar, so it gets its rests.
+    if (ownVoiceIndex !== 0) {
+      const state = pastedState(pasted, i, stated, landing);
+      plain.otherVoices = [{ voice: 0, columns: emptyBarRests(state.time, state.groups.map(g => g * (WHOLE / state.time.value))).map(emptyColumn) }];
+    }
+    return plain;
+  });
+  const bars = [...clip.bars.slice(0, p0), ...made, ...clip.bars.slice(p0)];
+  const states = bars.slice(p0).map((_, i) => (i < n ? pastedState(pasted, i, stated, landing) : stateAt(clip, p0 + i - n)));
+  const next = withStates({ ...clip, bars }, p0, states);
+  const last = p0 + n - 1;
+  return { clip: next, cursor: { ...cursor, bar: last, column: Math.max(0, next.bars[last].columns.length - 1) } };
 }
 
 /** `pasted`'s Columns written over the clip's time from the cursor's column on, as `pasteOver` writes them. */
 function writePasted(clip: Part, cursor: Cursor, pasted: Part): { clip: Part; cursor: Cursor } {
   const incoming = pasted.bars.filter(b => b.columns.length > 0);
   const { columns, length, last } = pastedColumns({ ...pasted, bars: incoming });
-  const at = clip.bars[cursor.bar].columns.length === 0 ? timeOf(clip, cursor.bar, 0) : cursorTime(clip, cursor);
+  const at = clip.bars[cursor.bar]?.columns.length === 0 ? timeOf(clip, cursor.bar, 0) : cursorTime(clip, cursor);
   const written = writeOver(clip, at, columns);
   if (!written) return { clip, cursor };
   const next = normalize(written);

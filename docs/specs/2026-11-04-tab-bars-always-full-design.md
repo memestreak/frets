@@ -79,7 +79,10 @@ time, in every Track; the other Tracks' new bars are Whole-bar rests
   selection, the selection's whole time.
 - **Insert paste** (Ctrl/⌘+Shift+V, the right-click menu) puts the
   clipboard's Voice 1 in at the cursor and pushes what follows by its
-  length. The pasted bar lines are not kept, as with paste. Into an empty
+  length. The pasted bar lines are not kept, as with paste, but for whole
+  bars at a bar line, which go in as bars in their own key, meter and
+  tempo, the bars after sliding on with theirs
+  (`2026-11-15-tab-paste-keeps-key-meter-tempo-design.md`). Into an empty
   clip the pasted clip still comes whole, with its name, time and tuning.
   Uneven bars are re-barred as Import's Re-bar by time signature lays them,
   with their bar Marks kept

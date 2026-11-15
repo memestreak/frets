@@ -1,0 +1,9 @@
+\title "The playback line is the cursor, and a paste goes in at it"
+\ts (4 4)
+r.4{txt "**1.** Select Tab view\nTab, at the top left of the clip"} 9.1.4
+  r.4{txt "**2.** Copy the 9\nPress the 9 at the left, then Ctrl/⌘+C"}
+  r.4{txt "**3.** Turn on Insert mode\nThe Insert mode button in Notes › Input"} |
+5.1.4{txt "**4.** Put the line before this 5\nPress just above the staff: ▼ ▲ on it"}
+  7.1.4{txt "**5.** Paste\nCtrl/⌘+V: a 9 goes in at the line"} 5.1.4 7.1.4 |
+r.1{txt "The last 7 slides on to here"} |
+
