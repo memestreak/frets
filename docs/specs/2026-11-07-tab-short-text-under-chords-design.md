@@ -28,8 +28,8 @@ names, just over the tab; this is about Texts.
   inside their row as texts always have (issue #323), and the rows under
   move down to make room.
 - **Picking and editing.** A press on a short text picks it where it is
-  drawn; its field opens over it. A new text's field opens over the chord
-  names' row.
+  drawn. Its field, the text annotation popover, sits over the line's text
+  annotations and chord names (`2026-11-14-tab-text-popover-design.md`).
 
 ## Tests
 

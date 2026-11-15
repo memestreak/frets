@@ -57,7 +57,7 @@ afterEach(() => {
 
 describe('a double-click on something with an Edit opens its field (issue #289)', () => {
   const cases: [string, () => { clientX: number; clientY: number }, string][] = [
-    ['text over a column', () => wordAt({ kind: 'text', index: 1 }), 'Text over the column'],
+    ['text over a column', () => wordAt({ kind: 'text', index: 1 }), 'Text annotation'],
     ['a section', () => wordAt({ kind: 'section', bar: 0 }), 'Section'],
     ['an ending', () => wordAt({ kind: 'ending', bar: 1 }), 'Ending number'],
     ['a repeat’s count', () => barLineAt('repeatCount'), 'Times played, 2 to 9'],
@@ -97,7 +97,7 @@ describe('a double-click on something with an Edit opens its field (issue #289)'
     fireEvent.click(pencil());
     expect(pencil()).toHaveAttribute('aria-pressed', 'true');
     doubleClick(wordAt({ kind: 'text', index: 1 }));
-    expect(screen.getByRole('dialog', { name: 'Text over the column' })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Text annotation' })).toBeInTheDocument();
     cleanup();
     await open();
     fireEvent.click(pencil());

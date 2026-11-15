@@ -17,11 +17,19 @@ export function wordNow(clip: Part, { kind, bar, column }: { kind: FieldKind; ba
   if (kind === 'chord') return b?.columns[column]?.chord ?? '';
   if (kind === 'text') return b?.columns[column]?.text ?? '';
   if (kind === 'dynamic') return b?.columns[column]?.dynamic ?? '';
+  // The technique popover adds a mark by name; it starts empty, whatever the notes have (issue #501).
+  if (kind === 'technique') return '';
   return b?.section?.text ?? '';
 }
 
 /** The chord popover's height (`.tab-word`: its caption and field) and a small gap under it. */
 const CHORD_FIELD_HEIGHT = 96;
+
+/** The text annotation popover's height with one line typed (`.tab-word`: its caption and field), and the gap under it. */
+const TEXT_FIELD_HEIGHT = 84;
+const TEXT_FIELD_GAP = 6;
+/** Half a text annotation's line: a row's place is its first line's middle. */
+const TEXT_HALF_LINE = 9;
 
 /** How far a dynamic's field stands from its column's middle, beside it. */
 const BESIDE = 16;
@@ -33,9 +41,11 @@ function lineBottom(rows: Rows, dynamic: number): number {
 }
 
 /** Where a word's field goes over the drawing: above the spot the word is drawn, kept inside the tab's width. */
-export function wordSpot(layout: Layout, width: number, { kind, bar, column }: { kind: FieldKind; bar: number; column: number }): { x: number; y: number } {
+export function wordSpot(layout: Layout, width: number, { kind, bar, column }: { kind: FieldKind; bar: number; column: number }): { x: number; y: number; up?: boolean } {
   // A number's field fits its caption and a small number box; the others are 180px wide (`.tab-word`).
-  const FIELD_WIDTH = kind === 'ending' || kind === 'repeat' ? 150 : 180;
+  const FIELD_WIDTH = kind === 'ending' || kind === 'repeat' ? 150 : kind === 'technique' ? 240 : 180;
+  // The technique popover sits where a dynamic's does: under the line beside its column, so the notes it marks stay in sight.
+  const beside = kind === 'dynamic' || kind === 'technique';
   const FIELD_HEIGHT = 64;
   for (let s = 0; s < layout.systems.length; s++) {
     const placed = layout.systems[s].bars.find(b => b.index === bar);
@@ -46,14 +56,14 @@ export function wordSpot(layout: Layout, width: number, { kind, bar, column }: {
     const text = spot?.column.text ? textRowOf(rows, spot) : rows.text;
     // A dynamic's field opens over its row; a new one's over where the row will be: under the staff, or over the tab.
     const dynamic = rows.dynamics ?? (rows.score ? rows.score.bottom + 20 : rows.staffTop - 20);
-    const row = { chord: rows.chords, text, section: rows.section, ending: rows.endings, repeat: rows.endings, dynamic }[kind];
+    const row = { chord: rows.chords, text, section: rows.section, ending: rows.endings, repeat: rows.endings, dynamic, technique: dynamic }[kind];
     // A section moved up clear of another opens its field over where it is drawn (issue #389).
     const raised = kind === 'section' ? placed.sectionTop * SECTION_LINE : 0;
     // A dynamic's field opens under the line, as Dorico's popover opens under the staff, clear of the column's
     // notes so they show lit while it is open (Jeremy, 2026-11-09); a word's over its row.
-    const y = kind === 'dynamic' ? top + lineBottom(rows, dynamic) + 12 : top + (row ?? rows.staffTop - 20) + raised - FIELD_HEIGHT;
+    const y = beside ? top + lineBottom(rows, dynamic) + 12 : top + (row ?? rows.staffTop - 20) + raised - FIELD_HEIGHT;
     // A repeat's count is written over the bar's end.
-    if (kind === 'dynamic') {
+    if (beside) {
       // Beside its column, not over it, so its list, opening up or down, leaves the column's notes in sight (lit).
       const at = placed.columns[column]?.x ?? placed.x0;
       const right = at + BESIDE + FIELD_WIDTH / 2;
@@ -71,8 +81,17 @@ export function wordSpot(layout: Layout, width: number, { kind, bar, column }: {
         y: over >= 0 ? over : top + lineBottom(rows, dynamic) + 12,
       };
     }
-    const x = kind === 'text' ? (placed.columns[column]?.x ?? placed.x0)
-      : kind === 'repeat' ? placed.x1 - FIELD_WIDTH / 2 : placed.x0 + FIELD_WIDTH / 2;
+    if (kind === 'text') {
+      // The text annotation popover hangs up from the top of the line's text annotations (long ones over the chord names, short ones
+      // under them, issue #404), or from where they would go, so it never covers its column or what is written
+      // over the line; it grows up as lines are typed. With no room over the first line, it opens under the line.
+      const highest = rows.text ?? rows.chords ?? rows.textUnder ?? (rows.score?.top ?? rows.staffTop) - 20;
+      const bottom = top + highest - TEXT_HALF_LINE - TEXT_FIELD_GAP;
+      const at = placed.columns[column]?.x ?? placed.x0 + FIELD_WIDTH / 2;
+      const x = Math.min(width - FIELD_WIDTH / 2, Math.max(FIELD_WIDTH / 2, at));
+      return bottom >= TEXT_FIELD_HEIGHT ? { x, y: bottom, up: true } : { x, y: top + lineBottom(rows, dynamic) + 12 };
+    }
+    const x = kind === 'repeat' ? placed.x1 - FIELD_WIDTH / 2 : placed.x0 + FIELD_WIDTH / 2;
     return { x: Math.min(width - FIELD_WIDTH / 2, Math.max(FIELD_WIDTH / 2, x)), y: Math.max(0, y) };
   }
   return { x: FIELD_WIDTH / 2, y: 0 };

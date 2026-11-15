@@ -53,6 +53,7 @@ import { DEFAULT_FX } from './effects';
 import { instrumentTag, soundFor, substituteNote } from './instrument';
 import { AlphaTexEditor } from './AlphaTexEditor';
 import { readTab } from './readTab';
+import { TECHNIQUES, techniqueOn } from './techniques';
 import { applyTool, isLengthTool, isOn, noteKinds, toolValue, WORD_TOOL, WORD_TOOLS, type ToolId } from './tools';
 import { cycleLengthDots, lengthIsOn, lengthOf, startLength } from './inputLength';
 import { FoldedTitle, ScoreHead } from './ScoreHead';
@@ -310,7 +311,9 @@ export default function TabPage() {
   };
 
   // The fields and panels over the tab and from the score's head.
-  const head = useHeadPanels(editor, { layout, width: clipWidth, zoom, shown: { tab: view === 'tab', drawn: clipWidth > 0 } });
+  const head = useHeadPanels(editor, {
+    layout, width: clipWidth, zoom, shown: { tab: view === 'tab', drawn: clipWidth > 0 }, onTechnique: name => addTechnique(name),
+  });
   // Presses and drags on the drawn tab.
   const picking = useTabPicking(editor, {
     drawn, layout, hearNote, setNotice, openWord: head.openWord, openLyric: head.openLyric,
@@ -574,7 +577,11 @@ export default function TabPage() {
    * cursor, so the palette acts on nothing, as it lights nothing (Jeremy, 2026-10-30).
    */
   const onTool = (id: ToolId) => {
-    if (!tabFocused) return;
+    if (tabFocused) runTool(id);
+  };
+
+  /** What a palette button does on the cursor or selection (`onTool`), and what the technique popover does with the tool it names. */
+  const runTool = (id: ToolId) => {
     if (id in WORD_TOOLS) head.openWord(WORD_TOOLS[id as keyof typeof WORD_TOOLS]);
     else if (id === 'lyrics') head.openLyric(cursor);
     // The cursor bar's time signature panel, as a press on its drawn numbers opens (the clip's own in the first bar).
@@ -615,6 +622,23 @@ export default function TabPage() {
     }
   };
 
+
+  /**
+   * The technique the technique popover named (Shift+P, issue #501), on the cursor or selection as its palette button
+   * puts it; one every target note already has is left as it is, as the popover only adds (spec Q6).
+   */
+  const addTechnique = (name: string) => {
+    const technique = TECHNIQUES.find(t => t.name === name);
+    if (!technique || techniqueOn(clip, target, technique, columnOnly)) return;
+    if (technique.tool) {
+      runTool(technique.tool);
+      return;
+    }
+    // One kind of a mark the palette steps through (wide vibrato, a full bend): on every Voice's notes in a selection's time, as a palette mark goes.
+    const edit = technique.edit!;
+    if (!picked && everyVoice((part, run) => edit(part, { ...target, selection: run }))) return;
+    commitKeepingMark(edit(clip, target));
+  };
 
   /** A palette change; a picked mark changed by it (vibrato to wide, a bend's amount) stays picked while it is there. */
   const commitKeepingMark = (next: Part) => {
@@ -749,7 +773,7 @@ export default function TabPage() {
   /** The editor as the keys (and the Rest and Grace tools) find it. */
   const editorKeys = (): EditorKeys => ({
     clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', tabShown: parts !== 'staff', lastDigit: lastDigitRef, accidental: accidentalRef, lines: drawnLines, noteInputMode, setNoteInputMode: enterNoteInput, insertMode, setInsertMode, inputLength, setInputLength, gridStep, fixedGrid, cursorAt, setCursorAt, stepElement, moveSpanEnd: picking.moveSpanEnd,
-    tupletEntry, graceEntry, tupletFrom, setTupletFrom, openTuplets, voiceKey, everyVoice,
+    tupletEntry, graceEntry, tupletFrom, setTupletFrom, openTuplets, openTechniques: () => head.openWord('technique'), voiceKey, everyVoice,
     commit, toPitch, setColumnOnly, setStaffPitch, startRegion, setPicked, deletePicked, editPicked, addBar, onTool, hearNote, onNotice: setNotice,
     dropLine, leave: () => editorRef.current?.blur(),
   });

@@ -90,6 +90,8 @@ export interface EditorKeys {
   setTupletFrom: (at: number | null) => void;
   /** `;`: the Tuplet panel at the cursor. */
   openTuplets: () => void;
+  /** Shift+P: the technique popover at the cursor (issue #501). */
+  openTechniques: () => void;
   /** Alt+1–4 (step 9, Q8): Voice `voice` (from 0) made active, or the picked or selected notes moved into it. */
   voiceKey: (voice: number) => void;
   /**
@@ -360,6 +362,12 @@ function sharedKeyDown(e: ReactKeyboardEvent<HTMLDivElement>, editor: EditorKeys
   if (key === ';' && !e.altKey) {
     handled();
     editor.openTuplets();
+    return;
+  }
+  // Shift+P opens the technique popover, as Dorico's Shift+P opens its playing techniques popover (issue #501).
+  if (key === 'P' && !e.altKey && !e.ctrlKey && !e.metaKey) {
+    handled();
+    editor.openTechniques();
     return;
   }
   // Alt+/ steps the slide from the note before through its kinds, read by the key's place as Alt types

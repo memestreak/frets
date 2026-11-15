@@ -76,6 +76,7 @@ const NORMAL: ShortcutGroup = {
     { keys: ['Alt+press'], does: 'One tied note of a chain, for its own marks' },
     { keys: [';'], does: 'Tuplet over the note, or the selection squeezed into one' },
     { keys: ['/'], does: 'Grace note before the note' },
+    { keys: ['Shift+P'], does: 'Technique popover: add let ring, palm mute, a bend… by name' },
     { keys: [','], does: 'Make rests of the notes, as Delete' },
     { keys: ['Alt+1–4'], does: 'Move to voice 1–4 (nothing picked: make it active)' },
   ],
@@ -145,12 +146,23 @@ const CHORD_FIELD: ShortcutGroup = {
 };
 
 const TEXT_FIELD: ShortcutGroup = {
-  title: 'In the Text field',
+  title: 'In the Text annotation field (Shift+X)',
   shortcuts: [
+    { keys: ['Tab'], does: 'Set the text annotation and go to the next column' },
+    { keys: ['Shift+Tab'], does: 'Set it and go back a column' },
     { keys: ['Mod+B'], does: 'Bold: **words** (again: plain)' },
     { keys: ['Shift+Enter'], does: 'New line' },
-    { keys: ['Enter'], does: 'Set the Text' },
-    { keys: ['Esc'], does: 'Leave it as it was' },
+    { keys: ['Enter'], does: 'Set it and close' },
+    { keys: ['Esc'], does: 'Close, leaving the column’s text annotation as it was' },
+  ],
+};
+
+const TECHNIQUE_FIELD: ShortcutGroup = {
+  title: 'In the Technique popover (Shift+P)',
+  shortcuts: [
+    { keys: ['Up', 'Down'], does: 'Light the technique above or below in the list (Down alone shows them all)' },
+    { keys: ['Enter'], does: 'Add the lit technique and close' },
+    { keys: ['Esc'], does: 'Close the list, then the popover, adding nothing' },
   ],
 };
 
@@ -210,4 +222,4 @@ export function paletteShortcuts(): ShortcutGroup {
   return { title: 'Palette', shortcuts: [...duration.map(t => ({ keys: [t.key], does: t.label })), ...shortcuts] };
 }
 
-export const TAB_SHORTCUTS: readonly ShortcutGroup[] = [PAGE, MOVING, INPUT, NORMAL, PICKED, STAFF, paletteShortcuts(), CHORD_FIELD, LYRICS, TEXT_FIELD, CHAT_POPOVER, LINE, HEAD, CHORDS, CHOOSER];
+export const TAB_SHORTCUTS: readonly ShortcutGroup[] = [PAGE, MOVING, INPUT, NORMAL, PICKED, STAFF, paletteShortcuts(), CHORD_FIELD, LYRICS, TEXT_FIELD, TECHNIQUE_FIELD, CHAT_POPOVER, LINE, HEAD, CHORDS, CHOOSER];

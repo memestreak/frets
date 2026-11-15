@@ -15,8 +15,8 @@ import type { Typing } from './ClipWords';
 import { TempoPanel } from './TempoPanel';
 import { TuningPanel } from './TuningPanel';
 import type { EditorState } from './useEditorState';
-import { WordField, type FieldKind } from './WordField';
-import { chordStep, type ChordMove } from './chordPopover';
+import { WordField, type FieldKind, type TextSize } from './WordField';
+import { popoverStep, type PopoverMove } from './popoverStep';
 
 /**
  * The score head's open panel and where it was pressed, in viewport pixels; the title and credits'
@@ -34,7 +34,7 @@ type HeadPanel =
  * and from the score's head (title and credits, tuning, tempo): which one is open, where, and what
  * closing it keeps. `panels` draws the open one; the page puts it over the drawing.
  */
-export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown }: {
+export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown, onTechnique }: {
   /** The drawn clip's layout, and its width in the drawing's units. */
   layout: Layout;
   width: number;
@@ -42,16 +42,20 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
   zoom: number;
   /** Whether the drawn tab is shown (the Notation view), and has a width yet. */
   shown: { tab: boolean; drawn: boolean };
+  /** Adds the technique the technique popover named (issue #501), as its palette button would. */
+  onTechnique: (name: string) => void;
 }) {
   const { clip, cursor, commit, commitReBar, dispatch, editorRef, setNotice } = editor;
   /**
    * The chord name, text, section, dynamic, ending or repeat count being typed, and where: the cursor's column or
-   * bar when it opened. The chord popover's `turn` counts its moves, so a move that stays put (past the clip's end)
+   * bar when it opened. The chord and text annotation popovers' `turn` counts their moves, so a move that stays put (past the clip's end)
    * opens it afresh.
    */
   const [word, setWord] = useState<{ kind: FieldKind; bar: number; column: number; turn?: number } | null>(null);
   /** The note whose syllable the Lyrics field is typing, and its Lyric line (issue #408). */
   const [lyric, setLyricField] = useState<{ bar: number; column: number; line: number; turn?: number } | null>(null);
+  /** The size the Text annotation field's corner was dragged to, kept while it goes column to column; it opens at one line again next time. */
+  const [textSize, setTextSize] = useState<TextSize | null>(null);
   /** Where the Lyrics field was dragged to, kept while it goes note to note; it opens over the note again next time. */
   const [lyricNudge, setLyricNudge] = useState<LyricNudge>({ dx: 0, dy: 0 });
   /**
@@ -94,10 +98,11 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
       openTempo(at.bar);
       return;
     }
-    // Text belongs to a column; an empty bar has none yet.
-    if (kind === 'text' && !columnAt(clip, at)) return;
-    // A chord name or a dynamic can go on an empty bar too: it lands on the first of the rests that fill it (P1).
-    if ((kind === 'chord' || kind === 'dynamic') && !columnAt(clip, at)) {
+    setTextSize(null);
+    // A technique goes on notes, so the technique popover opens only on a column.
+    if (kind === 'technique' && !columnAt(clip, at)) return;
+    // A chord name, a text annotation or a dynamic can go on an empty bar too: it lands on the first of the rests that fill it (P1).
+    if ((kind === 'chord' || kind === 'text' || kind === 'dynamic') && !columnAt(clip, at)) {
       if (clip.bars[at.bar]?.columns.length !== 0) return;
       setWord({ kind, bar: at.bar, column: 0 });
       return;
@@ -106,41 +111,45 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
   };
 
   /**
-   * The chord popover's name set on its spot (an empty bar filled with its rests first), then the popover
-   * moved on as its key says (issue #342). Esc (null) leaves the spot as it was and closes it.
+   * The chord popover's name or the text annotation popover's text annotation set on its spot (an empty bar filled with its rests
+   * first), then the popover moved on as its key says (issue #342). Esc (null) leaves the spot as it was and
+   * closes it.
    */
-  const finishChord = (at: { bar: number; column: number; turn?: number }, value: string | null, byKey: boolean, move?: ChordMove) => {
+  const finishPopover = (
+    kind: 'chord' | 'text', at: { bar: number; column: number; turn?: number }, value: string | null, byKey: boolean, move?: PopoverMove,
+  ) => {
     const place = { ...cursor, bar: at.bar, column: at.column };
+    const set = kind === 'chord' ? setChordName : setBeatText;
     let next = clip;
-    if (value !== null && value.trim() !== (clip.bars[at.bar]?.columns[at.column]?.chord ?? '')) {
+    if (value !== null && value.trim() !== (clip.bars[at.bar]?.columns[at.column]?.[kind] ?? '')) {
       const base = columnAt(clip, place) ? clip : value.trim() ? withRestsInEmptyBars(clip) ?? clip : clip;
-      next = setChordName(base, place, value);
+      next = set(base, place, value);
     }
-    const to = move && value !== null ? chordStep(next, at, move) ?? at : null;
+    const to = move && value !== null ? popoverStep(next, at, move) ?? at : null;
     if (!to) {
       setWord(null);
       if (next !== clip) commit(next, columnAt(next, place) ? place : cursor);
       // After Enter or Esc the keys go back to the tab; leaving the field leaves the focus where it went.
-      if (byKey) editorRef.current?.focus();
+      if (byKey) editorRef.current?.focus({ preventScroll: true });
       return;
     }
     // The cursor follows the popover, so what it is over shows; a bar still empty keeps it on the bar.
     commit(next, { ...cursor, bar: to.bar, column: to.column }, null);
-    setWord({ kind: 'chord', ...to, turn: (at.turn ?? 0) + 1 });
+    setWord({ kind, ...to, turn: (at.turn ?? 0) + 1 });
   };
 
   /** A typed chord name, text, section, dynamic, ending or repeat count set (an empty one clears it); null leaves it as it was. */
-  const finishWord = (value: string | null, byKey: boolean, move?: ChordMove) => {
+  const finishWord = (value: string | null, byKey: boolean, move?: PopoverMove) => {
     const w = word;
-    if (w?.kind === 'chord') {
-      finishChord(w, value, byKey, move);
+    if (w?.kind === 'chord' || w?.kind === 'text') {
+      finishPopover(w.kind, w, value, byKey, move);
       return;
     }
     setWord(null);
     // After Enter or Esc the keys go back to the tab; leaving the field leaves the focus where it went.
     if (byKey) editorRef.current?.focus({ preventScroll: true });
     if (!w || value === null) return;
-    if (w.kind === 'text') commit(setBeatText(clip, { bar: w.bar, column: w.column, string: cursor.string }, value));
+    if (w.kind === 'technique') onTechnique(value);
     if (w.kind === 'section') commit(setSection(clip, w.bar, value));
     // The field lets only a dynamic or nothing through; nothing takes it away.
     if (w.kind === 'dynamic') {
@@ -273,6 +282,7 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
         <WordField
           key={`${word.kind}-${word.bar}-${word.column}-${word.turn ?? 0}`} kind={word.kind} {...wordSpot(layout, width, word)}
           initial={wordNow(clip, word)} onDone={finishWord}
+          size={textSize} onResize={setTextSize}
         />
       )}
       {tab && lyric && drawn && (
