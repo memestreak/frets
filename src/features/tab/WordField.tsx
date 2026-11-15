@@ -15,7 +15,7 @@ export type FieldKind = Exclude<WordKind, 'tempo'> | 'ending' | 'repeat';
 
 const CAPTIONS: Record<FieldKind, string> = {
   chord: 'Chord name',
-  text: 'Text over the column',
+  text: 'Text annotation',
   section: 'Section',
   ending: 'Ending number',
   repeat: 'Times played, 2 to 9',
@@ -51,12 +51,12 @@ interface WordFieldProps {
   /** Where the field's middle and top go (its bottom with `up`), in the tab's own units. */
   x: number;
   y: number;
-  /** The field hangs up from `y`, so a Text's new lines grow away from the line it is over. */
+  /** The field hangs up from `y`, so a text annotation's new lines grow away from the line it is over. */
   up?: boolean;
   /**
    * What was typed, or null for Esc; `byKey` when a key finished it, not leaving the field. A chord name's
    * field (the chord popover, issue #342) also gives where Space, Shift+Space, Tab or Shift+Tab moves it, and
-   * a Text's field (the Text popover) where Tab or Shift+Tab does.
+   * a text annotation's field (the text annotation popover) where Tab or Shift+Tab does.
    */
   onDone: (value: string | null, byKey: boolean, move?: PopoverMove) => void;
 }
@@ -162,8 +162,9 @@ export function WordField({ kind, initial, x, y, up = false, onDone }: WordField
     return true;
   };
   /**
-   * The Text popover's own keys (issue #342): Tab sets the Text and moves to the next column, Shift+Tab to the one
-   * before. Space types a space in a Text, so Tab takes the job Space has in the chord popover.
+   * The text annotation popover's own keys (issue #342): Tab sets the text annotation and moves to the next column,
+   * Shift+Tab to the one before, so a series of text annotations is typed in one go. Space types a space in a text
+   * annotation, so Tab takes the job Space has in the chord popover.
    */
   const onTextKey = (e: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>): boolean => {
     if (kind !== 'text' || e.key !== 'Tab' || e.ctrlKey || e.metaKey || e.altKey) return false;

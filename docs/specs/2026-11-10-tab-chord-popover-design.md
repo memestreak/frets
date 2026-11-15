@@ -3,7 +3,7 @@
 Issue #342 ("FR: Dorico-style popovers in the Tab editor"). Asked
 2026-11-10 (Jeremy): "Let's begin work on the popover FR and start with
 chords." This step is the chord symbol popover only; the issue's other
-popovers come later; the Text popover (Shift+X) followed
+popovers come later; the text annotation popover (Shift+X) followed
 (`2026-11-14-tab-text-popover-design.md`), and its moves share
 `popoverStep.ts` (was `chordPopover.ts`). Dynamics (Shift+D) and Lyrics (Shift+L) already have theirs.
 

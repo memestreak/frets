@@ -1,9 +1,9 @@
 /**
  * Where a popover that moves on goes next (issue #342): the chord popover
- * (`docs/specs/2026-11-10-tab-chord-popover-design.md`) and the Text popover
+ * (`docs/specs/2026-11-10-tab-chord-popover-design.md`) and the text annotation popover
  * (`docs/specs/2026-11-14-tab-text-popover-design.md`). Dorico's Shift+Q popover stays open as Space,
- * Shift+Space, Tab and Shift+Tab move it, so a run of chord names is typed in one go; the Text popover
- * moves column to column on Tab and Shift+Tab. A chord name or a Text belongs to a column, so the popover
+ * Shift+Space, Tab and Shift+Tab move it, so a run of chord names is typed in one go; the text annotation popover
+ * moves column to column on Tab and Shift+Tab. A chord name or a text annotation belongs to a column, so the popover
  * goes column to column; an empty bar has none yet, so it stops on the bar itself (column 0), where what
  * is set lands on the first of the rests that fill it. Pure.
  */

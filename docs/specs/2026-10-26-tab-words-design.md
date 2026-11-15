@@ -86,8 +86,9 @@ names (there only when a column has text), starting just left of its
 column and running right; it does not widen the column. (Since 2026-11-03,
 issue #323: a long text wraps onto more lines over its column; see
 `2026-11-03-tab-text-wrap-design.md`.) The Text group's
-"Text over this column" button (Shift+X since 2026-11-14, the Text popover:
-`2026-11-14-tab-text-popover-design.md`) opens the Text field, and a press
+"Text annotation over this column" button (Shift+X since 2026-11-14, the
+text annotation popover: `2026-11-14-tab-text-popover-design.md`) opens
+the Text annotation field, and a press
 on drawn text opens it there. Empty clears it.
 The song-form example has one.
 

@@ -46,7 +46,7 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
   const { clip, cursor, commit, commitReBar, dispatch, editorRef, setNotice } = editor;
   /**
    * The chord name, text, section, dynamic, ending or repeat count being typed, and where: the cursor's column or
-   * bar when it opened. The chord and Text popovers' `turn` counts their moves, so a move that stays put (past the clip's end)
+   * bar when it opened. The chord and text annotation popovers' `turn` counts their moves, so a move that stays put (past the clip's end)
    * opens it afresh.
    */
   const [word, setWord] = useState<{ kind: FieldKind; bar: number; column: number; turn?: number } | null>(null);
@@ -94,7 +94,7 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
       openTempo(at.bar);
       return;
     }
-    // A chord name, a Text or a dynamic can go on an empty bar too: it lands on the first of the rests that fill it (P1).
+    // A chord name, a text annotation or a dynamic can go on an empty bar too: it lands on the first of the rests that fill it (P1).
     if ((kind === 'chord' || kind === 'text' || kind === 'dynamic') && !columnAt(clip, at)) {
       if (clip.bars[at.bar]?.columns.length !== 0) return;
       setWord({ kind, bar: at.bar, column: 0 });
@@ -104,7 +104,7 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
   };
 
   /**
-   * The chord popover's name or the Text popover's Text set on its spot (an empty bar filled with its rests
+   * The chord popover's name or the text annotation popover's text annotation set on its spot (an empty bar filled with its rests
    * first), then the popover moved on as its key says (issue #342). Esc (null) leaves the spot as it was and
    * closes it.
    */

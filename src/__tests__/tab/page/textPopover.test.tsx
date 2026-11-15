@@ -1,7 +1,7 @@
 /**
- * The Text popover on the page (issue #342, `docs/specs/2026-11-14-tab-text-popover-design.md`):
- * Shift+X opens it, Tab / Shift+Tab set the Text and move it a column on or back, Space types a space,
- * Esc leaves the column as it was, and an empty bar takes a Text on its first rest.
+ * The text annotation popover on the page (issue #342, `docs/specs/2026-11-14-tab-text-popover-design.md`):
+ * Shift+X opens it, Tab / Shift+Tab set the text annotation and move it a column on or back, Space types a space,
+ * Esc leaves the column as it was, and an empty bar takes a text annotation on its first rest.
  */
 import { act, fireEvent, screen } from '@testing-library/react';
 import { setUpPage, editor, keys, alphaTex, openWith, undo } from './helpers';
@@ -9,18 +9,18 @@ import { TAB_SHORTCUTS } from '@/features/tab/shortcuts';
 
 setUpPage();
 
-const field = () => screen.getByRole('textbox', { name: 'Text over the column' }) as HTMLTextAreaElement;
+const field = () => screen.getByRole('textbox', { name: 'Text annotation' }) as HTMLTextAreaElement;
 const type = (text: string, key: { key: string; shiftKey?: boolean }) => {
   fireEvent.change(field(), { target: { value: text } });
   fireEvent.keyDown(field(), key);
 };
 
-describe('the Text popover', () => {
-  it('types a run of Texts with Tab, across a bar line, and closes on Enter', async () => {
+describe('the text annotation popover', () => {
+  it('types a series of text annotations with Tab, across a bar line, and closes on Enter', async () => {
     await openWith('5.1.2 7.1.2 |\n3.2.1 |');
     act(() => editor().focus());
     keys({ key: 'X', shiftKey: true });
-    // Space is a space in a Text: it doesn't move on.
+    // Space is a space in a text annotation: it doesn't move on.
     type('let ring', { key: ' ' });
     expect(field()).toHaveValue('let ring');
     type('let ring', { key: 'Tab' });
@@ -28,9 +28,9 @@ describe('the Text popover', () => {
     expect(field()).toHaveValue('');
     type('P.M.', { key: 'Tab' });
     type('fade', { key: 'Enter' });
-    expect(screen.queryByRole('textbox', { name: 'Text over the column' })).toBeNull();
+    expect(screen.queryByRole('textbox', { name: 'Text annotation' })).toBeNull();
     expect(alphaTex()).toBe('5.1.2{txt "let ring"} 7.1.2{txt "P.M."} |\n3.2.1{txt "fade"} |');
-    // Each Text is its own undo step.
+    // Each text annotation is its own undo step.
     undo();
     expect(alphaTex()).toBe('5.1.2{txt "let ring"} 7.1.2{txt "P.M."} |\n3.2.1 |');
   }, 20000);
@@ -50,7 +50,7 @@ describe('the Text popover', () => {
     expect(alphaTex()).toBe('5.1.2{txt "one"} 7.1.2{txt "three"} |');
   }, 20000);
 
-  it('keeps Shift+Enter a new line and Tab still moves on from a two-line Text', async () => {
+  it('keeps Shift+Enter a new line and Tab still moves on from a two-line text annotation', async () => {
     await openWith('5.1.2 7.1.2 |');
     act(() => editor().focus());
     keys({ key: 'X', shiftKey: true });
@@ -62,7 +62,7 @@ describe('the Text popover', () => {
     expect(alphaTex()).toBe('5.1.2{txt "one\\ntwo"} 7.1.2 |');
   }, 20000);
 
-  it('sets a Text on an empty bar on the first of the rests that fill it, and moves over it without filling it', async () => {
+  it('sets a text annotation on an empty bar on the first of the rests that fill it, and moves over it without filling it', async () => {
     await openWith('5.1.1 |\n|\n3.2.1 |');
     act(() => editor().focus());
     keys({ key: 'X', shiftKey: true });
@@ -83,8 +83,8 @@ describe('the Text popover', () => {
   }, 20000);
 });
 
-it('the ? overlay lists Shift+X and the Text field’s Tab keys', () => {
+it('the ? overlay lists Shift+X and the Text annotation field’s Tab keys', () => {
   const all = TAB_SHORTCUTS.flatMap(g => g.shortcuts.map(s => `${g.title}: ${s.keys.join(' ')}`));
   expect(all.some(s => s.startsWith('Palette') && s.endsWith('Shift+X'))).toBe(true);
-  expect(all.some(s => s.startsWith('In the Text field (Shift+X)') && s.endsWith('Shift+Tab'))).toBe(true);
+  expect(all.some(s => s.startsWith('In the Text annotation field (Shift+X)') && s.endsWith('Shift+Tab'))).toBe(true);
 });

@@ -198,7 +198,7 @@ _Avoid_: anacrusis, upbeat bar
 **Popover**:
 A small, temporary field for typing a Mark as text, kept to the keyboard
 and opened over the staff at the cursor or the earliest selected note,
-as Dorico's popovers are: a chord name, a Text, a section, a dynamic, a
+as Dorico's popovers are: a chord name, a Text annotation, a section, a dynamic, a
 syllable of the Lyrics. Not a Panel of choices.
 
 **Rail**:
@@ -266,6 +266,15 @@ together, the notation staff and the tab staff below it make one
 System. Frets shows one Track's System at a time; every Track breaks
 into the same Systems.
 _Avoid_: row (for a System; a row is one band within it)
+
+**Text annotation**:
+A Mark of free text over a column, written `txt "..."` in alphaTex:
+"let ring", "P.M.", a test step. It may wrap, take new lines and bold.
+Text annotations on neighbouring columns are a series of text
+annotations, typed in one go with the text annotation Popover (Shift+X,
+Tab to the next column). "Annotation" alone still means no more than a
+Mark.
+_Avoid_: Text (alone, for the element), beat text, free text, run of texts
 
 **Tie chain**:
 Notes on one string, each tied to the next, that sound as one Sounding

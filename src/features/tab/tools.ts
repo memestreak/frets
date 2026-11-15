@@ -129,7 +129,7 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
     label: 'Text',
     tools: [
       { id: 'chordName', label: 'Chord name over this column', key: 'Shift+Q' },
-      { id: 'beatText', label: 'Text over this column', key: 'Shift+X' },
+      { id: 'beatText', label: 'Text annotation over this column', key: 'Shift+X' },
       { id: 'lyrics', label: 'Lyrics under this note', key: 'Shift+L' },
       { id: 'section', label: 'Section starting at this bar', key: '' },
       { id: 'tempo', label: 'Tempo from this bar on', key: '' },
@@ -288,7 +288,7 @@ export function toolForKey(key: string, alt: boolean, code = ''): ToolId | null 
     '[': 'repeatStart', ']': 'repeatEnd', e: 'ending',
     // Shift+Q opens the chord popover, as Dorico's does (issue #342).
     Q: 'chordName',
-    // Shift+X opens the Text popover, as Dorico's Shift+X opens its text editor (issue #342).
+    // Shift+X opens the text annotation popover, as Dorico's Shift+X opens its text editor (issue #342).
     X: 'beatText',
     // Shift+L opens the Lyrics field, as Dorico's does (issue #408); L alone is Loop.
     L: 'lyrics',

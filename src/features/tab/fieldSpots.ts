@@ -23,10 +23,10 @@ export function wordNow(clip: Part, { kind, bar, column }: { kind: FieldKind; ba
 /** The chord popover's height (`.tab-word`: its caption and field) and a small gap under it. */
 const CHORD_FIELD_HEIGHT = 96;
 
-/** The Text popover's height with one line typed (`.tab-word`: its caption and field), and the gap under it. */
+/** The text annotation popover's height with one line typed (`.tab-word`: its caption and field), and the gap under it. */
 const TEXT_FIELD_HEIGHT = 84;
 const TEXT_FIELD_GAP = 6;
-/** Half a Text's line: a row's place is its first line's middle. */
+/** Half a text annotation's line: a row's place is its first line's middle. */
 const TEXT_HALF_LINE = 9;
 
 /** How far a dynamic's field stands from its column's middle, beside it. */
@@ -78,7 +78,7 @@ export function wordSpot(layout: Layout, width: number, { kind, bar, column }: {
       };
     }
     if (kind === 'text') {
-      // The Text popover hangs up from the top of the line's Texts (long ones over the chord names, short ones
+      // The text annotation popover hangs up from the top of the line's text annotations (long ones over the chord names, short ones
       // under them, issue #404), or from where they would go, so it never covers its column or what is written
       // over the line; it grows up as lines are typed. With no room over the first line, it opens under the line.
       const highest = rows.text ?? rows.chords ?? rows.textUnder ?? (rows.score?.top ?? rows.staffTop) - 20;

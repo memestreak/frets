@@ -15,7 +15,7 @@ how editing behaves.
 - The Clip is the smallest that shows it: 4/4, standard tuning, two or
   three bars of plain notes.
 - The steps go over the column to press and the result over the column
-  where it shows, as Text over this column (`{txt "..."}`). A long text
+  where it shows, as a text annotation over its column (`{txt "..."}`). A long text
   wraps and touching texts stack (#323), so a text may be as long as it
   needs to be. An edit that rests or overwrites a column takes its text
   with it, so the result goes on a column the edit leaves alone
