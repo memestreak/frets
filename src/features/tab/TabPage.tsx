@@ -904,11 +904,14 @@ export default function TabPage() {
     editorRef.current?.focus({ preventScroll: true });
     chooseVoice(v);
   };
-  /** The palette's Insert button: Insert mode on or off, as I does, the keys back on the tab. */
+  /**
+   * The palette's Insert button: Insert mode on or off, as I does. It leaves the focus where it was: taking
+   * it to the tab would light the note the cursor was last on (Jeremy, 2026-11-15); a press there shows
+   * where an entry goes, with the notches.
+   */
   const toggleInsertMode = () => {
     lastDigitRef.current = null;
     setInsertMode(!insertMode);
-    if (view === 'tab') editorRef.current?.focus({ preventScroll: true });
   };
   /** The symbol palette, with only `groups` (all when left out); the pencil first when `input`. */
   const drawPalette = (groups?: readonly string[], className?: string, input = false) => (

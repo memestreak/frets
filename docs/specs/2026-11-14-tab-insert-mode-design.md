@@ -30,7 +30,9 @@ Principles: P1 (bars always full) stays. P2 and A11 in
 - The **Insert mode** button sits in the Notes palette's Input group,
   after the pencil and the Grid button (the Grid stays right after the
   pencil, issue #449). It is lit while Insert mode is on, and its tip
-  names I.
+  names I. Pressing it leaves the focus where it was: it doesn't take the
+  keys to the tab, which would light the note the cursor was last on
+  (Jeremy, 2026-11-15).
 - While it is on, the cursor has **▼ ▲ notches**, one above its Column
   and one below, as Dorico's caret does, in both note input mode and
   normal mode, on the tab and on the staff. Over a staff they go round the
@@ -193,8 +195,9 @@ overfull (P1).
 - On the staff, the notches go round a high E two octaves up and a low E
   under the staff: their span is more than the staff's own.
 - The button sits in the Input group after the pencil and the Grid, its
-  tip ending "(I)"; pressing it does what I does. A fresh page starts with
-  it off.
+  tip ending "(I)"; pressing it does what I does, and off the tab it
+  doesn't take the focus there, so no note lights and no notches show. A
+  fresh page starts with it off.
 - I alone puts no let ring on; Alt+I (code `KeyI`) does. The `?` overlay
   lists I as "Insert mode on or off…" and Let ring as Alt+I.
 - The issue's example (bars 1–5 here): a 16th 9 on bar 1 beat 2 gives

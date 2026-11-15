@@ -79,8 +79,12 @@ describe('TabPage: Insert mode on and off (issue #482, phase 2)', () => {
 
   it('the Insert button does what I does, and nothing is saved: a new visit starts in Overwrite', async () => {
     await open('5.1.4 7.1.4 r.2 |');
+    act(() => editor().blur());
     fireEvent.click(insertButton());
     expect(insertButton()).toHaveAttribute('aria-pressed', 'true');
+    // It doesn't take the keys to the tab, so no note lights up (Jeremy, 2026-11-15).
+    expect(document.activeElement).not.toBe(editor());
+    expect(screen.queryByTestId('insert-notches')).toBeNull();
     cleanup();
     await open('5.1.4 7.1.4 r.2 |');
     expect(insertButton()).toHaveAttribute('aria-pressed', 'false');
