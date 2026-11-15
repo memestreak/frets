@@ -13,7 +13,7 @@ describe('TabPage export', () => {
     renderAt();
     fireEvent.contextMenu(screen.getByRole('textbox', { name: /Tab editor/ }));
     const menu = screen.getByRole('menu', { name: 'Bar' });
-    expect(within(menu).getAllByRole('menuitem').map(i => i.textContent)).toEqual(['Insert›', 'Delete bar', 'Insert paste']);
+    expect(within(menu).getAllByRole('menuitem').map(i => i.textContent)).toEqual(['Insert›', 'Delete bar', 'Insert paste', 'Chat…']);
   });
 
   it('picks a drawn signature on a right-click and opens its menu, Edit only on bar 1, not its panel', () => {

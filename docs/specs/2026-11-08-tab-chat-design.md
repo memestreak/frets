@@ -12,6 +12,9 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
 
 ## What it does
 
+- **Also from the tab.** The Chat popover (Ctrl/⌘+I, or the right-click
+  menus' Chat…) sends a prompt to this same conversation from where you are
+  on the tab (`2026-11-15-tab-chat-popover-design.md`, issue #488).
 - **On the rail for everyone.** The rail has a Chat button, after Chords,
   and Settings lists Tab › Chat. It first shipped hidden behind `?chat`
   (Q8); Jeremy unhid it on 2026-11-09 ("I want to unhide it").
@@ -85,7 +88,9 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
 
 - `read_arrangement`: the whole clip as alphaTex, one bar per line, each
   ending in a comment `// track T, bar B` (numbers from 1), then the number
-  of tracks, the track shown, the cursor's bar, and the selected bars, then
+  of tracks, the track shown, the cursor's bar, the selected bars and what
+  is picked ("Picked: the chord name in bar 3 of track 1."; since the Chat
+  popover, `2026-11-15-tab-chat-popover-design.md`), then
   the problems Frets marks: each bar's red ⚠ (`barErrors`: a bar that doesn't
   add up, a tuplet that doesn't fit, an uneven Voice) as "Track T, bar B: …",
   and what the reader says reading the clip back ("Kept but not drawn yet:

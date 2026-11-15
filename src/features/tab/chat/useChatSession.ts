@@ -22,8 +22,8 @@ export type Note = { text: string; failed?: boolean };
 /** One entry in the panel's list. */
 export type Entry =
   | { kind: 'ask'; text: string; images: ChatImage[] }
-  | { kind: 'reply'; text: string; notes: Note[]; model: string; usage: Usage }
-  | { kind: 'error'; text: string; notes: Note[] };
+  | { kind: 'reply'; text: string; notes: Note[]; model: string; usage: Usage; changed: boolean }
+  | { kind: 'error'; text: string; notes: Note[]; changed: boolean };
 
 /** What Chat's icon shows: nothing, a reply running, or a reply not yet seen. */
 export type ChatStatus = 'idle' | 'working' | 'unread';
@@ -52,8 +52,8 @@ export interface ChatSession {
   /** Adds image files to the draft, scaled down when large. */
   addImages: (files: File[]) => Promise<void>;
   removeImage: (index: number) => void;
-  /** Sends the draft and its images. */
-  send: () => Promise<void>;
+  /** Sends the draft and its images; or `text` alone, the draft left as it is (the prompt popover, issue #488). */
+  send: (text?: string) => Promise<void>;
   stop: () => void;
   /** New chat: forgets the conversation. */
   clear: () => void;
@@ -79,13 +79,15 @@ export function useChatSession(options: ChatSessionOptions): ChatSession {
   // Leaving the page stops a reply: its changes would land on nothing.
   useEffect(() => () => stopper.current?.abort(), []);
 
-  const send = async () => {
-    const text = draft.trim();
-    const sent = images;
+  const send = async (typed?: string) => {
+    const text = (typed ?? draft).trim();
+    const sent = typed === undefined ? images : [];
     const { prefs, complete = completeWithOpenRouter, guide = loadGuide } = latest.current;
     if ((!text && sent.length === 0) || stopper.current || !prefs.apiKey) return;
-    setDraft('');
-    setImages([]);
+    if (typed === undefined) {
+      setDraft('');
+      setImages([]);
+    }
     setEntries(list => [...list, { kind: 'ask', text, images: sent }]);
     // Images with no words still need saying what they're for.
     const said = text || IMAGES_ONLY_ASK;
@@ -110,12 +112,12 @@ export function useChatSession(options: ChatSessionOptions): ChatSession {
         onNote: note => { notes.push(note); setWorking({ notes: [...notes] }); },
       });
       history.current = [...history.current, asked, ...result.messages];
-      setEntries(list => [...list, { kind: 'reply', text: result.text, notes: result.notes, model: result.model, usage: result.usage }]);
+      setEntries(list => [...list, { kind: 'reply', text: result.text, notes: result.notes, model: result.model, usage: result.usage, changed }]);
     } catch (e) {
       const text = stop.signal.aborted ? 'Stopped.' : e instanceof Error ? e.message : 'Something went wrong.';
       // The ask stays in the conversation, so the next one can refer to it.
       history.current = [...history.current, asked, { role: 'assistant', content: `(No answer: ${text})` }];
-      setEntries(list => [...list, { kind: 'error', text, notes }]);
+      setEntries(list => [...list, { kind: 'error', text, notes, changed }]);
     } finally {
       stopper.current = null;
       setWorking(null);

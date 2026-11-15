@@ -1,0 +1,15 @@
+\title "The Chat popover keeps and names what you picked"
+\ts (4 4)
+5.3.4{txt "**1.** Select Tab view\nTab, at the top left of the clip"}
+  7.3.4{txt "**2.** A note\nPress this 7, then Control I (Command I on a Mac)"}
+  5.2.4{txt "It says Note at fret 7 on string 3 in bar 1; the 7 stays blue"}
+  7.2.4{txt "**3.** Close it\nThe Escape key: the 7 is still blue"} |
+5.2{b (0 4)}.4{txt "**4.** A mark\nPress this bend's arrow, then Control I"}
+  7.2.4{txt "It says Bend mark in bar 2; the bend stays blue. Escape"} 5.1.4
+  8.1.4 |
+5.1.4{txt "**5.** Bars\nPress this 5, then Shift and the Right arrow key 4 times"}
+  8.1.4 5.2.4 7.2.4 |
+5.3.4{txt "**6.** Control I\nIt says Bars 3–4"}
+  7.3.4{txt "**7.** Send\nType a prompt, then Enter (your OpenRouter key in Settings)"}
+  5.4.4{txt "The reply shows here in the popover, the bars still blue"} 7.4.4 |
+

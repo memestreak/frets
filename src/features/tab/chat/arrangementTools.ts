@@ -16,6 +16,8 @@ export interface PageSpot {
   cursorBar: number;
   /** The first and last selected bar, from 0, or null with nothing selected. */
   selectedBars: readonly [number, number] | null;
+  /** What is picked (a word, a mark, a bar line), as "the chord name in bar 3", if anything (issue #488). */
+  picked?: string | null;
 }
 
 /** A tool as OpenAI-style chat completions declare it. */
@@ -89,6 +91,7 @@ export function describeArrangement(clip: Clip, spot: PageSpot, problems: readon
     spot.selectedBars
       ? `Selected: bars ${spot.selectedBars[0] + 1} to ${spot.selectedBars[1] + 1} of track ${spot.track + 1}.`
       : 'Nothing is selected.',
+    ...(spot.picked ? [`Picked: ${spot.picked} of track ${spot.track + 1}.`] : []),
   ];
   return `${lines.join('\n')}\n\n${where.join('\n')}\n\n${problemsText(problems)}`;
 }
