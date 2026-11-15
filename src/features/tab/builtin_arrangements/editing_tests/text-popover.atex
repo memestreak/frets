@@ -1,6 +1,6 @@
 \title "Shift+X types a series of text annotations"
 \ts (4 4)
-r.4{txt "**1.** A series of text annotations\nPress the 3 here, Shift+X: under this first line. Type let ring, Tab, P.M., Tab, fade, Enter"}
+r.4{txt "**1.** A series of text annotations\nPress the 3 here, Shift+X: under this first line. Type Start fog machines, Tab, Lights down, Tab, Cue the band, Enter"}
   3.5.4 2.4.4 0.3.4 |
 r.4{txt "**2.** Back, then Esc\nPress the 0 here, Shift+X, type one, Shift+Tab, type two, Esc: only the 0 has a text annotation"}
   3.5.4 2.4.4 0.3.4 |
@@ -9,5 +9,5 @@ r.4{txt "**3.** New lines\nPress the 3, Shift+X, type a, Shift+Enter, b, Tab: tw
 r.4{txt "**4.** Empty bar\nIn a new arrangement, press the empty bar, Shift+X, type Intro, Enter: over a whole rest"}
   3.5.4 2.4.4 0.3.4 |
 r.4{txt "**5.** Over the line\nOn a later line, press the 3, Shift+X: over the text annotations and Am. Type x, Shift+Enter, y: it grows up"}
-  3.5.4{ch "Am"} 2.4.4{txt "let ring"} 0.3.4 |
+  3.5.4{ch "Am"} 2.4.4{txt "Lights down"} 0.3.4 |
 

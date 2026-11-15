@@ -269,7 +269,8 @@ _Avoid_: row (for a System; a row is one band within it)
 
 **Text annotation**:
 A Mark of free text over a column, written `txt "..."` in alphaTex:
-"let ring", "P.M.", a test step. It may wrap, take new lines and bold.
+"Start fog machines", "Chorus riff", a test step (not "let ring" or
+"P.M.", which are Marks of their own). It may wrap, take new lines and bold.
 Text annotations on neighbouring columns are a series of text
 annotations, typed in one go with the text annotation Popover (Shift+X,
 Tab to the next column). "Annotation" alone still means no more than a

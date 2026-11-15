@@ -407,8 +407,9 @@
 /* The text annotation popover hangs up from its spot over the line's text annotations, so new lines grow away from the music (issue #342). */
 .tab-word-up { transform: translate(-50%, -100%); }
 .tab-word-input { width: 100%; }
-/* The Text field: a line until Shift+Enter adds more (issue #445), never dragged bigger. */
-.tab-word-text { display: block; resize: none; line-height: 1.4; }
+/* The Text annotation field: one line high, as tall as its text (not the 40px control height), growing a line
+   for each Shift+Enter (issue #445); its corner drags it taller (Jeremy, 2026-11-15). */
+.tab-word-text { display: block; resize: vertical; min-height: 0; padding-block: 5px; line-height: 20px; }
 /* The input and, for a dynamic that isn't one, its small red ⚠ beside it (issue #437). */
 .tab-word-row { display: flex; align-items: center; gap: 6px; }
 .tab-word-problem { display: inline-flex; color: var(--danger); cursor: default; }

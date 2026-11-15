@@ -21,7 +21,7 @@ const CAPTIONS: Record<FieldKind, string> = {
   repeat: 'Times played, 2 to 9',
   dynamic: 'Dynamic',
 };
-const PLACEHOLDERS: Record<FieldKind, string> = { chord: 'Am7', text: 'let ring', section: 'Chorus', ending: '2', repeat: '3', dynamic: 'mf, or ↓ for the list' };
+const PLACEHOLDERS: Record<FieldKind, string> = { chord: 'Am7', text: 'Start fog machines', section: 'Chorus', ending: '2', repeat: '3', dynamic: 'mf, or ↓ for the list' };
 /** The words that are numbers: only digits can be typed, and only as many as the largest takes. */
 const NUMBER_LENGTH: Partial<Record<FieldKind, number>> = { ending: 1, repeat: 1 };
 /** The longest a word can be typed: free text may run to a few lines, as it wraps over its column (issue #323). */

@@ -20,19 +20,21 @@ describe('the text annotation popover', () => {
     await openWith('5.1.2 7.1.2 |\n3.2.1 |');
     act(() => editor().focus());
     keys({ key: 'X', shiftKey: true });
+    // Its example is a cue, not "let ring" (a Mark of its own).
+    expect(field()).toHaveAttribute('placeholder', 'Start fog machines');
     // Space is a space in a text annotation: it doesn't move on.
-    type('let ring', { key: ' ' });
-    expect(field()).toHaveValue('let ring');
-    type('let ring', { key: 'Tab' });
+    type('Start fog', { key: ' ' });
+    expect(field()).toHaveValue('Start fog');
+    type('Start fog machines', { key: 'Tab' });
     // Still open, on the next column, holding what that column has (nothing).
     expect(field()).toHaveValue('');
-    type('P.M.', { key: 'Tab' });
-    type('fade', { key: 'Enter' });
+    type('Lights down', { key: 'Tab' });
+    type('Cue the band', { key: 'Enter' });
     expect(screen.queryByRole('textbox', { name: 'Text annotation' })).toBeNull();
-    expect(alphaTex()).toBe('5.1.2{txt "let ring"} 7.1.2{txt "P.M."} |\n3.2.1{txt "fade"} |');
+    expect(alphaTex()).toBe('5.1.2{txt "Start fog machines"} 7.1.2{txt "Lights down"} |\n3.2.1{txt "Cue the band"} |');
     // Each text annotation is its own undo step.
     undo();
-    expect(alphaTex()).toBe('5.1.2{txt "let ring"} 7.1.2{txt "P.M."} |\n3.2.1 |');
+    expect(alphaTex()).toBe('5.1.2{txt "Start fog machines"} 7.1.2{txt "Lights down"} |\n3.2.1 |');
   }, 20000);
 
   it('goes back on Shift+Tab, stays put past the end, and Esc leaves the column as it was', async () => {

@@ -58,16 +58,23 @@ step makes it the text annotation popover.
 - **The cursor follows** the popover from column to column. Each text
   annotation set is one undo step; a column passed over unchanged makes
   none.
+- **Its size.** The field is one line high, as tall as its text rather
+  than the 40px of other fields, with "Start fog machines" as its
+  placeholder (not "let ring", which is a Mark of its own). It grows a
+  line for each Shift+Enter, and its corner drags it taller (Jeremy,
+  2026-11-15).
 - Cmd+B (bold, issue #446) and the 200-character limit are as before.
 
 ## Tests
 
-- Shift+X opens the field; Space types a space and doesn't move; "let
-  ring" Tab "P.M." Tab "fade" Enter sets a series of three text
-  annotations across a bar line and closes; undo takes back "fade" alone.
+- Shift+X opens the field; Space types a space and doesn't move; "Start
+  fog machines" Tab "Lights down" Tab "Cue the band" Enter sets a series
+  of three text annotations across a bar line and closes; undo takes back
+  "Cue the band" alone.
 - Shift+Tab goes back; Tab past the last column keeps the popover open on
   the same column; Esc leaves that column as it was.
 - A two-line text annotation (Shift+Enter) is set whole by Tab.
+- The field's placeholder is "Start fog machines".
 - An empty bar passed over stays empty; a text annotation set on it
   lands on its first rest; a new arrangement's empty bar takes one.
 - `wordSpot`: on a later line the field hangs up from over the text
