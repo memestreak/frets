@@ -930,7 +930,7 @@ body:has(.tab-stack-panel[data-dragging]) { cursor: grabbing; user-select: none;
   flex: none; display: grid; place-items: center; width: 28px; height: 28px; padding: 0;
   color: var(--ink-muted); background: none; border: 1px solid transparent; border-radius: var(--radius-sm); cursor: pointer;
 }
-.tab-chat-advanced:hover { color: var(--ink); background: var(--surface-sunken); }
+.tab-chat-advanced:hover { color: var(--ink); background: var(--surface-hover); }
 .tab-chat-advanced[aria-pressed="true"] { color: var(--ink); background: var(--select-soft); border-color: var(--line-strong); }
 .tab-chat-advanced:focus-visible { outline: none; }
 .tab-chat-advanced svg { width: 18px; height: 18px; }
