@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { Client } from '@modelcontextprotocol/client';
 import { InMemoryTransport } from '@modelcontextprotocol/server';
 import { MCP_SERVER } from '@/features/agents/agentGuides';
+import { SERVER_INSTRUCTIONS } from '@/mcp/instructions';
 import { createFretsServer } from '@/mcp/server';
 
 /* Frets' one MCP server (src/mcp/README.md) against what builds, serves and lists it. */
@@ -24,6 +25,31 @@ describe('the Frets MCP server', () => {
   it('is named frets', async () => {
     const client = await connect(stubApps);
     expect(client.getServerVersion()?.name).toBe('frets');
+  });
+
+  it('gives the model its instructions as it connects', async () => {
+    const client = await connect(stubApps);
+    expect(client.getInstructions()).toBe(SERVER_INSTRUCTIONS);
+  });
+
+  it('names every tool it lists in its instructions, and no other', async () => {
+    const { tools } = await (await connect(stubApps)).listTools();
+    const named = [...SERVER_INSTRUCTIONS.matchAll(/\bshow_\w+/g)].map(m => m[0]);
+    expect([...new Set(named)].sort()).toEqual(tools.map(t => t.name).sort());
+  });
+
+  it('keeps its instructions under 400 tokens (about 4 characters a token)', () => {
+    expect(SERVER_INSTRUCTIONS.length / 4).toBeLessThan(400);
+  });
+
+  it('points its instructions at the alphaTex guide, and never says "lick"', () => {
+    expect(SERVER_INSTRUCTIONS).toContain('https://frets.eminor.net/tab-alphatex.txt');
+    expect(SERVER_INSTRUCTIONS).not.toMatch(/\blicks?\b/i);
+  });
+
+  it('logs its instructions in the stand-in host', () => {
+    const host = readFileSync(join(REPO, 'mcp/preview/preview.ts'), 'utf8');
+    expect(host).toContain('client.getInstructions()');
   });
 
   it('lists the tools the Agents page and llms.txt list, in that order', async () => {

@@ -16,6 +16,10 @@ So far: the Metronome's `show_metronome`, the Tuner's `show_tuner`
 - `server.ts` — `createFretsServer(apps)`: a server with every page's
   tools. `apps` is each built app's HTML by name. Stateless, no model, no
   auth.
+- `instructions.ts` — `SERVER_INSTRUCTIONS`, the server's instructions
+  (the `initialize` result's `instructions`): which tool fits which
+  request, what's too long for them, and guitar-book words. Under 400
+  tokens; a new tool adds its line there.
 - `tools.ts` — `MCP_PAGES`, the list of every page's `register` function,
   in the order `tools/list` shows their tools.
 - `types.ts` — `RegisterTools` (what a page gives the server), `AppsHtml`,
@@ -81,10 +85,12 @@ Outside `src/`:
    its own.
 4. List the tool where people and agents find it: a line in `MCP_SERVER`
    (`src/features/agents/agentGuides.ts`, the Agents page's Frets card)
-   and under "MCP server" in `public/llms.txt`.
+   and under "MCP server" in `public/llms.txt`, and a line saying when
+   to use it in `instructions.ts` (the server's instructions).
 5. Test it like `src/__tests__/metronome/mcp.test.tsx` (an in-memory
    client against `createFretsServer`). `src/__tests__/mcp/server.test.ts`
-   already fails until steps 3 and 4 match the server.
+   already fails until steps 3 and 4 match the server, and until the
+   tool has its line in `instructions.ts`.
 
 ## Trying it
 

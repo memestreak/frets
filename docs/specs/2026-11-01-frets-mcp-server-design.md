@@ -13,6 +13,31 @@ their tools to it.
   a line per tool, the URL and Copy. `llms.txt` lists it under "MCP
   server" with its tools. Nothing about it is named for one page.
 
+## The server's instructions
+
+Jeremy, 2026-11-15 ([issue:frets#499](https://github.com/memestreak/frets/issues/499)):
+the server gives chat apps **instructions**, the `instructions` string
+of its `initialize` result, which they pass to the model as guidance for
+the server as a whole. They are in `src/mcp/instructions.ts` and say only
+what no one tool's description can:
+
+- What Frets is, in a line.
+- Which tool fits which request: show_tab for a short line of guitar music
+  (a riff, a phrase, an exercise, a scale or arpeggio run, a few bars of
+  chords), rather than ASCII tab whenever the user would want to see, hear
+  or loop it; show_metronome for a click to practise to; show_tuner for
+  tuning.
+- Each call shows a new app; to change one, call again.
+- A whole song or arrangement is too long for show_tab: write alphaTex
+  from the guide (`/tab-alphatex.txt`) and give a link to the Tab page.
+- Guitar-book words: strings 1 (high e) to 6 (low E), bpm, pitch as it
+  sounds with the staff an octave higher, and a short idea is a phrase,
+  a riff or a line.
+
+Every chat with the connector pays for them, so they stay under 400
+tokens. A new tool adds its line. The stand-in host logs them first, as
+`initialize · instructions (~N tokens)`.
+
 ## Where the code lives
 
 - `src/mcp/`: the server (`createFretsServer`), the list of pages' tools
@@ -70,6 +95,9 @@ least 360 px); the log lays its JSON out again to fit.
 
 
 `src/__tests__/mcp/server.test.ts` checks the server is `frets`, that it
+gives its instructions as a client connects, that they name every tool it
+lists and no other, stay under 400 tokens, link the alphaTex guide and
+never say "lick", that the stand-in host logs them, that it
 lists exactly the tools the Agents page lists, that it serves each app it
 names, that a missing app fails with its name, that `/mcp` imports
 every app in `mcp/apps/`, that the stand-in host imports every app and

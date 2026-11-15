@@ -90,6 +90,10 @@ function sections(message: Record<string, unknown>, width: number): { title: str
     out.push({ title: 'Structured data (structuredContent)', body: json(rest.structuredContent) });
     delete rest.structuredContent;
   }
+  if (typeof rest.instructions === 'string') {
+    out.push({ title: 'Instructions', body: rest.instructions });
+    delete rest.instructions;
+  }
   if (typeof rest.description === 'string') {
     out.push({ title: 'Description', body: rest.description });
     delete rest.description;
@@ -123,6 +127,9 @@ async function connectClient() {
 }
 const client = await connectClient();
 const tools = (await client.listTools()).tools;
+// The server's instructions come with the handshake, before any tool, so they're logged first.
+const instructions = client.getInstructions();
+log(entryTitle('initialize', instructions ? `instructions (${tokens(instructions)})` : 'no instructions'), { instructions });
 for (const tool of [...tools].reverse()) {
   log(entryTitle('tools/list', `${tool.name} (${tokens(forModel(tool))})`), tool);
 }
