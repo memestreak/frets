@@ -1,0 +1,18 @@
+\title "The Chat palette keeps and names what you picked"
+\ts (4 4)
+5.3.4{txt "**1.** Select Tab view\nTab, at the top left of the clip"}
+  7.3.4{txt "**2.** A note\nPress this 7, then in the Chat palette's message box"}
+  5.2.4{txt "The chip says Note at fret 7 on string 3 in bar 1; the 7 stays blue"}
+  7.2.4 |
+5.2{b (0 4)}.4{txt "**3.** A mark\nPress this bend's arrow, then in the message box"}
+  7.2.4{txt "The chip says Bend mark in bar 2; the bend stays blue"} 5.1.4
+  8.1.4{txt "**4.** A text annotation\nPress this text, then in the message box: Text annotation in bar 2"} |
+5.1.4{txt "**5.** Bars\nPress this 5, then Shift and the Right arrow key 4 times"}
+  8.1.4 5.2.4 7.2.4 |
+5.3.4{txt "**6.** The message box\nPress in it: the chip says Bars 3–4, the bars stay blue"}
+  7.3.4{txt "**7.** Send\nType a question, then Enter (your OpenRouter key in Settings)"}
+  5.4.4{txt "The question in the list starts About the selected bars 3 to 4"}
+  7.4.4 |
+5.4.4{txt "**8.** Let go\nPress the page's empty margin: the chip says Whole arrangement"}
+  7.4.4 5.3.4 7.3.4 |
+

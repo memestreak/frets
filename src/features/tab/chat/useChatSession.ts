@@ -15,6 +15,7 @@ import { loadGuide } from './guide';
 import { askWithArrangement, IMAGES_ONLY_ASK, runReply, systemPrompt, userContent, type CallRecord } from './reply';
 import { imageFromFile, type ChatImage } from './images';
 import type { ChatPrefs } from './chatPrefs';
+import { scopedPrompt, type About } from './about';
 
 /** A line on what a tool did, as "Changed bars 3 to 4 of track 1". */
 export type Note = { text: string; failed?: boolean };
@@ -55,8 +56,11 @@ export interface ChatSession {
   /** Adds image files to the draft, scaled down when large. */
   addImages: (files: File[]) => Promise<void>;
   removeImage: (index: number) => void;
-  /** Sends the draft and its images; or `text` alone, the draft left as it is (the prompt popover, issue #488). */
-  send: (text?: string) => Promise<void>;
+  /**
+   * Sends the draft and its images; or `text` alone, the draft left as it is (the prompt popover, issue #488).
+   * With `about`, the words go as "About <what>: <words>" (the Chat palette, issue #498).
+   */
+  send: (text?: string, about?: About) => Promise<void>;
   stop: () => void;
   /** New chat: forgets the conversation. */
   clear: () => void;
@@ -82,8 +86,9 @@ export function useChatSession(options: ChatSessionOptions): ChatSession {
   // Leaving the page stops a reply: its changes would land on nothing.
   useEffect(() => () => stopper.current?.abort(), []);
 
-  const send = async (typed?: string) => {
-    const text = (typed ?? draft).trim();
+  const send = async (typed?: string, about?: About) => {
+    const raw = (typed ?? draft).trim();
+    const text = raw && about ? scopedPrompt(raw, about) : raw;
     const sent = typed === undefined ? images : [];
     const { prefs, complete = completeWithOpenRouter, guide = loadGuide } = latest.current;
     if ((!text && sent.length === 0) || stopper.current || !prefs.apiKey) return;
