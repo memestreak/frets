@@ -32,7 +32,7 @@ spec records only how the app applies them.
 | Wordmark | The mark (`BrandMark`, an open E minor chart drawn with tokens so it follows the theme; see `2026-10-06-e-minor-mark-design.md`) and "Frets" in Fraunces. `icon.svg` and every raster icon are the same mark with the light values. |
 | Page titles | Each page has one `h1`: the trainer title, the section name, or a visually hidden "Frets" on the home page. |
 | Cards | `--surface-raised` with a 1px `--line` border and `--radius-lg`. No shadows. |
-| Controls | `.btn-primary` / `.btn-secondary` / `.btn-ghost`, `.seg` segmented control and `.input` follow the README's component rules, except that a hovered `.btn-secondary` or `.btn-ghost` (and a shape menu's item) takes `--surface-hover`, a 7% wash of `--ink`, not the rust `--primary-soft` (Jeremy, 2026-11-15): rust is kept for problems, and a blue hover would look like a lit toggle. Answer tiles sit on `--surface-sunken`. |
+| Controls | `.btn-primary` / `.btn-secondary` / `.btn-ghost`, `.seg` segmented control and `.input` follow the README's component rules, except that a hovered `.btn-secondary` or `.btn-ghost` (and a shape menu's item) takes `--surface-hover`, a 7% wash of `--ink`, not the rust `--primary-soft` (Jeremy, 2026-11-15): rust is kept for problems, and a blue hover would look like a lit toggle. Buttons don't fade: their fill and colour change at once, on press and on hover (Jeremy, 2026-11-15). Answer tiles sit on `--surface-sunken`. |
 
 ## Fretboard
 

@@ -204,7 +204,7 @@ a { color: var(--primary); text-underline-offset: 3px; }
   font: 600 13px/16px var(--font-sans); letter-spacing: 0.01em;
   color: var(--ink); text-decoration: none; cursor: pointer;
   background: transparent; border: 0; border-radius: var(--radius-md);
-  transition: background-color 150ms ease-out, color 150ms ease-out;
+  /* No fade: a button's fill and colour change at once, on press and on hover (Jeremy, 2026-11-15). */
 }
 .btn svg { display: block; }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
