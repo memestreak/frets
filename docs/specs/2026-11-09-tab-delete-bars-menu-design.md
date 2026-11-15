@@ -33,7 +33,9 @@ word, signature, bar line or mark), what was under the press decides:
      whole; with none, the bar pressed (the press selects it, as a left
      press beside the notes does). With more than one bar the label
      counts them: "Delete 2 bars".
-  3. **Insert paste**, in both menus: it puts the clipboard in before the
+  3. **Directions…**: the pressed bar's Direction panel
+     (`2026-11-15-tab-song-directions-design.md`).
+  4. **Insert paste**, in both menus: it puts the clipboard in before the
      cursor, which is as useful on an empty bar as on a note.
 - A right-click inside a selection keeps it, on a note or beside one.
 - **Shift+F10** (no pointer): the note menu when a note is picked or the
@@ -72,8 +74,8 @@ word, signature, bar line or mark), what was under the press decides:
 
 ## Tests
 
-- Beside the notes: the menu is "Bar", with Insert ›, Delete bar and
-  Insert paste in that order, and no Move to voice.
+- Beside the notes: the menu is "Bar", with Insert ›, Delete bar,
+  Directions… and Insert paste in that order, and no Move to voice.
 - On a note: the menu is "Note", with Move to voice and Insert paste, and
   no Insert › or Delete item.
 - A right-click on a note off any word or mark opens the note menu, not a

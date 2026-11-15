@@ -7,11 +7,13 @@ import { startsFreeTime, type Part } from './clip';
 import { type System } from './layout';
 import { textRowOf, type Rows } from './rows';
 import { CHORD_SIZE, prettyChord } from './widths';
-import { barTextX, CAPO_SIZE, capoText, endingSpans, sameWord, sectionBox, TEMPO_SIZE, tempoOver, tempoParts, type WordHit } from './layoutText';
+import { barTextX, CAPO_SIZE, capoText, directionY, endingSpans, sameWord, sectionBox, TEMPO_SIZE, tempoOver, tempoParts, type WordHit } from './layoutText';
 import { SECTION_BOX_HEIGHT, SECTION_LINE, SECTION_SIZE, sectionBoxes } from './sectionText';
 import { litLook, type TabLook } from './tabLook';
 import { HYPHEN_ROOM, LYRIC_LINE, LYRIC_SIZE, lyricWidth, syllableOf } from './lyrics';
 import { TempoNote } from './TempoNote';
+import { DIRECTION_SIZE, directionName, directionParts, signGlyph, SIGN_SCALE } from './directions';
+import type { DirectionName } from './clip';
 
 /** While the Lyrics field is open: its note (a column's index), and the syllable drawn in `--typing`. */
 export type Typing = { hit: WordHit | null; note: number };
@@ -102,8 +104,35 @@ export function SystemWords({ system, rows, clip, look: plain, word, typing = nu
       );
     }
   }
+  // Directions: Segno and Coda at their bars' starts, the jumps and Fine at their ends (issue #496).
+  for (const placed of system.directions) {
+    const y = directionY(system, placed);
+    if (y === null) continue;
+    const look = lookOf({ kind: 'direction', bar: placed.bar, name: placed.name });
+    parts.push(<DirectionMark key={`direction-${placed.bar}-${placed.name}`} name={placed.name} x={placed.x} y={y} ink={look.ink} />);
+  }
   parts.push(...columnWords(system, rows, word, plain, typing));
   return <>{parts}</>;
+}
+
+/**
+ * One Direction, its left end at x and its row's middle at y: its signs and its bold italic words. A
+ * `picture` (the Direction panel's toggles) isn't one of the drawn clip's.
+ */
+export function DirectionMark({ name, x, y, ink, picture = false }: { name: DirectionName; x: number; y: number; ink: string; picture?: boolean }) {
+  return (
+    <g data-testid={picture ? undefined : 'direction'} data-direction={picture ? undefined : name} fill={ink} aria-label={picture ? undefined : directionName(name)}>
+      {directionParts(name).parts.map((part, k) => {
+        if ('words' in part) {
+          return (
+            <text key={k} x={x + part.x} y={y + 5} fontSize={DIRECTION_SIZE} fontWeight={700} fontStyle="italic">{part.words}</text>
+          );
+        }
+        const glyph = signGlyph(part.sign);
+        return <path key={k} d={glyph.d} transform={`translate(${x + part.x} ${y - glyph.middle * SIGN_SCALE}) scale(${SIGN_SCALE})`} />;
+      })}
+    </g>
+  );
 }
 
 /** The words on a line's columns: chord names and free text. */

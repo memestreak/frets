@@ -9,6 +9,7 @@ import type { Note, Part } from './clip';
 import { columnAt, noteAt, placeOf, selectedRange, type Target } from './editing';
 import { setBend, setMark } from './noteEdits';
 import { isOn, type ToolId } from './tools';
+import { namedFor } from './named';
 
 /** One thing the popover can add: what its list shows, the palette group it is in, and the words that name it. */
 export interface Technique {
@@ -74,27 +75,13 @@ export const TECHNIQUES: readonly Technique[] = [
   { name: 'Staccato', group: 'Accents', words: ['stacc', 'stac'], tool: 'staccato' },
 ];
 
-/** What is typed, as words are matched: any case, dots and hyphens left out, one space between words. */
-function plain(text: string): string {
-  return text.toLowerCase().replace(/[.-]/g, '').replace(/\s+/g, ' ').trim();
-}
-
-/** Every name a technique answers to, plain. */
-function namesOf(t: Technique): string[] {
-  return [t.name, ...t.words].map(plain);
-}
-
 /**
  * The techniques the list offers for what is typed: every one for nothing typed, else those with a name or a
  * word one of whose words starts with it ("ring" finds Let ring, "pm" Palm mute), in the palette's order. One
  * named exactly comes first, so Enter adds it.
  */
 export function techniquesFor(typed: string): readonly Technique[] {
-  const start = plain(typed);
-  if (!start) return TECHNIQUES;
-  const exact = TECHNIQUES.filter(t => namesOf(t).includes(start));
-  const starting = TECHNIQUES.filter(t => !exact.includes(t) && namesOf(t).some(name => name.startsWith(start) || name.includes(` ${start}`)));
-  return [...exact, ...starting];
+  return namedFor(TECHNIQUES, t => [t.name, ...t.words], typed);
 }
 
 /**

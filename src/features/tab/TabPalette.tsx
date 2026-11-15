@@ -1,5 +1,6 @@
 'use client';
 
+import { GLYPHS } from './smufl';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { BEND_QUARTERS, OTTAVAS, TUPLETS, tupletLabel, type BendQuarters, type Ottava, type Roll } from './clip';
 import { rollSign } from './rollSign';
@@ -491,6 +492,8 @@ export const ICONS: Record<Exclude<ToolId, 'bend' | 'vibrato' | 'tuplet' | 'wah'
   doubleBar: <><line x1={10} y1={4} x2={10} y2={20} /><line x1={15} y1={4} x2={15} y2={20} /></>,
   repeatEnd: <><line x1={18} y1={4} x2={18} y2={20} strokeWidth={3} /><line x1={14} y1={4} x2={14} y2={20} /><circle cx={9} cy={9.5} r={1.6} fill="currentColor" stroke="none" /><circle cx={9} cy={14.5} r={1.6} fill="currentColor" stroke="none" /></>,
   ending: <><path d="M4 20 V6 H20" /><Label x={10} y={16} size={10}>1.</Label></>,
+  // The Segno sign, as Directions draw it (issue #496).
+  direction: <path d={GLYPHS.segno.d} transform="translate(5.4 20.8) scale(6)" fill="currentColor" stroke="none" />,
   chordName: <Label y={16} size={10}>Am</Label>,
   // Words in italics, as free text is drawn over the tab.
   beatText: <text x={12} y={16} fontSize={10} fontStyle="italic" fill="currentColor" stroke="none" textAnchor="middle">abc</text>,

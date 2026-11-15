@@ -8,6 +8,7 @@
 import { STRING_COUNT, type Part } from './clip';
 import type { Layout } from './layout';
 import { textBox, type WordHit } from './layoutText';
+import { DIRECTION_LOOKS, DIRECTION_NAMES } from './directions';
 import { markBoxes, type MarkHit } from './marks';
 
 /** A note on a string, a rest (a column with no notes), a mark or a word. */
@@ -38,6 +39,14 @@ export function elementsOf(clip: Part, layout: Layout): Element[] {
         const onFirst = kind === 'time' || kind === 'key' ? bar.index === 0 : true;
         if ((onFirst || own) && drawn(hit)) out.push(hit);
       }
+      // Its Directions at its start (Segno, Coda) after its other words; those at its end with its closing bar line
+      // (issue #496), left to right as drawn: the first written at the end is nearest the bar line.
+      const directions = (at: 'start' | 'end') => (bar.bar.directions ?? [])
+        .filter(name => DIRECTION_LOOKS[name].at === at)
+        .sort((a, b) => (at === 'end' ? DIRECTION_NAMES.indexOf(b) - DIRECTION_NAMES.indexOf(a) : 0))
+        .map((name): WordHit => ({ kind: 'direction', bar: bar.index, name }))
+        .filter(drawn);
+      out.push(...directions('start'));
       for (const { column, index } of bar.columns) {
         for (const kind of ['chord', 'text'] as const) if (drawn({ kind, index })) out.push({ kind, index });
         const strings = [...Array(STRING_COUNT).keys()].filter(s => column.notes[s]);
@@ -51,6 +60,7 @@ export function elementsOf(clip: Part, layout: Layout): Element[] {
           if (drawn(hit)) out.push(hit);
         });
       }
+      out.push(...directions('end'));
       for (const kind of BAR_ENDS) {
         const hit: WordHit = { kind, bar: bar.index };
         if (drawn(hit)) out.push(hit);
@@ -71,6 +81,7 @@ function withoutOn(hit: MarkHit): MarkHit {
 export function sameElement(a: Element, b: Element): boolean {
   if (a.kind !== b.kind) return false;
   if (a.kind === 'mark' && b.kind === 'mark') return a.mark === b.mark && a.index === b.index && a.string === b.string;
+  if (a.kind === 'direction' && b.kind === 'direction') return a.bar === b.bar && a.name === b.name;
   if ('bar' in a && 'bar' in b) return a.bar === b.bar;
   if ('index' in a && 'index' in b && a.index !== b.index) return false;
   if (a.kind === 'note' && b.kind === 'note') return a.string === b.string;

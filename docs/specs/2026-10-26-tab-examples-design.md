@@ -47,6 +47,7 @@ clip as the canonical alphaTex Frets writes.
 | strumming | Strummed chords | chords, sd / su, a chord tied over |
 | song-form | Sections, tempo and chord names | ch, \section, \tempo, \capo |
 | repeats | Repeats and endings | \ro, \rc 2 and 3, \ae 1 and 2 |
+| song-directions | Song directions (`2026-11-15-tab-song-directions-design.md`) | \jump segno, dacoda, dalsegnoalcoda, coda |
 | compound-time | Six-eight time | 6/8 beamed in threes |
 | time-changes | Changing time | \ts in later bars: 3/4, 7/8, back to 4/4 |
 | drop-d | Drop D | a tuning, shown in the score's head |

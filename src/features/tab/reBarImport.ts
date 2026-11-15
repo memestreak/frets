@@ -5,8 +5,9 @@
  * bar's Marks go to the bar line nearest to where its music now starts; a Source bar line that no
  * longer falls on a bar line misses a downbeat, and the misses are reported in runs. Pure; no React.
  */
+import { startsForm } from './directions';
 import {
-  barLength, barNumber, barSpan, barTicks, beatGroupsAt, hasNotes, listed, meterOffset, partOf, timeAt, timeInWords, trackName,
+  DIRECTION_NAMES, barLength, barNumber, barSpan, barTicks, beatGroupsAt, hasNotes, listed, meterOffset, partOf, timeAt, timeInWords, trackName,
   withTrackParts, type Bar, type Clip, type Column, type MasterBar, type TimeSignature, type TrackBar,
 } from './clip';
 import { layVoices, writtenByMeter, type Span } from './timeline';
@@ -171,6 +172,11 @@ export function reBarImport(clip: Clip, { pasted = false }: ReBarOptions = {}): 
       const closes = k + 1 < b ? Math.max(j, assigned[k + 1 - a] - 1) : count - 1;
       if (m.repeatEnd !== undefined) marks[closes].repeatEnd = m.repeatEnd;
       if (m.doubleBar) marks[closes].doubleBar = true;
+      // Segno and Coda where the bar's music starts, the jumps and Fine where it ends (issue #496).
+      for (const name of m.directions ?? []) {
+        const into = marks[startsForm(name) ? j : closes];
+        into.directions = DIRECTION_NAMES.filter(n => n === name || into.directions?.includes(n));
+      }
       clip.tracks.forEach((track, t) => extras[t][j].push(...(track.bars[k].extra ?? [])));
       where[k] = base + j;
     }

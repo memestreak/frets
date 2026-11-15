@@ -11,7 +11,8 @@ const names = ['gClef', 'accidentalSharp', 'accidentalFlat', 'accidentalNatural'
   'noteheadDiamondWhole', 'noteheadDiamondHalf', 'noteheadDiamondBlack', 'noteheadXHalf', 'noteheadXWhole',
   'noteheadParenthesisLeft', 'noteheadParenthesisRight', 'ornamentShortTrill', 'ornamentMordent',
   'fermataAbove', 'fermataShortAbove', 'fermataLongAbove', 'timeSigParensLeft', 'timeSigParensRight',
-  'dynamicPiano', 'dynamicMezzo', 'dynamicForte', 'dynamicRinforzando', 'dynamicSforzando', 'dynamicZ'];
+  'dynamicPiano', 'dynamicMezzo', 'dynamicForte', 'dynamicRinforzando', 'dynamicSforzando', 'dynamicZ',
+  'segno', 'coda'];
 const U = 360;
 const r = v => Math.round(v / U * 1000) / 1000;
 let out = '';

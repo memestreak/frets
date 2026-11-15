@@ -255,7 +255,7 @@ export default function TabPage() {
   /** Whether the palette shows the cursor's notes: only while the tab has the keys and no word is picked. */
   const lit = tabFocused && !picked;
   /** The palette tool that sets the picked word or mark, lit while it is picked. */
-  const pickedTool = !tabFocused || !picked ? null : picked.kind === 'mark' ? markTool(clip, picked) : isBarLine(picked) ? BAR_LINE_TOOL[picked.kind] : picked.kind === 'ending' ? 'ending' : picked.kind === 'time' ? 'barTime' : picked.kind === 'key' ? 'barKey' : picked.kind === 'lyric' ? 'lyrics' : WORD_TOOL[picked.kind];
+  const pickedTool = !tabFocused || !picked ? null : picked.kind === 'mark' ? markTool(clip, picked) : isBarLine(picked) ? BAR_LINE_TOOL[picked.kind] : picked.kind === 'ending' ? 'ending' : picked.kind === 'time' ? 'barTime' : picked.kind === 'key' ? 'barKey' : picked.kind === 'lyric' ? 'lyrics' : picked.kind === 'direction' ? 'direction' : WORD_TOOL[picked.kind];
   /** Set while placing the playback line takes the keys from the tab, so the blur doesn't fill the bar again. */
   /**
    * The staff cursor's pitch while it has the keys: never with the tab alone. With the staff alone it is
@@ -317,7 +317,7 @@ export default function TabPage() {
   // Presses and drags on the drawn tab.
   const picking = useTabPicking(editor, {
     drawn, layout, hearNote, setNotice, openWord: head.openWord, openLyric: head.openLyric,
-    openSignature: head.openSignature, dropLine,
+    openSignature: head.openSignature, openDirections: head.openDirections, dropLine,
     timeStep: (part, target) => (fixedGrid ? gridStep : ownStep(part, target)),
   });
   const { deletePicked } = picking;
@@ -587,6 +587,7 @@ export default function TabPage() {
     // The cursor bar's time signature panel, as a press on its drawn numbers opens (the clip's own in the first bar).
     else if (id === 'barTime') head.openSignature('time', cursor.bar, null);
     else if (id === 'barKey') head.openSignature('key', cursor.bar, null);
+    else if (id === 'direction') head.openDirections(cursor.bar, null);
     else if (id === 'insertBar') addBar('after');
     else if (id === 'insertBarBefore') addBar('before');
     // In note input mode the Duration buttons set the next note's length, as the length keys do.
@@ -773,7 +774,7 @@ export default function TabPage() {
   /** The editor as the keys (and the Rest and Grace tools) find it. */
   const editorKeys = (): EditorKeys => ({
     clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', tabShown: parts !== 'staff', lastDigit: lastDigitRef, accidental: accidentalRef, lines: drawnLines, noteInputMode, setNoteInputMode: enterNoteInput, insertMode, setInsertMode, inputLength, setInputLength, gridStep, fixedGrid, cursorAt, setCursorAt, stepElement, moveSpanEnd: picking.moveSpanEnd,
-    tupletEntry, graceEntry, tupletFrom, setTupletFrom, openTuplets, openTechniques: () => head.openWord('technique'), voiceKey, everyVoice,
+    tupletEntry, graceEntry, tupletFrom, setTupletFrom, openTuplets, openTechniques: () => head.openWord('technique'), openDirectionPopover: () => head.openWord('direction'), voiceKey, everyVoice,
     commit, toPitch, setColumnOnly, setStaffPitch, startRegion, setPicked, deletePicked, editPicked, addBar, onTool, hearNote, onNotice: setNotice,
     dropLine, leave: () => editorRef.current?.blur(),
   });
@@ -1258,6 +1259,8 @@ export default function TabPage() {
               ],
             },
             { label: menuBars[1] > menuBars[0] ? `Delete ${menuBars[1] - menuBars[0] + 1} bars` : 'Delete bar', onSelect: () => removeBars(menuBars) },
+            // The pressed bar's Directions (issue #496), as the Bars palette's Direction button opens them.
+            { label: 'Directions…', onSelect: () => head.openDirections(cursor.bar, null) },
             insertPasteItem,
             // A selection of whole bars (an arpeggio over a bar): the chord its notes make.
             ...(selection ? chordFromNotesItem : []),

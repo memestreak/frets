@@ -236,6 +236,18 @@ export function isWhammy(v: unknown): v is number[] {
 export type Fermata = 'short' | 'medium' | 'long';
 export const FERMATAS: readonly Fermata[] = ['short', 'medium', 'long'];
 
+/**
+ * A Direction (issue #496), as alphaTex's `\jump` names it: a target a jump goes to (Segno, Coda, Fine, and
+ * their doubles), or a jump (D.C., D.S. and their "al" forms, To Coda). In alphaTab's order (its Direction
+ * enum), the order a bar's are written in.
+ */
+export const DIRECTION_NAMES = [
+  'fine', 'segno', 'segnosegno', 'coda', 'doublecoda', 'dacapo', 'dacapoalcoda', 'dacapoaldoublecoda', 'dacapoalfine',
+  'dalsegno', 'dalsegnoalcoda', 'dalsegnoaldoublecoda', 'dalsegnoalfine', 'dalsegnosegno', 'dalsegnosegnoalcoda',
+  'dalsegnosegnoaldoublecoda', 'dalsegnosegnoalfine', 'dacoda', 'dadoublecoda',
+] as const;
+export type DirectionName = (typeof DIRECTION_NAMES)[number];
+
 /** What every track's bar shares: alphaTab's master bar. */
 export interface MasterBar {
   /** A new time signature from this bar on; the clip's own `time` holds until the first one. */
@@ -258,6 +270,8 @@ export interface MasterBar {
   tempo?: Tempo;
   /** A section starting at this bar ("Chorus"), with an optional rehearsal mark ("A"). */
   section?: Section;
+  /** Its Directions (alphaTex `\jump`), in `DIRECTION_NAMES` order, none repeated; absent when it has none (`directions.ts`). */
+  directions?: DirectionName[];
   /**
    * On the first bar only: a Pickup bar this many ticks long, shorter than its time signature on purpose
    * (alphaTex `\ac`), counted as the end of a full bar (`docs/specs/2026-11-04-tab-bars-always-full-design.md`).
@@ -1063,7 +1077,7 @@ export function emptyPart(): Part {
 /* — a clip's tracks as parts, and back (issue #237) — */
 
 /** The fields a part's bar takes from the clip's bar, the ones every track shares. */
-const MASTER_FIELDS = ['time', 'key', 'repeatStart', 'repeatEnd', 'doubleBar', 'freeTime', 'ending', 'tempo', 'section', 'pickup', 'beatGroups'] as const;
+const MASTER_FIELDS = ['time', 'key', 'repeatStart', 'repeatEnd', 'doubleBar', 'freeTime', 'ending', 'tempo', 'section', 'directions', 'pickup', 'beatGroups'] as const;
 /** The clip's own fields a part carries as they are. */
 const CLIP_FIELDS = ['header', 'systemsLayout', 'defaultSystemsLayout', 'multiBarRests'] as const;
 /** The track's own fields a part carries and an edit may change. */
@@ -1388,7 +1402,9 @@ function isMasterBar(v: unknown): v is MasterBar {
     && (v.beatGroups === undefined || (Array.isArray(v.beatGroups) && v.beatGroups.length > 0 && v.beatGroups.every(n => Number.isInteger(n) && n >= 1)))
     && (v.ending === undefined || (Number.isInteger(v.ending) && (v.ending as number) >= 1))
     && (v.tempo === undefined || (isObj(v.tempo) && isBpm(v.tempo.bpm) && optString(v.tempo.label)))
-    && (v.section === undefined || (isObj(v.section) && typeof v.section.text === 'string' && optString(v.section.marker)));
+    && (v.section === undefined || (isObj(v.section) && typeof v.section.text === 'string' && optString(v.section.marker)))
+    && (v.directions === undefined || (Array.isArray(v.directions) && v.directions.length > 0
+      && v.directions.every((d, k, all) => (DIRECTION_NAMES as readonly unknown[]).includes(d) && all.indexOf(d) === k)));
 }
 
 function isTrackBar(v: unknown): v is TrackBar {

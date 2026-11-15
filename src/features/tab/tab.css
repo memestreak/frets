@@ -445,6 +445,12 @@
   width: max-content; color: var(--ink);
 }
 .tab-bar-time-title { font-size: 13px; font-weight: 700; }
+/* The Direction panel (issue #496): each Direction a toggle showing it as drawn, start-of-bar ones over end-of-bar ones. */
+.tab-directions { gap: 8px; }
+.tab-directions-group { display: grid; gap: 4px; }
+.tab-directions-label { font-size: 12px; color: var(--ink-muted); }
+.tab-directions-list { display: flex; flex-wrap: wrap; gap: 4px; max-width: 340px; }
+.tab-direction-toggle { height: 34px; padding: 0 8px; }
 /* An Uneven bar's ⚠, pressed: what is wrong, then the command that fixes it. */
 .tab-bar-fix { gap: 8px; }
 .tab-bar-fix-text { font-size: 13px; max-width: 280px; color: var(--ink-muted); }

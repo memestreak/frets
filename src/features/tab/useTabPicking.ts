@@ -16,6 +16,7 @@ import { isWholeBarRest, type Layout } from './layout';
 import { textBox, type TextHit, type WordHit } from './layoutText';
 import type { MarkHit } from './marks';
 import { removeMark } from './noteEdits';
+import { setDirection } from './directions';
 import { pitchAt } from './normalMode';
 import { writtenStrings } from './notation';
 import { enterOnStaff, movedPitch, moveNotes, notesToMove, noteToString, pitchAtStep, pitchOf, stringAtPitch } from './staffEntry';
@@ -30,7 +31,7 @@ import { setLyric } from './lyrics';
  * picked, and the notes a press enters in note input mode or a drag moves. Each is handed to `TabClip`
  * (or the keys); the page wires them up.
  */
-export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, setNotice, openWord, openLyric, openSignature, dropLine, timeStep }: {
+export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, setNotice, openWord, openLyric, openSignature, openDirections, dropLine, timeStep }: {
   /** The shown track as drawn, and its layout. */
   drawn: Part;
   layout: Layout;
@@ -43,6 +44,8 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
   openLyric: (at: { bar: number; column: number }, line: number) => void;
   /** Opens a bar's time or key signature panel under a press. */
   openSignature: (kind: 'time' | 'key', bar: number, at: { x: number; y: number } | null) => void;
+  /** A bar's Direction panel, at `at` (the drawing's units) or under the bar (issue #496). */
+  openDirections: (bar: number, at: { x: number; y: number } | null) => void;
   /** Takes the playback line away. */
   dropLine: () => void;
   /** How far one grid step moves a target in time (issue #473): the fixed grid's, else its first note's length. */
@@ -114,6 +117,12 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
       openSignature(hit.kind, hit.bar, box ? { x: box.x + box.width / 2 - PANEL_LEAD, y: box.y + box.height / 2 + PANEL_DROP } : null);
       return;
     }
+    // A Direction's Edit: its bar's Direction panel, under it (issue #496).
+    if (hit.kind === 'direction') {
+      const box = textBox(layout, hit);
+      openDirections(hit.bar, box ? { x: box.x - PANEL_LEAD / 2, y: box.y + box.height + 4 } : null);
+      return;
+    }
     openWord(hit.kind === 'repeatEnd' || hit.kind === 'repeatCount' ? 'repeat' : hit.kind, at);
   };
 
@@ -132,6 +141,7 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
       if (hit.kind === 'section') commit(setSection(clip, at.bar, ''), at, null);
       if (hit.kind === 'tempo') commit(setTempo(clip, at.bar, null), at, null);
       if (hit.kind === 'ending') commit(setEnding(clip, at.bar, null), at, null);
+      if (hit.kind === 'direction') commit(setDirection(clip, at.bar, hit.name, false), at, null);
       // A signature change later in the clip goes; bar 1's stays (step 8, Q3).
       if (hit.kind === 'time' && at.bar > 0 && clip.bars[at.bar]?.time) commitReBar(setBarTime(clip, at.bar, null), at.bar);
       if (hit.kind === 'key' && at.bar > 0 && clip.bars[at.bar]?.key) commit(setBarKey(clip, at.bar, null), at, null);

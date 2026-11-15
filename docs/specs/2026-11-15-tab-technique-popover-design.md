@@ -24,7 +24,9 @@ mute lines. Guitar Pro 8's Command palette (Ctrl+E) takes "let-ring",
 - **One popover for every mark on notes** (Q1): the palette's Rhythm
   marks (tremolo picking, grace note), Joins, Bends, Techniques and
   Accents, not Dorico's split between Shift+P and Shift+O. Bar items
-  (repeats, endings, double bars) are left for a bars popover.
+  (repeats, endings, double bars) are left for a bars popover. Song
+  Directions have their own, Shift+R
+  (`2026-11-15-tab-song-directions-design.md`), sharing this one's list.
 - **Opening** (Q2). Shift+P, Dorico's playing techniques key, in normal
   and note input mode, on the cursor's column. It doesn't open on an
   empty bar: a technique goes on notes. It sits where a dynamic's field

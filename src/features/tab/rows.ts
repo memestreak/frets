@@ -5,6 +5,7 @@
 import { hasNotes, startsFreeTime, type Bar, type Bend, type Part, type Note } from './clip';
 import { BEAT_TEXT_LINE, textGoesUnder } from './beatText';
 import { SECTION_LINE } from './sectionText';
+import { DIRECTION_LINE } from './directions';
 import { diagramOf, overNameHeight } from './chordDiagrams';
 import type { Parts, PlacedColumn } from './layout';
 import { LYRIC_LINE, lyricLines } from './lyrics';
@@ -23,6 +24,11 @@ export interface Rows {
   tempo: number | null;
   /** A section over the bar it starts at: its letter boxed, its name in bold. */
   section: number | null;
+  /**
+   * Directions (Segno, Coda, D.S. al Coda…, issue #496): the lowest level's middle, over the endings; a
+   * direction moved up clear of another goes `DIRECTION_LINE` higher per level (`placeDirections`).
+   */
+  directions: number | null;
   /** Ending brackets and repeat counts. */
   endings: number | null;
   /** The wah's "+" (closed) and "o" (open), under the chord names: no mark goes over them (Jeremy, 2026-10-28). */
@@ -174,6 +180,8 @@ export function rowsFor(
   sectionLines = 1,
   /** Chord diagrams under the names (the View options' Chord diagrams). */
   diagrams = false,
+  /** How many levels the line's stacked Directions take (`placeDirections`): the row grows up by the rest. */
+  directionLines = 1,
 ): Rows {
   const tab = parts !== 'staff';
   // Every Voice's columns: another Voice's chord names, texts and marks take their rows too (step 9).
@@ -186,6 +194,7 @@ export function rowsFor(
     // The first bar's tempo is printed in the score's head (`tempoOver` in layoutText.ts).
     tempo: clip.bars.some((b, index) => index > 0 && b.tempo) || freeTimeLabel,
     section: clip.bars.some(b => b.section),
+    directions: clip.bars.some(b => b.directions?.length),
     chords,
     diagrams: diagrams && columns.some(c => c.chord && diagramOf(clip, c.chord)),
     text: columns.some(c => c.text && !textGoesUnder(c.text, chords)),
@@ -229,6 +238,12 @@ export function rowsFor(
     capo: row(used.capo),
     tempo: row(used.tempo),
     section: tall(row(used.section, true), (Math.max(1, sectionLines) - 1) * SECTION_LINE),
+    // The lowest level is the row; the levels over it take the room before it.
+    directions: (() => {
+      if (used.directions) y += (Math.max(1, directionLines) - 1) * DIRECTION_LINE;
+      // A Coda sign hangs further under its row's middle than words do: room under it before the next row.
+      return tall(row(used.directions, true), DIRECTION_FOOT);
+    })(),
     endings: row(used.endings),
     // Long free text over the chord names, so a chord and its diagram sit right over the music (Jeremy, 2026-11-06).
     text: tall(row(used.text), (Math.max(1, textLines) - 1) * BEAT_TEXT_LINE),
@@ -325,6 +340,9 @@ export interface StaffReach {
   high: number;
   low: number;
 }
+
+/** The room a Direction's sign takes under its row past a row's own (issue #496). */
+const DIRECTION_FOOT = 7;
 
 /** Extra room above and below the section row, so its box stands clear of the rows beside it (Jeremy, 2026-10-27). */
 const SECTION_ROOM = 9;
