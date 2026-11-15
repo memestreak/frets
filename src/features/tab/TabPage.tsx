@@ -2,6 +2,7 @@
 
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
 import { HoverTips } from '@/components/HoverTips';
+import { useMock } from '@/components/mocks/useMock';
 import { ShapeMenu } from '@/components/chords/export/ShapeMenu';
 import { menuSpot, useMenuTrigger } from '@/components/chords/export/useMenuTrigger';
 import { usePreferenceSaveProblem } from '@/hooks/usePersist';
@@ -126,6 +127,17 @@ const BAR_LINE_TOOL: Record<BarLineHit['kind'], ToolId> = { repeatStart: 'repeat
  * (`useArrangementFile`), the Active voice (`useVoicePick`), playback and the playback line
  * (`usePlayRange`), and the page-wide keys (`usePageKeys`).
  */
+/** How a toggle that is on looks (mock while Jeremy picks; see tab.css). */
+const TOGGLE_LOOK = {
+  param: 'mock', label: 'Toggle on',
+  options: [
+    { value: 'a', label: 'a Today' },
+    { value: 'b', label: 'b Blue glyph' },
+    { value: 'c', label: 'c Blue glyph + bar' },
+    { value: 'd', label: 'd Faint fill' },
+  ],
+} as const;
+
 export default function TabPage() {
   // The open arrangement, saved on Save, and the others saved (My arrangements).
   const arrangements = useArrangements();
@@ -930,8 +942,9 @@ export default function TabPage() {
       voices={input ? { active: tabFocused ? voice : null, onVoice: pressVoice, present: v => voicePresentAtCursor(v) } : undefined} />
   );
 
+  const toggleLook = useMock(TOGGLE_LOOK);
   return (
-    <div className="tab-page flex flex-col gap-4">
+    <div className="tab-page flex flex-col gap-4" data-toggle-look={toggleLook}>
       {/* The title, credits and tuning are drawn as the score's head, over the drawing (ScoreHead). */}
       <header className="flex flex-wrap items-center justify-end gap-x-6 gap-y-3">
         <div className="flex flex-wrap items-center gap-2">
