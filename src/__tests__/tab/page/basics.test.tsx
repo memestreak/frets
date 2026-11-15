@@ -67,10 +67,10 @@ describe('TabPage', () => {
     expect(screen.queryByRole('group', { name: 'Size' })).toBeNull();
   });
 
-  it('starts empty, saying how to bring tab in', () => {
+  it('starts empty, with nothing in the line under the clip', () => {
     renderAt();
     expect(heading()).toHaveTextContent('Untitled');
-    expect(notice()).toHaveTextContent('Click the tab and type frets, or import or paste alphaTex or ASCII tab.');
+    expect(notice()).toBeEmptyDOMElement();
   });
 
   it('renames the clip from its title, which the export image prints', () => {

@@ -84,8 +84,8 @@ describe('note input mode in a new arrangement (issues #421, #422)', () => {
     fireEvent.keyDown(editor(), { key: 'n' });
     expect(gridTicks()).toBe(4);
     expect(screen.queryByTestId('unsaved')).toBeNull();
-    // Still an empty arrangement, so the line under it still says how to start.
-    expect(screen.getByTestId('tab-notice')).toHaveTextContent('Click the tab and type frets');
+    // Still an empty arrangement: the line under it stays empty.
+    expect(screen.getByTestId('tab-notice')).toBeEmptyDOMElement();
     // → steps along the Grid inside the rest, as in any rest.
     const caretX = () => screen.getByTestId('input-cursor').getAttribute('x');
     const x = caretX();

@@ -90,9 +90,9 @@ As layout A of the mock, without the list: the clip takes the page width.
 - **Cursor** (PR 2): a `--primary` box round the cursor's string, with no
   band behind its column (`2026-10-28-tab-fewer-bands-design.md`). Nothing moves when the
   cursor moves, and the card has no browser focus outline.
-- **An empty clip** (first visit) shows one empty bar and, under the card,
-  one muted line: "Import ASCII tab, or paste it here." (PR 2 adds "Type
-  frets").
+- **An empty clip** (first visit) shows one empty bar and nothing under
+  the card: the hint that once said how to bring tab in is gone (Jeremy,
+  2026-11-15).
 - **Phones (default):** the header's buttons wrap under the name. Typing
   needs a keyboard; there is no on-screen fret pad yet, but import, the
   views and export all work.
