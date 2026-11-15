@@ -277,6 +277,7 @@ function barTokens(bars: readonly WrittenBar[], firstTime: TimeSignature): strin
       const { text, marker } = bar.section;
       meta.push(marker ? `\\section (${quoted(marker)} ${quoted(text)})` : `\\section ${quoted(text)}`);
     }
+    for (const name of bar.directions ?? []) meta.push(`\\jump ${name}`);
     if (bar.tempo) meta.push(bar.tempo.label ? `\\tempo (${bar.tempo.bpm} ${quoted(bar.tempo.label)})` : `\\tempo ${bar.tempo.bpm}`);
     if (bar.repeatStart) meta.push('\\ro');
     if (bar.ending) meta.push(`\\ae ${bar.ending}`);

@@ -360,6 +360,25 @@ Put these at the start of a bar, before its beats:
                the first of a run says "Free time" with the time
                signature in brackets. Give every free bar its own \ft.
 
+    \jump segno           a Segno sign (drawn at the bar's start); the
+                           jumps below go back to it
+    \jump coda            "⊕ Coda" at the bar's start: To Coda jumps here
+    \jump fine            "Fine" at the bar's end: an "al Fine" jump ends
+                           here
+    \jump dacoda          "To Coda ⊕" at the bar's end: after a D.S. or
+                           D.C. al Coda, playback jumps from here to the
+                           Coda
+    \jump dalsegno        "D.S." at the bar's end (back to the Segno);
+                           dalsegnoalcoda "D.S. al Coda", dalsegnoalfine
+                           "D.S. al Fine"
+    \jump dacapo          "D.C." at the bar's end (back to the start);
+                           dacapoalcoda "D.C. al Coda", dacapoalfine
+                           "D.C. al Fine"
+
+A bar takes more than one: \jump fine \jump dalsegno. After a D.S. or
+D.C., repeats are not played again. alphaTex's other \jump names (the
+double Segno and double Coda, D.S.S.) are drawn too.
+
 Without \ro, a repeat goes back to the beginning. A bar that both starts
 and ends a repeat takes both: \ro \rc 3. With 1st and 2nd endings, the
 last bar under the "1." bracket carries the \rc; the "2." bars don't.
@@ -375,7 +394,6 @@ when the picture shows them:
     note effects   tr (9 16) trill, ten tenuto
     beat effects   gr b bend grace note, tb (0 4) a whammy pull-up (above
                    the note), tb dive (0 -4) with a type or style
-    bar tags       \jump Fine
 
 Not read at all (an error): more than one staff in a track, or more than
 four voices; a tuning of other than six strings. Read with a warning: other time signatures (as
@@ -615,7 +633,9 @@ the text: ASCII tab has runs of dashes, alphaTex never does.
    them; "x" to x in place of the fret; diamond notes or <12> to nh; "T"
    to tt on the note under it; a chord name over the tab to ch "..." on
    the beat under it; a boxed word over a bar ("Verse", "Chorus") to
-   \section, and a letter in a box to its rehearsal mark; "♩ = 90" over a
+   \section, and a letter in a box to its rehearsal mark; a Segno sign,
+   "⊕ Coda", "To Coda ⊕", "Fine", "D.S. al Coda" and the like over a bar
+   to \jump on that bar (section 5); "♩ = 90" over a
    bar to \tempo 90 (a word before it, "Slowly ♩ = 60", to
    \tempo (60 "Slowly")); other words over the tab ("rit.", "harm.")
    to txt "..." on the beat they start over; words sung, printed under

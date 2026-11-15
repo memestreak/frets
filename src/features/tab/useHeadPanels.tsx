@@ -3,6 +3,8 @@ import { barErrors, dynamicOf, type Part } from './clip';
 import { columnAt, indexOf, withRestsInEmptyBars, type Cursor } from './editing';
 import { setBarKey, setBarTime, setBeatGroups, setPickup, setBeatText, setChordName, setDynamic, setEnding, setRepeatTimes, setSection } from './barEdits';
 import { BarKeyPanel } from './BarKeyPanel';
+import { DirectionPanel } from './DirectionPanel';
+import { toggleDirection } from './directions';
 import { BarFixPanel } from './BarFixPanel';
 import { BarTimePanel } from './BarTimePanel';
 import { CreditsPanel, type HeadField } from './CreditsPanel';
@@ -67,6 +69,8 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown,
   const [timeBar, setTimeBar] = useState<number | null>(null);
   /** The bar whose key signature panel is open. */
   const [keyBar, setKeyBar] = useState<number | null>(null);
+  /** The bar whose Direction panel is open (issue #496). */
+  const [directionBar, setDirectionBar] = useState<number | null>(null);
   /** Where a press opened the time or key signature panel; null when the palette did. */
   const [panelAt, setPanelAt] = useState<{ x: number; y: number } | null>(null);
   const [headPanel, setHeadPanel] = useState<HeadPanel | null>(null);
@@ -209,6 +213,12 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown,
     setPanelAt(at);
     (kind === 'time' ? setTimeBar : setKeyBar)(bar);
   };
+  /** A bar's Direction panel (issue #496): under a press or a picked Direction (`at`), or under the bar. */
+  const openDirections = (bar: number, at: { x: number; y: number } | null) => {
+    closeSignatures();
+    setPanelAt(at);
+    setDirectionBar(bar);
+  };
   /** An Uneven bar's panel, just under the press on its ⚠ (`at`, in the drawing's units). */
   const openFix = (bar: number, at: { x: number; y: number }) => {
     closeSignatures();
@@ -229,6 +239,7 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown,
   const closeSignatures = () => {
     setTimeBar(null);
     setKeyBar(null);
+    setDirectionBar(null);
   };
   /** Shuts whatever is open: another track is shown. */
   const closeAll = () => {
@@ -246,6 +257,10 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown,
   }, [editorRef]);
   const closeKeyBar = useCallback((byKey: boolean) => {
     setKeyBar(null);
+    if (byKey) editorRef.current?.focus({ preventScroll: true });
+  }, [editorRef]);
+  const closeDirectionBar = useCallback((byKey: boolean) => {
+    setDirectionBar(null);
     if (byKey) editorRef.current?.focus({ preventScroll: true });
   }, [editorRef]);
 
@@ -298,6 +313,12 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown,
           onChange={key => commit(setBarKey(clip, keyBar, key))} onClose={closeKeyBar}
         />
       )}
+      {tab && directionBar !== null && directionBar < clip.bars.length && drawn && (
+        <DirectionPanel
+          clip={clip} bar={directionBar} {...(panelAt ?? barTimeSpot(layout, directionBar))}
+          onToggle={name => commit(toggleDirection(clip, directionBar, name))} onClose={closeDirectionBar}
+        />
+      )}
       {tab && headPanel?.kind === 'credits' && (
         <CreditsPanel
           clip={headPanel.from} x={headPanel.x} y={headPanel.y} field={headPanel.field}
@@ -328,7 +349,7 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown,
   );
 
   return {
-    openWord, openLyric, openSignature, openFix, closeSignatures, closeAll, panels,
+    openWord, openLyric, openSignature, openDirections, openFix, closeSignatures, closeAll, panels,
     /** While the Lyrics field is open: its note, tinted, and the syllable drawn in the typing colour. */
     typing,
     /** The score head's panels, from a press on the head (or the folded title), at that spot. */

@@ -5,11 +5,12 @@
  * and capo, whatever the page shows. Pitches are spelled in the key as Frets spells them (`notation.ts`).
  * Pure: `writeMusicXml` gives the file's text, `musicXmlLosses` what the file can't hold.
  */
+import { directionParts, startsForm } from './directions';
 import { syllableOf } from './lyrics';
 import {
   barNumber, barTicks, bendCarries, hasNotes, hasPickup, columnAccent, columnMordent, isLetRing, isPalmMuted, isRest, keyAt, partOf,
   beatGroupsAt, spanOf, startsFreeTime, STRING_COUNT, ticks, timeAt, tupletGroups, WHOLE, barsPerLine, changesKey, changesTime,
-  type Bar, type Clip, type Column, type Note, type NoteValue, type Ottava, type Part, type TimeSignature,
+  type Bar, type Clip, type DirectionName, type Column, type Note, type NoteValue, type Ottava, type Part, type TimeSignature,
 } from './clip';
 import { diagramOf, gridFrets, type ShapedChord } from './chordDiagrams';
 import { beamGroups } from './beams';
@@ -178,6 +179,23 @@ function direction(placement: 'above' | 'below', ...types: (XmlNode | XmlNode[])
 
 function words(value: string): XmlNode {
   return text('words', value);
+}
+
+/**
+ * A Direction (issue #496) as MusicXML has it: its signs and words, and the `sound` that says how
+ * playback jumps (`segno`, `coda`, `fine`, `dacapo`, `dalsegno`, `tocoda`), as MuseScore writes them.
+ */
+function directionXml(name: DirectionName): XmlNode {
+  const types = directionParts(name).parts.map(part => ('words' in part ? words(part.words) : el(part.sign, {})));
+  const sound: Record<string, string> = {};
+  if (name === 'segno' || name === 'segnosegno') sound.segno = name;
+  else if (name === 'coda' || name === 'doublecoda') sound.coda = name;
+  else if (name === 'fine') sound.fine = 'yes';
+  else if (name.startsWith('dacapo')) sound.dacapo = 'yes';
+  else if (name.startsWith('dalsegnosegno')) sound.dalsegno = 'segnosegno';
+  else if (name.startsWith('dalsegno')) sound.dalsegno = 'segno';
+  else sound.tocoda = name === 'dadoublecoda' ? 'doublecoda' : 'coda';
+  return el('direction', { placement: 'above' }, ...types.map(t => el('direction-type', {}, t)), text('staff', 1), el('sound', sound));
 }
 
 /**
@@ -584,6 +602,8 @@ function partXml(clip: Clip, t: number, divisions: number): XmlNode {
         children.push(el('direction', { placement: 'above' }, ...types.map(x => el('direction-type', {}, x)), text('staff', 1), el('sound', { tempo: bar.tempo.bpm })));
       }
       if (startsFreeTime(part, b)) children.push(direction('above', words('Free time')));
+      // Segno and Coda at the bar's start (issue #496); the jumps and Fine after its notes.
+      for (const name of bar.directions ?? []) if (startsForm(name)) children.push(directionXml(name));
     }
 
     // Words, chord names and lines over runs, before and after the columns they belong to, in each Voice.
@@ -616,6 +636,7 @@ function partXml(clip: Clip, t: number, divisions: number): XmlNode {
       });
     }
     for (const voice of voices) voice.flat += voice.part.bars[b].columns.length;
+    if (scoreMarks) for (const name of bar.directions ?? []) if (!startsForm(name)) children.push(directionXml(name));
 
     const last = b === part.bars.length - 1;
     const style = bar.repeatEnd !== undefined || last ? 'light-heavy' : bar.doubleBar ? 'light-light' : bar.freeTime ? 'dashed' : null;

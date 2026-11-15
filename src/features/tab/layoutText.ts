@@ -11,6 +11,8 @@ import { BEAT_TEXT_INSET, BEAT_TEXT_LINE, beatTextLines } from './beatText';
 import { gridSize, OVER_NAME_SCALE } from './chordDiagrams';
 import { type Layout, lineAt, type PlacedBar, type PlacedColumn, type System } from './layout';
 import { textRowOf } from './rows';
+import { DIRECTION_LINE, type PlacedDirection } from './directions';
+import type { DirectionName } from './clip';
 import { chordWidth } from './widths';
 import { LYRIC_LINE, lyricWidth, syllableOf } from './lyrics';
 
@@ -76,7 +78,11 @@ export function capoText(capo: number): string {
  * ending; a time or key signature (step 8: the bar it is drawn at, the first line's time signature bar
  * 0's); or a bar line that can (`barLines.ts`): a repeat's start, end or count, or a double bar line.
  */
-export type WordHit = { kind: 'chord' | 'text'; index: number } | LyricHit | { kind: 'section' | 'tempo' | 'ending' | 'time' | 'key'; bar: number } | BarLineHit;
+export type WordHit = { kind: 'chord' | 'text'; index: number } | LyricHit | { kind: 'section' | 'tempo' | 'ending' | 'time' | 'key'; bar: number }
+  | DirectionHit | BarLineHit;
+
+/** A Direction over a bar (issue #496): each of a bar's is picked on its own. */
+export type DirectionHit = { kind: 'direction'; bar: number; name: DirectionName };
 
 /** A syllable of the Lyrics under a note: its column's place in the clip, and its Lyric line from 0. */
 export type LyricHit = { kind: 'lyric'; index: number; line: number };
@@ -85,6 +91,7 @@ export type LyricHit = { kind: 'lyric'; index: number; line: number };
 export function sameWord(picked: WordHit | null, hit: WordHit): boolean {
   if (!picked || picked.kind !== hit.kind) return false;
   if (picked.kind === 'lyric') return hit.kind === 'lyric' && picked.index === hit.index && picked.line === hit.line;
+  if (picked.kind === 'direction') return hit.kind === 'direction' && picked.bar === hit.bar && picked.name === hit.name;
   return 'index' in picked ? 'index' in hit && picked.index === hit.index : 'bar' in hit && picked.bar === hit.bar;
 }
 
@@ -142,6 +149,12 @@ export function textBox(layout: Layout, hit: WordHit): { x: number; y: number; w
       if (span && rows.endings !== null) return { x: span.x0 - 3, y: system.top + rows.endings - 8, width: span.x1 - span.x0 + 6, height: 18 };
       continue;
     }
+    if (hit.kind === 'direction') {
+      const placed = system.directions.find(d => d.bar === hit.bar && d.name === hit.name);
+      const y = placed ? directionY(system, placed) : null;
+      if (placed && y !== null) return { x: placed.x - 2, y: system.top + y - DIRECTION_REACH, width: placed.width + 4, height: 2 * DIRECTION_REACH };
+      continue;
+    }
     const bar = system.bars.find(b => b.index === hit.bar);
     if (!bar) continue;
     if (hit.kind === 'time' || hit.kind === 'key') return signatureBox(system, bar, hit.kind);
@@ -175,6 +188,15 @@ export function lyricBox(placed: PlacedColumn, rows: System['rows'], line: numbe
   const half = Math.max(8, lyricWidth(syllableOf(text).shown) / 2);
   const y = rows.lyrics + line * LYRIC_LINE;
   return { x0: placed.x - half, x1: placed.x + half, y0: y - 7, y1: y + 7 };
+}
+
+/** How far over and under its row's middle a Direction is pressed: a Coda sign's height. */
+const DIRECTION_REACH = 12;
+
+/** The middle of a placed Direction's row, down from its line's top; null when the line draws none. */
+export function directionY(system: System, placed: PlacedDirection): number | null {
+  const row = system.rows.directions;
+  return row === null ? null : row - (system.directionRows - 1 - placed.top) * DIRECTION_LINE;
 }
 
 /** How far from a time signature's centre a press is on it. */
@@ -233,6 +255,12 @@ export function textAt(layout: Layout, x: number, y: number): TextHit | null {
     if (!placed.column.text || textRow === null) continue;
     const text = beatTextBox(placed, textRow);
     if (localY >= text.y0 - 6 && localY <= text.y1 + 6 && x >= text.x0 - 2 && x <= text.x1 + 2) return { kind: 'text', index: placed.index };
+  }
+  for (const placed of system.directions) {
+    const dy = directionY(system, placed);
+    if (dy !== null && Math.abs(localY - dy) <= DIRECTION_REACH && x >= placed.x - 2 && x <= placed.x + placed.width + 2) {
+      return { kind: 'direction', bar: placed.bar, name: placed.name };
+    }
   }
   for (const bar of system.bars) {
     const x0 = barTextX(bar);

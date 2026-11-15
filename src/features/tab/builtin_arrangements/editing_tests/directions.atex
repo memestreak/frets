@@ -1,0 +1,20 @@
+\title "Directions are added from a bar's panel, picked and deleted"
+\ts (4 4)
+0.6.4{txt "**1.** Select Tab view\nTab, at the top left of the clip"} 3.6.4
+  5.6.4 3.6.4 |
+0.5.4{txt "**2.** Open this bar's Directions\nPress this 0, then the Segno button in the Bars palette"}
+  2.5.4 3.5.4 2.5.4 |
+0.4.4{txt "**3.** Add a Segno and a Fine\nPress Segno, then Fine: both are drawn over bar 2"}
+  2.4.4 3.4.4 2.4.4 |
+0.3.4{txt "**4.** Close the panel\nEscape key: the panel goes, the arrow keys move again"}
+  2.3.4 0.3.2 |
+\jump dacoda
+  0.4.4{txt "**5.** Pick a Direction\nRight-click To Coda: it turns blue; menu Edit, Delete"}
+  2.4.4 3.4.4 2.4.4 |
+0.5.4{txt "**6.** Edit it\nDouble-click To Coda: bar 5's panel, To Coda pressed"}
+  2.5.4 3.5.4 2.5.4 |
+0.6.4{txt "**7.** Delete it\nPress To Coda, then the Delete key: it goes"} 3.6.4
+  5.6.4 3.6.4 |
+0.5.4{txt "**8.** From the bar menu\nRight-click beside the notes, Directions…: bar 8's panel"}
+  2.5.4 0.5.2 |
+

@@ -9,7 +9,7 @@ import type * as AlphaTabModule from '@coderline/alphatab';
 import { mod12, SHARP_NOTES } from '@/lib/theory/notes';
 import type { ReadResult, TextSpot } from './ascii';
 import {
-  barLength, barTicks, defaultGroupCounts, isGroupingOf, sameGroups, BEND_QUARTERS, isRest, isWhammy, MAX_VOICES, stringClashes, unevenMessage, MAX_BPM, MAX_CAPO, MIN_BPM, NOTE_VALUES, STRING_COUNT, COMMON_TIME, isTimeSignature,
+  barLength, barTicks, defaultGroupCounts, isGroupingOf, sameGroups, BEND_QUARTERS, isRest, isWhammy, MAX_VOICES, stringClashes, unevenMessage, DIRECTION_NAMES, MAX_BPM, MAX_CAPO, MIN_BPM, NOTE_VALUES, STRING_COUNT, COMMON_TIME, isTimeSignature,
   TREMOLO_VALUES, dynamicOf, tupletFields, type TimeSignature, type BendQuarters, type Clip, type Column, type Note,
   type NoteValue, type Fermata, isBarsPerLine, partOf, trackName, type MasterBar, type Roll, type Track, type TrackBar,
 } from './clip';
@@ -41,11 +41,11 @@ const NOTE_EFFECTS = new Set([
 /** Beat effects Frets draws; tu, gr and tp only in the forms `beatReads` allows. */
 const BEAT_EFFECTS = new Set(['d', 'dd', 'tu', 'sd', 'su', 'tt', 'ch', 'txt', 'gr', 'tp', 'ot', 'waho', 'wahc', 'cre', 'dec', 'fermata', 'lyrics']);
 /**
- * Tags Frets reads: the title, tuning, capo, time and key signatures, tempo, sections, repeats, endings, double bars,
+ * Tags Frets reads: the title, tuning, capo, time and key signatures, tempo, sections, Directions, repeats, endings, double bars,
  * multi-bar rests, and the line breaks (`systemsLayout`, `defaultSystemsLayout`; read only when their values are
  * ones Frets offers, else kept as written).
  */
-const TAGS = new Set(['title', 'tuning', 'capo', 'ts', 'ks', 'tempo', 'section', 'ro', 'rc', 'ae', 'db', 'ft', 'multibarrest', 'voice', 'voicemode', 'lyrics']);
+const TAGS = new Set(['title', 'tuning', 'capo', 'ts', 'ks', 'tempo', 'section', 'jump', 'ro', 'rc', 'ae', 'db', 'ft', 'multibarrest', 'voice', 'voicemode', 'lyrics']);
 /** The line-break tags, read when their values are good. */
 const LAYOUT_TAGS = new Set(['systemslayout', 'defaultsystemslayout']);
 /** Header tags kept as written in the clip's header and drawn from there: the credits under the title (`credits.ts`). */
@@ -388,6 +388,10 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
     if (tags.has('section') && master.section) {
       bar.section = { text: master.section.text };
       if (master.section.marker) bar.section.marker = master.section.marker;
+    }
+    // Directions: alphaTab's Direction values are DIRECTION_NAMES' places, in its order.
+    if (tags.has('jump') && master.directions && master.directions.size > 0) {
+      bar.directions = DIRECTION_NAMES.filter((_, k) => master.directions!.has(k));
     }
     const tempo = master.tempoAutomations[0];
     if (tags.has('tempo') && tempo) {

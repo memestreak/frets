@@ -4,6 +4,7 @@
  * arrangement. What is picked also goes with every Chat request, as the selection and the cursor's bar do.
  */
 import type { Picked } from '../useEditorState';
+import { directionName } from '../directions';
 
 const WORDS: Record<Exclude<Picked['kind'], 'mark'>, string> = {
   chord: 'the chord name',
@@ -18,13 +19,14 @@ const WORDS: Record<Exclude<Picked['kind'], 'mark'>, string> = {
   repeatEnd: 'the repeat end',
   repeatCount: 'the repeat count',
   doubleBar: 'the double bar line',
+  direction: 'the direction',
 };
 
 /** `picked` in bar `bar` (from 0), as "the chord name in bar 3" or "the let ring mark in bar 2". */
 export function pickedWords(picked: Picked, bar: number): string {
   const what = picked.kind === 'mark'
     ? `the ${picked.mark.replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase()} mark`
-    : WORDS[picked.kind];
+    : picked.kind === 'direction' ? `the ${directionName(picked.name)} direction` : WORDS[picked.kind];
   return `${what} in bar ${bar + 1}`;
 }
 

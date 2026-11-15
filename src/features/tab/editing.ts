@@ -662,10 +662,10 @@ function withStates(part: Part, from: number, states: BarState[]): Part {
   return normalize({ ...part, time, bars });
 }
 
-/** The bars a section, repeat, ending or double bar labels; a paste never brings these (they label a place). */
+/** The bars a section, Direction, repeat, ending or double bar labels; a paste never brings these (they label a place). */
 function unlabelled(bar: Bar): Bar {
   const out = { ...bar };
-  for (const field of ['section', 'repeatStart', 'repeatEnd', 'ending', 'doubleBar', 'freeTime', 'pickup'] as const) delete out[field];
+  for (const field of ['section', 'directions', 'repeatStart', 'repeatEnd', 'ending', 'doubleBar', 'freeTime', 'pickup'] as const) delete out[field];
   return out;
 }
 

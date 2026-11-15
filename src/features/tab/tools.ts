@@ -18,7 +18,7 @@ export type ToolId =
   | 'bend' | 'release' | 'preBend'
   | 'vibrato' | 'mordent' | 'lowerMordent' | 'palmMute' | 'letRing' | 'dead' | 'ghost' | 'harmonic' | 'pinchHarmonic' | 'tap'
   | 'strokeDown' | 'strokeUp' | 'strumDown' | 'strumUp' | 'rolledDown' | 'rolledUp' | 'wah' | 'whammy' | 'accent' | 'heavyAccent' | 'staccato' | 'ottava' | 'dynamic'
-  | 'insertBarBefore' | 'insertBar' | 'barTime' | 'barKey' | 'repeatStart' | 'repeatEnd' | 'doubleBar' | 'ending'
+  | 'insertBarBefore' | 'insertBar' | 'barTime' | 'barKey' | 'repeatStart' | 'repeatEnd' | 'doubleBar' | 'ending' | 'direction'
   | 'chordName' | 'beatText' | 'lyrics' | 'section' | 'tempo';
 
 export interface Tool {
@@ -123,6 +123,7 @@ export const TOOL_GROUPS: { label: string; tools: Tool[] }[] = [
       { id: 'repeatEnd', label: 'Repeat ends at this bar (again: ×3, ×4)', key: ']' },
       { id: 'doubleBar', label: 'Double bar line at the end of this bar', key: '' },
       { id: 'ending', label: 'Ending 1., then 2.', key: 'E' },
+      { id: 'direction', label: 'Directions in this bar (Segno, Coda, D.S. al Coda…)', key: '' },
     ],
   },
   {
@@ -356,6 +357,7 @@ export function isOn(clip: Part, cursor: Target['cursor'], id: ToolId, columnOnl
     case 'repeatEnd': return !!bar?.repeatEnd;
     case 'doubleBar': return !!bar?.doubleBar;
     case 'ending': return !!bar?.ending;
+    case 'direction': return !!bar?.directions?.length;
     case 'chordName': return !!column?.chord;
     case 'beatText': return !!column?.text;
     case 'lyrics': return !!column?.lyrics?.length;

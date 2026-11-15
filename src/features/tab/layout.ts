@@ -8,6 +8,7 @@ import { barHeads, MIDDLE_STEP, writtenStrings, type Head } from './notation';
 import { staffInk } from './staffMarks';
 import { BEAT_TEXT_INSET, placeBeatTexts, textGoesUnder } from './beatText';
 import { BAR_TEXT_INSET, placeSections } from './sectionText';
+import { placeDirections, startsForm, type PlacedDirection } from './directions';
 import { diagramOf, type ShapedChord } from './chordDiagrams';
 import { rowsFor, SPACE, STEM_STEPS, STRING_GAP, TAP_RADIUS, type Rows, type StaffReach } from './rows';
 import { BAR_PAD_END, BAR_TIME_WIDTH, barLead, BRACKET_MARGIN, CLEF_WIDTH, columnWidth, EMPTY_BAR, HEAD_WIDTH, keyWidth, leastWidth, minColumnWidth, noteInset, REPEAT_PAD, rollRoom, signRoom, STAFF_MARGIN, STAFF_TIME_WIDTH, staffWidth, TIME_BRACKETS_WIDTH, TIME_WIDTH } from './widths';
@@ -190,8 +191,9 @@ export function multiRests(clip: Part): Map<number, number> {
   const runs = new Map<number, number>();
   if (!clip.multiBarRests && !clip.alongside?.length) return runs;
   const bars = clip.bars;
-  const closes = (bar: Bar) => bar.repeatEnd !== undefined || !!bar.doubleBar || !!bar.freeTime;
-  const opens = (bar: Bar) => !!(bar.section || bar.tempo || bar.time || bar.key || bar.repeatStart || bar.freeTime);
+  // A Direction is drawn at its bar's start (Segno, Coda) or end (the jumps, Fine): it opens or closes a run.
+  const closes = (bar: Bar) => bar.repeatEnd !== undefined || !!bar.doubleBar || !!bar.freeTime || !!bar.directions?.some(d => !startsForm(d));
+  const opens = (bar: Bar) => !!(bar.section || bar.tempo || bar.time || bar.key || bar.repeatStart || bar.freeTime || bar.directions?.some(startsForm));
   let b = 0;
   while (b < bars.length) {
     if (!restBar(bars[b]) || closes(bars[b])) {
@@ -230,6 +232,10 @@ export interface System {
   textUnderRows: number;
   /** How many rows its sections take, stacked clear of each other (`placeSections`). */
   sectionRows: number;
+  /** Its bars' Directions, each at its end of its bar and stacked clear of each other (`placeDirections`). */
+  directions: PlacedDirection[];
+  /** How many levels its Directions take. */
+  directionRows: number;
 }
 
 /** A line before its rows are worked out, once the bars on it are known. */
@@ -457,7 +463,7 @@ export function layoutClip(clip: Part, width: number, parts: Parts = 'tab', diag
   const finish = () => {
     const first = drafts.length === 0;
     drafts.push({
-      bars: current, timeX: first ? firstTimeX : null, lineStart, staffStart: first ? firstHead : head, keyX: keyStart, first, textRows: 1, textUnderRows: 1, sectionRows: 1,
+      bars: current, timeX: first ? firstTimeX : null, lineStart, staffStart: first ? firstHead : head, keyX: keyStart, first, textRows: 1, textUnderRows: 1, sectionRows: 1, directions: [], directionRows: 1,
     });
     complete.push(true);
     current = [];
@@ -612,13 +618,19 @@ export function layoutClip(clip: Part, width: number, parts: Parts = 'tab', diag
       b.sectionTop = sections.placed[k].top;
     });
     system.sectionRows = sections.rows;
+    // Directions at their bars' ends, moved up clear of each other (issue #496).
+    const directions = placeDirections(system.bars.filter(b => b.bar.directions?.length).map(b => ({
+      bar: b.index, x0: b.x0, x1: b.x1, directions: b.bar.directions!,
+    })));
+    system.directions = directions.placed;
+    system.directionRows = directions.rows;
   }
   // Each line gets the rows its own bars use, and the lines stack one under another.
   const stack = (reaches: StaffReach[]): Layout => {
     let top = 0;
     const systems = drafts.map((draft, si): System => {
       const indices = draft.bars.map(b => b.index);
-      const rows = rowsFor(lineClip(clip, indices, draft.first && capoRow), parts, reaches[si], indices.some(i => startsFreeTime(clip, i)), draft.textRows, draft.textUnderRows, draft.sectionRows, diagrams);
+      const rows = rowsFor(lineClip(clip, indices, draft.first && capoRow), parts, reaches[si], indices.some(i => startsFreeTime(clip, i)), draft.textRows, draft.textUnderRows, draft.sectionRows, diagrams, draft.directionRows);
       const system = { ...draft, rows, top };
       top += rows.height;
       return system;

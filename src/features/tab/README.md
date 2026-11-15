@@ -190,6 +190,14 @@ and in its spec.
   `placeSections`, which wraps a long one and moves it up if it still
   runs into the next —
   `2026-11-06-tab-section-overlap-design.md`.
+- `directions.ts` — the Directions over a bar (Segno, Coda, Fine, D.C.,
+  D.S., To Coda; alphaTex's `\jump`): each one's look and end of its bar,
+  `placeDirections` stacking a line's clear of each other, and
+  `toggleDirection` / `setDirection` — `2026-11-15-tab-song-directions-design.md`.
+- `DirectionPanel.tsx` — a bar's Direction panel: a toggle for each,
+  drawn as on the tab, opened by the Bars palette's Direction button, the
+  bar menu's Directions… or a picked Direction's Edit —
+  `2026-11-15-tab-song-directions-design.md`.
 - `lyrics.ts` — the Lyrics under the notes: their size and room, which
   notes take a syllable (`takesLyric`), `setLyric`, and where the Lyrics
   field goes next (`lyricNote`) — `2026-11-09-tab-lyrics-design.md`.
@@ -580,6 +588,10 @@ MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
   popover, Dorico's Shift+P: a mark on notes typed by name or short form
   ("lr", "pm", "wide vib"), from a list of matches, put where its palette
   button puts it; it only adds (issue #501)
+- `docs/specs/2026-11-15-tab-song-directions-design.md`: Directions (Segno,
+  Coda, Fine, D.C., D.S., To Coda) drawn over their bars, added from a
+  bar's Direction panel, picked, edited and deleted like other marks, and
+  played as the form says (issue #496)
 - `docs/specs/2026-11-09-tab-palettes-design.md`: the rail gives way to one
   column listing every palette, several open at once, each folded from its
   header, moved by dragging it, its height dragged from the line under it;
