@@ -12,7 +12,7 @@ import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { partOf } from '@/features/tab/clip';
 import { layoutClip, type Layout } from '@/features/tab/layout';
 import { textBox, type WordHit } from '@/features/tab/layoutText';
-import { CHORD_PANEL_KEY, countBadge, parseChordPanel } from '@/features/tab/ChordPanel';
+import { countBadge } from '@/features/tab/ChordPanel';
 import { setUpPage, renderAt, SLOW, editor, keys, alphaTexText } from './helpers';
 import { paletteHeader } from '../tool';
 
@@ -80,8 +80,8 @@ function changeChord(name: string) {
 }
 
 describe('a Chord set tile\'s dot', () => {
-  it('counts the uses: none for an unused chord, 99 spelled out, 99+ past it', () => {
-    expect(countBadge(0)).toBeNull();
+  it('counts the uses: 0 for an unused chord, 99 spelled out, 99+ past it', () => {
+    expect(countBadge(0)).toBe('0');
     expect(countBadge(1)).toBe('1');
     expect(countBadge(99)).toBe('99');
     expect(countBadge(100)).toBe('99+');
@@ -89,13 +89,13 @@ describe('a Chord set tile\'s dot', () => {
 });
 
 describe('the Chords panel', () => {
-  it('shows the Chord set as tiles: a used one says how often on hover and in its dot, an unused one has no dot or tint; no icons, no name field or shapes', async () => {
+  it('shows the Chord set as tiles: a used one says how often on hover and in its dot, an unused one says 0 in its dot, with no tint; no icons, no name field or shapes', async () => {
     await open();
     fireEvent.click(paletteHeader('Chords'));
     expect(tile('G')).toHaveAttribute('title', 'Used 1 time');
     expect(tile('G').querySelector('.chord-panel-count')).toHaveTextContent('1');
     expect(tile('C')).toHaveAttribute('title', 'Not used');
-    expect(tile('C').querySelector('.chord-panel-count')).toBeNull();
+    expect(tile('C').querySelector('.chord-panel-count')).toHaveTextContent('0');
     expect(tile('C')).not.toHaveAttribute('data-unused');
     expect(tile('G').querySelector('svg')).not.toBeNull();
     expect(inPanel().queryByRole('textbox')).toBeNull();
@@ -109,15 +109,15 @@ describe('the Chords panel', () => {
   });
 
   it('puts a shapeless chord\'s dot right under its name, with no room kept for a diagram', async () => {
-    const text = ['\\title "Riffs"', '\\ts (4 4)', '\\chord ("Riff A")', '3.1.4{ch "Riff A"} 3.1.4{ch "Riff A"} r.4 r.4 |'].join('\n');
+    const text = ['\\title "Chords"', '\\ts (4 4)', '\\chord ("Dm7")', '3.1.4{ch "Dm7"} 3.1.4{ch "Dm7"} r.4 r.4 |'].join('\n');
     renderAt(`#tab=${encodeURIComponent(text)}`);
     await screen.findByRole('heading', { name: 'Chords' }, SLOW);
     fireEvent.click(paletteHeader('Chords'));
-    expect(tile('Riff A')).toHaveAttribute('title', 'Used 2 times');
-    const parts = [...tile('Riff A').children].map(c => c.className);
+    expect(tile('Dm7')).toHaveAttribute('title', 'Used 2 times');
+    const parts = [...tile('Dm7').children].map(c => c.className);
     expect(parts).toEqual(['chord-panel-tile-name', 'chord-panel-count']);
-    expect(tile('Riff A').querySelector('.chord-panel-count')).toHaveTextContent('2');
-    expect(tile('Riff A').querySelector('.chord-panel-thumb')).toBeNull();
+    expect(tile('Dm7').querySelector('.chord-panel-count')).toHaveTextContent('2');
+    expect(tile('Dm7').querySelector('.chord-panel-thumb')).toBeNull();
   });
 
   it('shows eight tiles a page; the carets page through them, the count saying where, a short last page keeping its room', async () => {
@@ -591,9 +591,9 @@ describe('Add a chord (+)', () => {
     fireEvent.change(field, { target: { value: 'G' } });
     expect(add.getByText('“G” is already in the Chord set.')).toBeInTheDocument();
     expect(add.getByRole('button', { name: 'Add chord' })).toBeDisabled();
-    fireEvent.change(field, { target: { value: 'Riff A' } });
+    fireEvent.change(field, { target: { value: 'Dm7' } });
     fireEvent.click(add.getByRole('button', { name: 'Add chord' }));
-    expect(definitions()).toContain('\\chord ("Riff A")');
+    expect(definitions()).toContain('\\chord ("Dm7")');
   });
 
   it('with the cursor on a column of notes: offers their fingering first, picked, and names them', async () => {
@@ -740,24 +740,13 @@ describe('Hear', () => {
   });
 });
 
-describe('folding the list', () => {
-  it('folds from its heading, kept across visits', async () => {
+describe('the Chord set\'s heading', () => {
+  it('is a plain heading that never folds, with + at its right', async () => {
     await open();
     fireEvent.click(paletteHeader('Chords'));
-    const heading = () => inPanel().getByRole('button', { name: 'Chord set' });
-    fireEvent.click(heading());
-    expect(heading()).toHaveAttribute('aria-expanded', 'false');
-    expect(inPanel().queryByRole('button', { name: /^G, / })).toBeNull();
-    // + stays in the heading, folded or not.
-    expect(inPanel().getByRole('button', { name: 'Add a chord' })).toBeInTheDocument();
-    expect(JSON.parse(localStorage.getItem(CHORD_PANEL_KEY)!)).toEqual({ folded: ['chords'] });
-    fireEvent.click(heading());
-    expect(JSON.parse(localStorage.getItem(CHORD_PANEL_KEY)!)).toEqual({ folded: [] });
-  });
-
-  it('reads what was kept, each id checked', () => {
-    expect(parseChordPanel(JSON.stringify({ folded: ['chords', 'shape', 3] }))).toEqual(['chords']);
-    expect(parseChordPanel('not json')).toEqual([]);
-    expect(parseChordPanel(null)).toEqual([]);
+    expect(list().getByRole('heading', { name: 'Chord set' })).toBeInTheDocument();
+    expect(list().queryByRole('button', { name: 'Chord set' })).toBeNull();
+    expect(list().getByRole('button', { name: 'Add a chord' })).toBeInTheDocument();
   });
 });
+
