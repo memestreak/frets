@@ -781,10 +781,13 @@ body:has(.tab-stack-panel[data-dragging]) { cursor: grabbing; user-select: none;
 .chord-panel-insert .btn { padding-inline: 10px; }
 .chord-panel-tiles {
   /* Its columns, as many as the panel's width holds, are set on the element (ChordPanel's useTileColumns). */
-  display: grid; grid-auto-rows: 1fr; gap: 4px;
+  display: grid; grid-auto-rows: minmax(39px, 1fr); gap: 4px;
 }
+/* Every page keeps the tallest tile's room, so paging moves nothing below: a name over its
+   dot (39px), or, once any chord in the set has a diagram, a name over a diagram (64px). */
+.chord-panel-tiles[data-diagrams] { grid-auto-rows: minmax(64px, 1fr); }
 .chord-panel-tile {
-  display: grid; justify-items: center; gap: 1px; padding: 3px 2px; min-width: 0;
+  display: grid; justify-items: center; align-content: start; gap: 1px; padding: 3px 2px; min-width: 0;
   border: 1px solid transparent; border-radius: var(--radius-sm); background: none; color: var(--ink); cursor: pointer;
 }
 .chord-panel-tile:hover { background: var(--surface-sunken); }
@@ -800,10 +803,12 @@ body:has(.tab-stack-panel[data-dragging]) { cursor: grabbing; user-select: none;
 .chord-editor-title:hover { background: var(--surface-sunken); }
 .chord-editor-title:focus-visible { outline: none; }
 .chord-panel-tile-empty { visibility: hidden; }
-/* A tile's use count: a solid dot on its diagram's bottom right corner, just over it; none for an unused chord. */
+/* A tile's use count: a solid dot on its diagram's bottom right corner, just over it, or
+   centred under the name of a chord with no shape; none for an unused chord. */
 .chord-panel-thumb { position: relative; }
+.chord-panel-thumb > .chord-panel-count { position: absolute; right: -8px; bottom: 1px; }
 .chord-panel-count {
-  position: absolute; right: -8px; bottom: 1px; box-sizing: border-box;
+  box-sizing: border-box;
   min-width: 14px; height: 14px; padding: 0 3px; border-radius: 999px;
   display: grid; place-items: center; background: var(--ink-muted); color: var(--surface-raised);
   font: 600 9px/1 var(--font-sans); font-variant-numeric: tabular-nums; pointer-events: none;

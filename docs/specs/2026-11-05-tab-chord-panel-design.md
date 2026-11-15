@@ -29,7 +29,12 @@ and the Penpot page "Tab Chords panel (issue 400)".
   nothing below moves. A small solid dot on the bottom right corner of
   each tile's diagram, just over it, says how many times the chord is used
   ("99+" past 99); a chord no column uses has none, and nothing else marks
-  it (Jeremy, 2026-11-09: it was tinted; dot b of four mocks). Hovering a
+  it (Jeremy, 2026-11-09: it was tinted; dot b of four mocks). A chord
+  with no shape has no diagram and keeps no room for one: its dot sits
+  centred right under its name (Jeremy, 2026-11-14: it hung off an empty
+  corner). Every page's rows keep the tallest tile's room, a name over
+  a diagram once any chord in the set has a shape, else a name over a
+  dot, so paging moves nothing below. Hovering a
   tile says "Used 3 times" or "Not used". No icons on the tiles: a press picks
   a chord for Insert (and sounds it, with Hear on) and nothing more; a
   double-click opens Edit chord; a right-click (or a long press, or
@@ -224,6 +229,8 @@ Settled while building (my calls, open to change):
 ## Tests
 
 - The dot's count: none for 0, "1", "99", "99+" for 100.
+- A chord with no shape used twice: its tile is its name then its dot
+  "2", with no diagram's room.
 - Following a picked chord focuses the editor with `preventScroll`.
 - The Chord set is tiles: a used one's title "Used 1 time" and its dot
   "1"; an unused one "Not used", with no dot and no tint; each has a diagram; no Edit or Delete icons, no

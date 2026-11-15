@@ -108,6 +108,18 @@ describe('the Chords panel', () => {
     expect(inPanel().queryByRole('button', { name: 'More chords' })).toBeNull();
   });
 
+  it('puts a shapeless chord\'s dot right under its name, with no room kept for a diagram', async () => {
+    const text = ['\\title "Riffs"', '\\ts (4 4)', '\\chord ("Riff A")', '3.1.4{ch "Riff A"} 3.1.4{ch "Riff A"} r.4 r.4 |'].join('\n');
+    renderAt(`#tab=${encodeURIComponent(text)}`);
+    await screen.findByRole('heading', { name: 'Chords' }, SLOW);
+    fireEvent.click(paletteHeader('Chords'));
+    expect(tile('Riff A')).toHaveAttribute('title', 'Used 2 times');
+    const parts = [...tile('Riff A').children].map(c => c.className);
+    expect(parts).toEqual(['chord-panel-tile-name', 'chord-panel-count']);
+    expect(tile('Riff A').querySelector('.chord-panel-count')).toHaveTextContent('2');
+    expect(tile('Riff A').querySelector('.chord-panel-thumb')).toBeNull();
+  });
+
   it('shows eight tiles a page; the carets page through them, the count saying where, a short last page keeping its room', async () => {
     const many = [
       '\\title "Many"', '\\ts (4 4)',
