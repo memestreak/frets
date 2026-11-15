@@ -36,6 +36,7 @@ PR, or removes the file and its row when the behaviour is gone.
 | `empty-bar-press.atex` | A press in an empty bar boxes the whole bar | #317, #318 |
 | `fret-follows-tie.atex` | A fret typed on any note of a Tie chain changes the whole chain, which stays tied | `docs/specs/2026-10-25-tab-editing-design.md`, `docs/specs/2026-11-04-tab-ties-forward-design.md` |
 | `grace-before.atex` | `/` adds a grace note before the picked note, and a second makes them sixteenths | `docs/specs/2026-11-04-tab-tuplets-grace-rest-design.md` |
+| `insert-mode.atex` | Insert mode (I): a note typed in note input mode pushes the music after it on, over the bar line; Delete pulls it back; I again turns it off | `docs/specs/2026-11-14-tab-insert-mode-design.md`, #482 |
 | `insert-pushes.atex` | Insert pushes the music on over the bar line, and Ctrl/⌘+Delete pulls it back | `docs/specs/2026-11-04-tab-bars-always-full-design.md` |
 | `longer-note-writes-over.atex` | A longer note, or a run made longer, writes over what follows, split and tied at the bar line | `docs/specs/2026-11-01-tab-rest-lengths-design.md`, #294, `docs/specs/2026-11-04-tab-bars-always-full-design.md` |
 | `move-by-the-grid.atex` | Alt+← → move a picked chord, or a note picked by itself, a grid step earlier or later; a sideways drag does the same | `docs/specs/2026-11-13-tab-move-in-time-design.md`, #473 |

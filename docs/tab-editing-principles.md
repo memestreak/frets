@@ -46,10 +46,12 @@ paste, Ctrl/⌘+Delete) pushes or pulls the following music across bar lines. A 
 Pickup bar set on purpose. (A10, A11)
 ✓ Dorico · ✓ MuseScore · ✗ Guitar Pro (bars run over)
 
-**P2 · Write over by default.** Note input mode writes over what is at the cursor; nothing moves unless
-the action says it adds or takes time. An Insert mode toggle may come later; nothing here blocks
-it. (A11)
-✓ Dorico · ✓ MuseScore · ✗ Guitar Pro
+**P2 · Write over by default; Insert mode moves the music.** Out of Insert mode (Overwrite) note
+input mode writes over what is at the cursor, and nothing moves unless the action says it adds or
+takes time. Insert mode (I, Dorico's; `docs/specs/2026-11-14-tab-insert-mode-design.md`) makes the
+music after an edit move instead: entering a note, a longer note, a dot and paste push it later,
+Delete, a shorter note and cut pull it back, in every Voice of the Track. Bars stay full (P1). (A11)
+✓ Dorico · ½ MuseScore (Insert is a note input method; its bars grow) · ✗ Guitar Pro
 
 **P3 · Edit what sounds, store what is written.** Edits work on each Sounding note's start and
 length; the Clip still stores written Columns. A Tie chain is one note while editing. After each
@@ -165,11 +167,12 @@ ground rules they answer are in the ADR.
   following music back across bar lines. A short first bar is a Pickup bar set on purpose
   (alphaTex `\ac`). An imported Uneven bar keeps its quiet ⚠ with Move extra into next bar. The
   "Fill short bars with rests" setting went.
-- **A11 Adding time.** Explicit actions only. Insert adds a gap at the cursor (the Input length in
-  note input mode, else the picked note's length); Insert paste puts the clipboard in. Both push the
-  following music forward across bar lines. Later, maybe: a Dorico-style Insert mode toggle, under
-  which typing, length changes and Delete push and pull instead of writing over. Nothing here
-  blocks adding it.
+- **A11 Adding time.** Insert adds a gap at the cursor (the Input length in note input mode, else
+  the picked note's length); Insert paste puts the clipboard in. Both push the following music
+  forward across bar lines. Insert mode (I, issue #482 phase 2, 2026-11-14) is Dorico's toggle: while
+  it is on, typing, length changes, dots and paste push, and Delete, shorter notes and cut pull,
+  instead of writing over or leaving a Gap. Every visit starts with it off. Until Anchors (phase 3),
+  every push and pull runs to the clip's end.
 - **A12 Typing on a rest** (normal mode): the rest becomes a note of that length (MuseScore,
   Guitar Pro). Picking a rest and typing changes pitch, not rhythm.
 - **A13 Rest key.** In note input mode it moves on by the Input length and leaves a gap (MuseScore's 0,
@@ -196,9 +199,10 @@ ground rules they answer are in the ADR.
 When you enter or change something, does the music after it stay where it is (overwrite) or move
 along (insert)?
 
-**Rule (P1, P2; A10, A11).** Overwrite is the only default. Insert (a gap at the cursor) and Insert
-paste push the following music forward across bar lines; Ctrl/⌘+Delete pulls it back. Bars stay
-full. Later, maybe: a Dorico-style Insert mode toggle.
+**Rule (P1, P2; A10, A11).** Overwrite is the default. Insert (a gap at the cursor) and Insert
+paste push the following music forward across bar lines; Ctrl/⌘+Delete pulls it back. Insert mode
+(I) makes entries, lengths, dots and paste push and Delete, shorter notes and cut pull, every Voice
+of the Track moving together (`docs/specs/2026-11-14-tab-insert-mode-design.md`). Bars stay full.
 
 - **Unit of time.** Dorico: notes in voices; gaps are implicit rests Dorico draws for you (m).
   MuseScore: chord or rest per voice, 4 voices per staff; voice 1 always fills the bar (m). Guitar
@@ -211,7 +215,8 @@ full. Later, maybe: a Dorico-style Insert mode toggle.
 - **Insert.** Dorico: Insert mode (I), new notes push later ones; shortening or deleting pulls them
   back (m). MuseScore: Insert input mode, or Ctrl/⌘+Shift with a note (m). Guitar Pro: Insert adds
   an empty beat before the cursor; Delete beat removes one (m). Frets: Insert adds a gap; Insert
-  paste (Ctrl/⌘+Shift+V) and Ctrl/⌘+Delete add or take time. No Insert mode.
+  paste (Ctrl/⌘+Shift+V) and Ctrl/⌘+Delete add or take time; Insert mode (I), as Dorico's, in note
+  input mode and normal mode alike.
 
 Agrees: ✓ Dorico, ✓ MuseScore (overwrite by default, Insert mode separate); ✗ Guitar Pro (edits
 push the bar along).
@@ -492,7 +497,8 @@ What do the clipboard and the delete keys do to time?
 
 **Rule (P1, P4; A3, A10, A11).** Delete and cut leave gaps; paste writes over, splitting and tying at
 bar lines; all keep Tie chains whole. Ctrl/⌘+Delete and Insert paste pull or push the following
-music across bar lines.
+music across bar lines. In Insert mode Delete and cut take the time away, as Ctrl/⌘+Delete does
+(one note of a chord still goes alone), and paste is Insert paste.
 
 Comparison:
 
@@ -503,7 +509,7 @@ Comparison:
   and other marks of its time, and a note written over that time takes them; only Ctrl/⌘+Delete
   removes them (issue #393).
 - **Take time away.** Dorico: Insert mode + Delete (m). MuseScore: Ctrl/⌘+Delete, "Remove selected
-  range" (m). Guitar Pro: Delete beat / bar (m). Frets: Ctrl/⌘+Delete.
+  range" (m). Guitar Pro: Delete beat / bar (m). Frets: Ctrl/⌘+Delete, or Delete in Insert mode.
 - **Cut.** Dorico, MuseScore: leaves rests (u). Guitar Pro: single track copies; multitrack cut
   removes bars (m). Frets: leaves rests.
 - **Paste.** Dorico: writes over, or pushes in Insert mode (m). MuseScore: writes over from the
@@ -580,7 +586,7 @@ spec; the glossary gained its terms in the same PR.
 | 7 | Beat groups and Beam overrides | A5, A6 | `2026-11-04-tab-beat-groups-beams-design.md` | #348 |
 | 8 | Every mark can be picked | A15 | `2026-11-04-tab-pick-every-mark-design.md` | #352 |
 | 9 | Every Voice drawn, exported and edited | A2 | `2026-11-04-tab-voices-drawn-edited-design.md` | #353 |
-| — | Later, maybe: Insert mode | A11 | | |
+| — | Insert mode (issue #482, phase 2) | A11 | `2026-11-14-tab-insert-mode-design.md` | |
 
 ## Sources
 

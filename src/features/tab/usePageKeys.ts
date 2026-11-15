@@ -23,7 +23,7 @@ const NOTE_INPUT_KEEPERS = '[data-testid="tab-paper"], .tab-palette, .tab-stack-
 
 /**
  * The keys that work anywhere on the page (Jeremy, 2026-10-30: shortcuts are page-wide), not the tab's own
- * (`editorKeys.ts`): the grid keys, Esc and N for note input mode, L, Space, the playback line's keys, paste,
+ * (`editorKeys.ts`): the grid keys, Esc and N for note input mode, I for Insert mode, L, Space, the playback line's keys, paste,
  * copy, cut, undo and redo; and what the tab does as it takes the keys and lets them go.
  */
 export function usePageKeys(editor: EditorState, { view, parts, range, showPlayback, setEditingPrefs, enterNoteInput, chooseVoice, paste, copyOrCut, undo }: {
@@ -48,7 +48,7 @@ export function usePageKeys(editor: EditorState, { view, parts, range, showPlayb
   undo: (redo: boolean) => void;
 }) {
   const {
-    clip, cursor, selection, setSelection, noteInputMode, staffPitch, setStaffPitch, columnOnly, setColumnOnly,
+    clip, cursor, selection, setSelection, noteInputMode, insertMode, setInsertMode, staffPitch, setStaffPitch, columnOnly, setColumnOnly,
     tabFocused, setTabFocused, setPicked, setNotice, editorRef,
   } = editor;
   const { playback, playFrom, playUntil, markAt, toggleLoop, placeLine, editAtLine } = range;
@@ -86,7 +86,13 @@ export function usePageKeys(editor: EditorState, { view, parts, range, showPlayb
       enterNoteInput(!noteInputMode);
       return;
     }
-    lineKeyDown(e, { clip, count: columnCount(clip), line: markAt, selection, select: setSelection, placeLine, editAtLine });
+    // I turns Insert mode on and off off the tab too, as N does note input mode (the tab's own I is `editorKeys.ts`).
+    if (e.key === 'i' && plain && !(e.target as Element | null)?.closest?.(`${TEXT_FIELDS}, [role="dialog"], [role="menu"], .tab-editor`)) {
+      e.preventDefault();
+      setInsertMode(!insertMode);
+      return;
+    }
+    lineKeyDown(e, { clip, count: columnCount(clip), line: markAt, selection, select: setSelection, placeLine, editAtLine, insertMode });
   });
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => onLineKey(e);

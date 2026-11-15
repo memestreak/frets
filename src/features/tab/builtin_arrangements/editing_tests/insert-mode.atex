@@ -1,0 +1,11 @@
+\title "Insert mode pushes the music on, and Delete pulls it back"
+\ts (4 4)
+5.1.4{txt "**1.** Select Tab view\nTab, at the top left of the clip"}
+  7.1.4{txt "**2.** Put a 16th in before this 7\nPress this 7, then N, Shift+3, I and 9"}
+  5.1.4 7.1.4 |
+3.1.2{txt "This 3 is a 16th late, tied over the bar line"} 5.1.4 7.1.4 |
+8.1.4{txt "**3.** Take the 9 out again\nPress Esc, press the 9, then Delete"}
+  7.1.4
+  8.1.4{txt "**4.** Turn Insert mode off\nPress I: the ▼ ▲ over the cursor go"}
+  7.1.4 |
+

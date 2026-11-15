@@ -9,7 +9,7 @@ import { BEND_QUARTERS, NOTE_VALUES, SHORTEST_DOTTED, STRING_COUNT, TREMOLO_VALU
 import { readVoice } from './sounding';
 import { chainDuration, chainPlaces, chainStart, isTaken, lengthAnchor, takenNotes } from './ties';
 import { isBeamable, unbeamed } from './beams';
-import { timeOf, writeOver } from './timeline';
+import { pullTime, pushTime, timeOf, withoutAddedRests, writeOver } from './timeline';
 import { isProblem, lengthInTuplet, untuplet } from './tuplets';
 import { type Cursor, type Selection, type Target, changeColumns, columnAt, emptyColumn, hasTimeMarks, indexOf, normalize, noteAt, noteBefore, placeOf, restOf, selectedRange, withColumn, without } from './editing';
 
@@ -81,29 +81,29 @@ function barOfRests(columns: Column[], room: number): Column[] {
  * A longer (+1) or shorter (−1) note value for the target columns, from a whole to a sixty-fourth.
  * A sixty-fourth takes no dots, so its dots go.
  */
-export function stepDuration(clip: Part, target: Target, step: 1 | -1): Part {
+export function stepDuration(clip: Part, target: Target, step: 1 | -1, insert = false): Part {
   // A Tie chain that is no one written value (`h~e`) has no next value: nothing changes.
   return changeLength(clip, target, duration => {
     if (!duration) return null;
     const i = NOTE_VALUES.indexOf(duration.value);
     const value = NOTE_VALUES[Math.min(NOTE_VALUES.length - 1, Math.max(0, i - step))];
     return { ...duration, value, dots: value > SHORTEST_DOTTED ? 0 : duration.dots };
-  });
+  }, insert);
 }
 
 /** Sets the note value of the target columns. */
-export function setValue(clip: Part, target: Target, value: Duration['value']): Part {
-  return changeLength(clip, target, duration => ({ value, dots: value > SHORTEST_DOTTED ? 0 : duration?.dots ?? 0 }));
+export function setValue(clip: Part, target: Target, value: Duration['value'], insert = false): Part {
+  return changeLength(clip, target, duration => ({ value, dots: value > SHORTEST_DOTTED ? 0 : duration?.dots ?? 0 }), insert);
 }
 
 /** Cycles none, one dot, two dots on the target columns (a sixty-fourth takes none). */
-export function cycleDots(clip: Part, target: Target): Part {
+export function cycleDots(clip: Part, target: Target, insert = false): Part {
   // A Tie chain that is no one written value (`h~e`) takes no dot: nothing changes.
   return changeLength(clip, target, duration => {
     if (!duration) return null;
     const dots = duration.value > SHORTEST_DOTTED ? 0 : ((duration.dots + 1) % 3) as Duration['dots'];
     return { ...duration, dots };
-  });
+  }, insert);
 }
 
 /**
@@ -113,9 +113,10 @@ export function cycleDots(clip: Part, target: Target): Part {
  * chain too; a Column that only carries tied notes on doesn't change (until Tie chains are picked as one).
  * A run is laid out again from its start, each note with its new length and each Gap in it keeping its
  * own. A grace note doesn't change; a note in a tuplet changes within it (`tuplets.ts`). An edit that
- * would put a tuplet across a bar line changes nothing.
+ * would put a tuplet across a bar line changes nothing. With `insert` (Insert mode), nothing after the target
+ * is written over and no Gap is left: the music after it is pushed or pulled by the change (`writeLength`).
  */
-function changeLength(clip: Part, target: Target, change: (duration: Duration | null) => Duration | null): Part {
+function changeLength(clip: Part, target: Target, change: (duration: Duration | null) => Duration | null, insert = false): Part {
   // A rest is a Gap, whose length can't be set (rests are Gaps, step 3): only rests, nothing changes.
   if (onlyRests(clip, target)) return clip;
   const { cursor, selection } = target;
@@ -141,7 +142,7 @@ function changeLength(clip: Part, target: Target, change: (duration: Duration | 
     // The Sounding notes it starts end here at the latest: a shorter one leaves a Gap to there.
     const ends = readVoice(clip).notes.filter(n => n.start === start).map(n => n.start + n.length);
     const oldEnd = Math.max(start + ticks(column.duration), ...ends);
-    const written = writeOver(clip, start, [{ ...unbeamed(column), duration }], oldEnd);
+    const written = writeLength(clip, start, [{ ...unbeamed(column), duration }], oldEnd, insert);
     return written ? normalize(written) : clip;
   }
   const [from, to] = selectedRange(selection);
@@ -157,8 +158,26 @@ function changeLength(clip: Part, target: Target, change: (duration: Duration | 
   const start = timeOf(clip, first.bar, first.column);
   const lastColumn = clip.bars[last.bar].columns[last.column];
   const oldEnd = timeOf(clip, last.bar, last.column) + (lastColumn.grace ? 0 : ticks(lastColumn.duration));
-  const written = writeOver(clip, start, columns, oldEnd);
+  const written = writeLength(clip, start, columns, oldEnd, insert);
   return written ? normalize(written) : clip;
+}
+
+/**
+ * `columns` written from `start` in place of the time up to `oldEnd`, as a length change writes them. In
+ * Overwrite they write over what follows, or leave a Gap to `oldEnd`. With `insert` (Insert mode,
+ * `docs/specs/2026-11-14-tab-insert-mode-design.md`), the music from `oldEnd` on, in every Voice of the Part,
+ * is first pushed later by what they add, or pulled back over the Gap they leave, so it is never written over.
+ * Null when a tuplet would cross a bar line.
+ */
+function writeLength(clip: Part, start: number, columns: Column[], oldEnd: number, insert: boolean): Part | null {
+  if (!insert) return writeOver(clip, start, columns, oldEnd);
+  const end = start + columns.reduce((sum, c) => sum + (c.grace ? 0 : ticks(c.duration)), 0);
+  if (end > oldEnd) {
+    const pushed = pushTime(clip, oldEnd, end - oldEnd);
+    return pushed && writeOver(withoutAddedRests(clip, pushed), start, columns, end);
+  }
+  const written = writeOver(clip, start, columns, oldEnd);
+  return written && end < oldEnd ? pullTime(written, end, oldEnd) : written;
 }
 
 function sameDuration(a: Duration, b: Duration): boolean {

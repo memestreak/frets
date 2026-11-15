@@ -167,8 +167,9 @@ describe('grace notes', () => {
     expect(toolForKey('/', false)).toBe('grace');
     expect(toolForKey('G', false)).toBeNull();
     expect(toolForKey('g', false)).toBe('ghost');
-    // Let ring is on I, as Guitar Pro 8's; L is the page's, for the loop points (Jeremy, 2026-11-04).
-    expect(toolForKey('i', false)).toBe('letRing');
+    // Let ring is on Alt+I, as I is Insert mode (Jeremy, 2026-11-14); L is the page's, for the loop points (Jeremy, 2026-11-04).
+    expect(toolForKey('i', false)).toBeNull();
+    expect(toolForKey('ˆ', true, 'KeyI')).toBe('letRing');
     expect(toolForKey('l', false)).toBeNull();
   });
 

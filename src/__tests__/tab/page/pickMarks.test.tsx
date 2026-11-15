@@ -248,7 +248,9 @@ describe('the ? overlay', () => {
 });
 
 describe('a let ring or P.M. line just added is picked (Jeremy, 2026-11-09)', () => {
-  const cases = [['let ring', 'i', 'let-ring', 'lr'], ['P.M.', 'm', 'palm-mute', 'pm']] as const;
+  // Let ring is Alt+I, read by its code, since I became Insert mode (Jeremy, 2026-11-14).
+  const LET_RING = { key: 'ˆ', altKey: true, code: 'KeyI' };
+  const cases = [['let ring', LET_RING, 'let-ring', 'lr'], ['P.M.', 'm', 'palm-mute', 'pm']] as const;
 
   it.each(cases)('%s on the note at the cursor: the line is picked, no note lit; Delete takes the line away', async (_, key, testId, prop) => {
     await open('\\ts (4 4)\n0.3.4 2.3.4 3.3.4 5.3.4 |');
@@ -279,15 +281,15 @@ describe('a let ring or P.M. line just added is picked (Jeremy, 2026-11-09)', ()
   it('the key again on the picked line takes it all away, and nothing is picked', async () => {
     await open('\\ts (4 4)\n0.3.4 2.3.4 3.3.4 5.3.4 |');
     act(() => editor().focus());
-    keys({ key: 'ArrowRight', shiftKey: true }, 'i', 'i');
+    keys({ key: 'ArrowRight', shiftKey: true }, LET_RING, LET_RING);
     expect(alphaTex()).toBe('0.3.4 2.3.4 3.3.4 5.3.4 |');
     expect(screen.queryByTestId('let-ring')).toBeNull();
   });
 
-  it('in note input mode I puts let ring on and picks nothing: the caret stays', async () => {
+  it('in note input mode Alt+I puts let ring on and picks nothing: the caret stays', async () => {
     await open('\\ts (4 4)\n0.3.4 2.3.4 3.3.4 5.3.4 |');
     act(() => editor().focus());
-    keys('n', 'i');
+    keys('n', LET_RING);
     expect(screen.queryAllByTestId('span-handle')).toHaveLength(0);
     expect(isLit(screen.getByTestId('let-ring'))).toBe(false);
   });
@@ -295,7 +297,7 @@ describe('a let ring or P.M. line just added is picked (Jeremy, 2026-11-09)', ()
   it('taking let ring off a note picks nothing', async () => {
     await open('\\ts (4 4)\n0.3{lr}.4 2.3.4 3.3.4 5.3.4 |');
     act(() => editor().focus());
-    keys('i');
+    keys(LET_RING);
     expect(alphaTex()).toBe('0.3.4 2.3.4 3.3.4 5.3.4 |');
     expect(screen.queryByTestId('let-ring')).toBeNull();
     keys('Delete');

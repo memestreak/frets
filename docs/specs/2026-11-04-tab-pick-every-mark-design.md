@@ -224,10 +224,10 @@ to other notes by dragging its body.
   column is selected, Let ring lights and no other tool does; Delete
   takes `lr` off every note of the run and the notes stay; Esc lets it
   go. The same for P.M.
-- I on the note at the cursor puts let ring on and picks the new line:
+- Alt+I (I until 2026-11-14, now Insert mode) on the note at the cursor puts let ring on and picks the new line:
   no note lit, two Handles, Delete takes the line away and leaves the
-  note; in note input mode I picks nothing. I on a two-column selection picks the whole line, so
-  Alt+Shift+→ makes it three columns. I again on the picked line takes
+  note; in note input mode Alt+I picks nothing. Alt+I on a two-column selection picks the whole line, so
+  Alt+Shift+→ makes it three columns. Alt+I again on the picked line takes
   it all away and picks nothing. The same for P.M. with M.
 - A press on a time signature picks it and opens no panel; Enter, a
   double-click and the menu's Edit open the panel; Delete on a later
