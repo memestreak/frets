@@ -155,7 +155,10 @@ write nothing over in Insert mode (Jeremy, 2026-11-15):
 A push moves Columns, so what sits on a Column moves with its notes:
 chord names, Text, Lyrics, dynamics and the marks on notes. Bar Marks
 (section, tempo, repeats, endings, double bar, key and time signature)
-stay on their bar, as the Insert key leaves them.
+stay on their bar, as the Insert key leaves them, but for a paste of whole
+bars at a bar line: it keeps its key, meter and tempo, the bars it slides
+on keep theirs and slide on with their labels
+(`2026-11-15-tab-paste-keeps-key-meter-tempo-design.md`).
 
 ### The example (the issue's bars 9 to 13, without the Anchor)
 

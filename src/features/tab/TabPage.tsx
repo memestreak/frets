@@ -15,7 +15,7 @@ import { pastesVoices, pasteVoices, sliceVoices, spansVoices, voiceRange, voiceS
 import { clipAction, type ClipAction, type PartAction } from './clipState';
 import { useArrangements } from './useArrangements';
 import { chordFromNotes, NO_NOTES, pickedNotes, writeChordFromNotes } from './chordFromNotes';
-import { clampCursor, columnAt, indexOf, sliceClip, coversWholeBars, deleteBars, deleteColumns, insertBar, insertPaste, isEmpty, noteAt, withRestsInEmptyBars, pasteOver, placeOf, selectedRange, START } from './editing';
+import { clampCursor, columnAt, indexOf, sliceClip, coversWholeBars, deleteBars, deleteColumns, insertBar, insertPaste, isEmpty, statedIn, type Stated, noteAt, withRestsInEmptyBars, pasteOver, placeOf, selectedRange, START } from './editing';
 import { isBarLine, type BarLineHit } from './barLines';
 import { beamLit, canBeamTarget, clearToRests, setBend, setOttava, setWhammy } from './noteEdits';
 import { applyTuplet, isProblem } from './tuplets';
@@ -735,7 +735,7 @@ export default function TabPage() {
    * Puts a clip in at the cursor, or at the selection's start: over the time there, as MuseScore pastes
    * (issue #238: bars stay full), or with `insert` in before it, as Insert paste and Arrangements…'s Insert do.
    */
-  const putAtCursor = (put: Clip, insert: boolean) => {
+  const putAtCursor = (put: Clip, insert: boolean, stated?: Stated) => {
     const at = selection ? { ...cursor, ...placeOf(clip, selectedRange(selection)[0]) } : cursor;
     // Several Voices: each goes into its own Voice, from the cursor's time (step 9, Q20).
     if (pastesVoices(put)) {
@@ -747,7 +747,7 @@ export default function TabPage() {
       setView('tab');
       return done;
     }
-    const made = (insert ? insertPaste : pasteOver)(clip, at, partOf(put));
+    const made = (insert ? insertPaste : pasteOver)(clip, at, partOf(put), stated);
     // In Insert mode a paste adds no bars of rests at the end, as an entry adds none (`withoutAddedRests`).
     const pasted = insert && insertMode ? { ...made, clip: withoutAddedRests(clip, made.clip) } : made;
     let done: boolean;
@@ -772,7 +772,8 @@ export default function TabPage() {
       return;
     }
     // A paste that would sound one string in two Voices is refused, and says so itself (step 9, Q10).
-    if (!putAtCursor(result.clip, insert)) return;
+    // What the copy says of its key, meter and tempo it keeps; what it doesn't say it takes from where it lands.
+    if (!putAtCursor(result.clip, insert, statedIn(text))) return;
     const lines = result.warnings.filter(line => !CLASH_WARNING.test(line) && !UNEVEN_WARNING.test(line));
     if (lines.length > 0) setNotice({ tone: 'info', lines });
   };

@@ -254,6 +254,20 @@ describe('TabPage: lengths, paste, Delete and cut in Insert mode', () => {
     expect(alphaTex().split('\n')[0]).toBe('r.4 5.1.4 5.1.4 7.1.4 |');
   });
 
+  it('a bar pasted before bar 1 keeps its key and tempo, and the Intro slides on with its music (2026-11-15)', async () => {
+    const song = '\\title "Song"\n\\ts (6 8)\n\\ks E \\tempo (72 "Slowly") \\section "Intro" 3.5.8 2.4.8 3.5.8 0.3.8 2.4.8 3.5.8 |\n2.5.4{d} 1.4.4{d} |';
+    renderAt(`#tab=${encodeURIComponent(song)}`);
+    await screen.findByRole('heading', { name: 'Song' }, SLOW);
+    act(() => editor().focus());
+    keys('i');
+    await paste('\\ts (6 8)\n\\ks E \\tempo (72 "Slowly") 3.5.8 2.4.8 3.5.8 0.3.8 2.4.8 3.5.8 |');
+    expect(alphaTex()).toBe([
+      '\\ks E \\tempo (72 "Slowly") 3.5.8 2.4.8 3.5.8 0.3.8 2.4.8 3.5.8 |',
+      '\\section "Intro" 3.5.8 2.4.8 3.5.8 0.3.8 2.4.8 3.5.8 |',
+      '2.5.4{d} 1.4.4{d} |',
+    ].join('\n'));
+  });
+
   it('paste puts the copy in before the picked note, as Insert paste does', async () => {
     await open('5.1.4 7.1.4 r.2 |');
     keys('ArrowRight', 'i');

@@ -235,9 +235,11 @@ and in its spec.
 
 - `editing.ts` — the cursor, selection and frets; edits that add, move or
   remove columns and bars; `normalize`, cut, copy, `pasteOver`,
-  `insertPaste`, `insertTime`, `clearToRests` —
+  `insertPaste`, `insertTime`, `clearToRests`; a copy's key, meter and
+  tempo, kept by a paste of whole bars (`withStates`) —
   `2026-10-25-tab-editing-design.md`,
-  `2026-10-31-tab-bars-stay-full-design.md`.
+  `2026-10-31-tab-bars-stay-full-design.md`,
+  `2026-11-15-tab-paste-keeps-key-meter-tempo-design.md`.
 - `timeline.ts` — the edits that change time, on a Voice as one stream
   with the bar lines taken out, laid back into bars by their time
   signatures: write over (`writeOver`, `writeSpan`, one string: `writeNote`), push (`pushTime`),
@@ -511,6 +513,10 @@ or saved. Standard tuning only.
 The principles every editing spec since step 1 follows, with Dorico,
 MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
 
+- `docs/specs/2026-11-15-tab-paste-keeps-key-meter-tempo-design.md`: a copy
+  says the key, meter and tempo it was in; a paste of whole bars at a bar
+  line keeps them, the music after keeps its own, a mark only where they
+  change; labels never pasted, and slid on by Insert paste
 - `docs/specs/2026-11-14-tab-insert-mode-design.md`: Insert mode, Dorico's
   toggle on I (Let ring to Alt+I): entries, longer notes, dots and paste
   push the music after them, Delete, shorter notes and cut pull it back, in
