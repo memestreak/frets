@@ -143,6 +143,10 @@ and in its spec.
   Shift+Space, Tab and Shift+Tab, and the text annotation popover (Shift+X) on Tab and
   Shift+Tab — `2026-11-10-tab-chord-popover-design.md`,
   `2026-11-14-tab-text-popover-design.md`.
+- `techniques.ts` — the technique popover's (Shift+P) words: each technique's
+  name, short forms and palette tool, the list for what is typed, and whether
+  the notes have it already (it only adds) —
+  `2026-11-15-tab-technique-popover-design.md`.
 - `chordSet.ts` — a track's Chord set: its `\chord` definitions
   (`Track.chords`, each a name and shape) and the names only typed over
   columns, each read by `readChordName` — `2026-11-05-tab-chord-set-design.md`;
@@ -379,7 +383,9 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 - `WordField.tsx` — the field over the tab for a chord name, text, section,
   dynamic, ending number or repeat count — `2026-10-26-tab-words-design.md`; the
   Text's is a textarea taking Shift+Enter and Ctrl/⌘+B —
-  `2026-11-09-tab-text-markdown-design.md`.
+  `2026-11-09-tab-text-markdown-design.md`; the technique popover's
+  (Shift+P), sharing the dynamic's list —
+  `2026-11-15-tab-technique-popover-design.md`.
 - `TempoPanel.tsx` — bpm, Tap (`src/lib/tapTempo.ts`) and a label —
   `2026-10-29-tab-tempo-button-design.md`.
 - `CreditsPanel.tsx` — title (needed), artist, words and music.
@@ -570,6 +576,10 @@ MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
   popover, Dorico's Shift+X: Tab and Shift+Tab set a text annotation and
   move it column to column, so a series of them is typed in one go; it sits
   over the line's text annotations and opens on an empty bar (issue #342)
+- `docs/specs/2026-11-15-tab-technique-popover-design.md`: the technique
+  popover, Dorico's Shift+P: a mark on notes typed by name or short form
+  ("lr", "pm", "wide vib"), from a list of matches, put where its palette
+  button puts it; it only adds (issue #501)
 - `docs/specs/2026-11-09-tab-palettes-design.md`: the rail gives way to one
   column listing every palette, several open at once, each folded from its
   header, moved by dragging it, its height dragged from the line under it;

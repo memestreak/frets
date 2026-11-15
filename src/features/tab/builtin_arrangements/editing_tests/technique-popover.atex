@@ -1,0 +1,13 @@
+\title "Shift+P adds a technique by name"
+\ts (4 4)
+r.4{txt "**1.** Let ring by name\nPress the 3 here, Shift+P, type lr, Enter"}
+  3.5.4 2.4.4 0.3.4 |
+r.4{txt "**2.** The list\nPress the 2 here, Shift+P, type harm, Down, Enter: a pinch harmonic"}
+  3.5.4 2.4.4 0.3.4 |
+r.4{txt "**3.** Over a selection\nPress the 3, Shift+Right twice, Shift+P, type pm, Enter: P.M. over all three"}
+  3.5.4 2.4.4 0.3.4 |
+r.4{txt "**4.** Only adds\nPress the 0, Shift+P, type vib, Enter: it stays. Then wide vib: it widens"}
+  3.5.4 2.4.4 0.3{v}.4 |
+r.4{txt "**5.** Not a technique\nPress the 3, Shift+P, type fog, Enter: a red ⚠. Esc twice: nothing added"}
+  3.5.4 2.4.4 0.3.4 |
+

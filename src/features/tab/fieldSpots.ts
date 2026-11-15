@@ -17,6 +17,8 @@ export function wordNow(clip: Part, { kind, bar, column }: { kind: FieldKind; ba
   if (kind === 'chord') return b?.columns[column]?.chord ?? '';
   if (kind === 'text') return b?.columns[column]?.text ?? '';
   if (kind === 'dynamic') return b?.columns[column]?.dynamic ?? '';
+  // The technique popover adds a mark by name; it starts empty, whatever the notes have (issue #501).
+  if (kind === 'technique') return '';
   return b?.section?.text ?? '';
 }
 
@@ -41,7 +43,9 @@ function lineBottom(rows: Rows, dynamic: number): number {
 /** Where a word's field goes over the drawing: above the spot the word is drawn, kept inside the tab's width. */
 export function wordSpot(layout: Layout, width: number, { kind, bar, column }: { kind: FieldKind; bar: number; column: number }): { x: number; y: number; up?: boolean } {
   // A number's field fits its caption and a small number box; the others are 180px wide (`.tab-word`).
-  const FIELD_WIDTH = kind === 'ending' || kind === 'repeat' ? 150 : 180;
+  const FIELD_WIDTH = kind === 'ending' || kind === 'repeat' ? 150 : kind === 'technique' ? 240 : 180;
+  // The technique popover sits where a dynamic's does: under the line beside its column, so the notes it marks stay in sight.
+  const beside = kind === 'dynamic' || kind === 'technique';
   const FIELD_HEIGHT = 64;
   for (let s = 0; s < layout.systems.length; s++) {
     const placed = layout.systems[s].bars.find(b => b.index === bar);
@@ -52,14 +56,14 @@ export function wordSpot(layout: Layout, width: number, { kind, bar, column }: {
     const text = spot?.column.text ? textRowOf(rows, spot) : rows.text;
     // A dynamic's field opens over its row; a new one's over where the row will be: under the staff, or over the tab.
     const dynamic = rows.dynamics ?? (rows.score ? rows.score.bottom + 20 : rows.staffTop - 20);
-    const row = { chord: rows.chords, text, section: rows.section, ending: rows.endings, repeat: rows.endings, dynamic }[kind];
+    const row = { chord: rows.chords, text, section: rows.section, ending: rows.endings, repeat: rows.endings, dynamic, technique: dynamic }[kind];
     // A section moved up clear of another opens its field over where it is drawn (issue #389).
     const raised = kind === 'section' ? placed.sectionTop * SECTION_LINE : 0;
     // A dynamic's field opens under the line, as Dorico's popover opens under the staff, clear of the column's
     // notes so they show lit while it is open (Jeremy, 2026-11-09); a word's over its row.
-    const y = kind === 'dynamic' ? top + lineBottom(rows, dynamic) + 12 : top + (row ?? rows.staffTop - 20) + raised - FIELD_HEIGHT;
+    const y = beside ? top + lineBottom(rows, dynamic) + 12 : top + (row ?? rows.staffTop - 20) + raised - FIELD_HEIGHT;
     // A repeat's count is written over the bar's end.
-    if (kind === 'dynamic') {
+    if (beside) {
       // Beside its column, not over it, so its list, opening up or down, leaves the column's notes in sight (lit).
       const at = placed.columns[column]?.x ?? placed.x0;
       const right = at + BESIDE + FIELD_WIDTH / 2;
