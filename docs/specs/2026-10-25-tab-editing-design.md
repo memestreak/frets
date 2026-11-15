@@ -42,7 +42,8 @@ readers pass keys through to it.
   nothing moves when the cursor or the selection does. The palette's
   buttons have a fixed size and only change their fill.
 - **Line under the clip:** when no import or paste has anything to say,
-  it names the bars that don't add up to the time signature.
+  it names the bars that don't add up to the time signature; for an
+  empty clip it is blank.
 
 ## Keys
 

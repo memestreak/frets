@@ -835,7 +835,6 @@ export default function TabPage() {
   });
 
   const name = clip.name.trim() || UNTITLED;
-  const empty = isEmpty(clip);
   // Bars that don't add up, and tuplets missing notes, said in a line under the tab (never a tint on it).
   // So are Voices the page doesn't draw yet, and two Voices on one string (`docs/specs/2026-11-03-tab-voices-design.md`).
   const unevenLine = [unevenMessage(clip), brokenTupletMessage(clip), ...stringClashes(clip)].filter(Boolean).join(' ');
@@ -1138,7 +1137,7 @@ export default function TabPage() {
         className={`m-0 min-h-[1.5em] ${notice?.tone === 'error' ? 'text-(--danger)' : 'text-(--ink-muted)'}`}
         role="status" data-testid="tab-notice"
       >
-        {notice ? notice.lines.join(' ') : empty ? 'Click the tab and type frets, or import or paste alphaTex or ASCII tab.' : unevenLine}
+        {notice ? notice.lines.join(' ') : unevenLine}
       </p>
 
       <ImportDialog
