@@ -937,7 +937,7 @@ body:has(.tab-stack-panel[data-dragging]) { cursor: grabbing; user-select: none;
 
 /* The advanced view under a reply (chat/CallDetails.tsx): folded sections in small monospace, each indented under its heading. */
 .tab-chat-calls, .tab-chat-fold { min-width: 0; font-size: 12px; line-height: 16px; color: var(--ink-muted); }
-.tab-chat-calls { margin-top: 2px; border-top: 1px solid var(--line); padding-top: 4px; }
+.tab-chat-calls { margin-bottom: 2px; border-bottom: 1px solid var(--line); padding-bottom: 4px; }
 .tab-chat-calls summary, .tab-chat-fold summary {
   display: flex; gap: 6px; align-items: baseline; padding: 1px 0; cursor: pointer; list-style: none; min-width: 0;
 }

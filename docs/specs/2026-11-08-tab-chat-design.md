@@ -73,7 +73,7 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
   model's words (as markdown: `docs/specs/2026-11-08-tab-chat-markdown-design.md`), then the model, the tokens in (and how many came from the
   cache) and out, and the cost OpenRouter reports, so models can be compared.
   With the advanced view on, a folded "Requests and responses" section
-  follows, holding every call's request and response
+  comes before all of these, holding every call's request and response
   (`docs/specs/2026-11-15-tab-chat-advanced-view-design.md`, issue #495).
 - **Changes apply at once, one Undo step per reply (Q3).** A reply's first
   change is an undo step; its later changes join that step, so one Undo

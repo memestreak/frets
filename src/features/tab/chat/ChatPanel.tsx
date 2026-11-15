@@ -116,9 +116,9 @@ export function ChatPanel({ prefs, onModel, onAdvanced, session, onOpenSettings 
         {entries.map((entry, i) => <ChatEntry key={i} entry={entry} onView={view} advanced={prefs.advanced} />)}
         {working && (
           <div className="tab-chat-reply">
+            {prefs.advanced && <CallDetails calls={working.calls} />}
             <Notes notes={working.notes} />
             <p className="tab-chat-working">Thinking…</p>
-            {prefs.advanced && <CallDetails calls={working.calls} />}
           </div>
         )}
       </div>
@@ -187,18 +187,18 @@ function ChatEntry({ entry, onView, advanced }: { entry: Entry; onView: OnView; 
   if (entry.kind === 'error') {
     return (
       <div className="tab-chat-reply">
+        {advanced && <CallDetails calls={entry.calls} />}
         <Notes notes={entry.notes} />
         <p className="tab-chat-error"><span aria-hidden="true">⚠ </span>{entry.text}</p>
-        {advanced && <CallDetails calls={entry.calls} />}
       </div>
     );
   }
   return (
     <div className="tab-chat-reply">
+      {advanced && <CallDetails calls={entry.calls} />}
       <Notes notes={entry.notes} />
       {entry.text && <ReplyMarkdown text={entry.text} />}
       <p className="tab-chat-meta">{usageLine(entry.model, entry.usage)}</p>
-      {advanced && <CallDetails calls={entry.calls} />}
     </div>
   );
 }

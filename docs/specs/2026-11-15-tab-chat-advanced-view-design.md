@@ -18,8 +18,8 @@ Chat panel (`2026-11-08-tab-chat-design.md`, issue #424).
   row ("Advanced view", lit when on, like the Chords panel's Hear toggle)
   changes the same saved value at once.
 - **Where (Q2).** With the view on, each reply, each error and the reply
-  still running ends with one folded section, "Requests and responses
-  (N calls)", under its cost line.
+  still running starts with one folded section, "Requests and responses
+  (N calls)", above its tool lines and its text (his call after trying it).
 - **Each call (Q3).** Inside it, one folded section per model call, headed
   "Call 2 · anthropic/claude-opus-5.5 · 1,200 in, 40 out · 1.2 s" (the model
   that answered, the call's own tokens, how long it took), or ending
@@ -95,8 +95,8 @@ Chat panel (`2026-11-08-tab-chat-design.md`, issue #424).
   a text body keeps the status and text; a call that never reached
   OpenRouter has no status; a 200 with no choice keeps status 200.
 - On the page: off at first; turned on after a reply, the toggle is pressed,
-  `advanced` is saved, the reply's "Requests and responses (2 calls)" is
-  folded and draws no call; unfolding shows Call 1 with its tokens; Call 2's
+  `advanced` is saved, the reply's "Requests and responses (2 calls)" comes
+  first in the reply, above its text, and is folded and draws no call; unfolding shows Call 1 with its tokens; Call 2's
   Messages (3) marks 2 "new"; Headers show `Bearer ••••test` and the panel
   never shows the key; Call 1's tool result shows the arrangement's bars;
   Settings' check box is on, and turning it off there hides the view and

@@ -439,6 +439,9 @@ describe('the Chat panel’s advanced view', () => {
     expect(JSON.parse(localStorage.getItem(CHAT_KEY)!).advanced).toBe(true);
     const calls = within(chatPanel()).getByText('Requests and responses (2 calls)').closest('details')!;
     expect(calls).not.toHaveAttribute('open');
+    // It comes first in the reply, above the tool lines and the text.
+    expect(calls.parentElement!.firstElementChild).toBe(calls);
+    expect(calls.compareDocumentPosition(within(chatPanel()).getByText('Two bars.')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     // Folded sections draw nothing inside them.
     expect(within(chatPanel()).queryByText(/^Call 1/)).toBeNull();
     unfold('Requests and responses (2 calls)');
