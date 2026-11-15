@@ -60,7 +60,7 @@ folder of their own, the built-ins as files in the repository.
   adds "New folder" with its name ready to type; **Duplicate** copies the
   open one (same title) and opens the copy.
 - **Built-in**: a folder per directory of `src/features/tab/builtin_arrangements/`
-  (`song_structure` shows as "Song structure"), each file a line titled by its
+  (`editing_tests` shows as "Editing tests"), each file a line titled by its
   `\title`. They open in place of the open arrangement as the examples did:
   never saved, `#example=<file name>` links, Back to my clip returns, and
   **Keep a copy** makes one, with its edits, a new arrangement.
@@ -68,10 +68,11 @@ folder of their own, the built-ins as files in the repository.
   file. All but `samples/` are round-trip tests (read with no warnings, every
   bar full, written back exactly); `samples/` is for trying things out.
   The topic folders replace the `example_` names Jeremy sketched:
-  `articulations`, `rhythm`, `song_structure`, `samples`. `sweet_child`
-  left the list on 2026-11-15 (Jeremy): its excerpts are test fixtures in
-  `src/__tests__/tab/fixtures/sweet_child/`, still read and written back as
-  built-ins are, but for the wah solo, now the sample Sweet Child Run.
+  `articulations`, `samples` (and later `editing_tests`, `how_to`).
+  `rhythm`, `song_structure` and `sweet_child` left the list on 2026-11-15
+  (Jeremy): they are test fixtures in `src/__tests__/tab/fixtures/`, still
+  read and written back as built-ins are, but for Sweet Child's wah solo,
+  now the sample Sweet Child Run.
 
 ## Storage
 

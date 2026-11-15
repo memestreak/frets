@@ -48,7 +48,7 @@ describe('share links', () => {
   });
 
   it('keeps a long arrangement short', async () => {
-    const song = readFileSync('src/features/tab/builtin_arrangements/rhythm/tuplets.atex', 'utf8').repeat(40);
+    const song = readFileSync('src/__tests__/tab/fixtures/rhythm/tuplets.atex', 'utf8').repeat(40);
     const link = await shareLink(ORIGIN, song);
     expect(link.length).toBeLessThan(encodeURIComponent(song).length / 5);
     expect(await readLink(new URL(link).hash)).toBe(song);

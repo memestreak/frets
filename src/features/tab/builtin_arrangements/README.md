@@ -2,7 +2,7 @@
 
 Every alphaTex (`.atex`) or ASCII tab (`.txt`) file in a folder here is listed
 on the Tab page under Arrangements… → Built-in, in a folder named after its
-directory (`song_structure` shows as "Song structure"), titled by its
+directory (`editing_tests` shows as "Editing tests"), titled by its
 `\title` (or `Title:` line), else by the file name. To add one, add a file;
 to add a folder, add a directory. Nothing else lists them.
 
@@ -27,8 +27,8 @@ these folders and answers `/tab/builtin.json`. `npm run dev` reads them on
 every request, so a new file shows the next time Arrangements… opens;
 `npm run build` writes the list once, as `out/tab/builtin.json`.
 
-The Sweet Child excerpts that were the `sweet_child/` folder are test
-fixtures now (`src/__tests__/tab/fixtures/sweet_child/`): the tests read them
+The folders `rhythm/`, `song_structure/` and `sweet_child/` are test
+fixtures now (`src/__tests__/tab/fixtures/`): the tests read them
 with these files, through `src/__tests__/tab/testArrangements.ts`, but the Tab
 page does not list them.
 

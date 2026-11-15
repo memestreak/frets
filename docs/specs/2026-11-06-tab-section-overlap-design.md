@@ -80,7 +80,7 @@ section as it is; the program that opens them lays it out.
 - `layoutText.ts`: `sectionBox`, used by `textBox` and `textAt`.
 - `TabClip.tsx`: draws each section on its row, a `<tspan>` per line.
 - `fieldSpots.ts`: the section's field opens over its row.
-- The built-in arrangement `song_structure/long-sections.atex` shows it.
+- The test arrangement `src/__tests__/tab/fixtures/song_structure/long-sections.atex` shows it.
 
 ## Tests
 
