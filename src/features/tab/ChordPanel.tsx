@@ -34,10 +34,9 @@ export function insertedColumn(column: Column, what: InsertWhat, name: string, f
   return { ...named, notes: frets.map(fret => (fret === null ? null : { fret })) };
 }
 
-/** A tile's badge: how many times its chord is used, 99+ past 99; none for an unused chord. */
-export function countBadge(uses: number): string | null {
-  if (uses <= 0) return null;
-  return uses > 99 ? '99+' : String(uses);
+/** A tile's badge: how many times its chord is used, 0 for an unused chord, 99+ past 99. */
+export function countBadge(uses: number): string {
+  return uses > 99 ? '99+' : String(Math.max(0, uses));
 }
 
 /** The Chords panel's Hear toggle, in its head by the title: picking a chord or a shape sounds it while on. */
@@ -308,8 +307,7 @@ export function ChordPanel({ clip, track, cursor, tabFocused, at, follow, onChan
       >
         {set.slice(shownPage * perPage, (shownPage + 1) * perPage).map(entry => {
           const diagram = thumb(entry.name, entry.def);
-          const count = countBadge(entry.uses);
-          const dot = count && <span className="chord-panel-count" aria-hidden="true">{count}</span>;
+          const dot = <span className="chord-panel-count" aria-hidden="true">{countBadge(entry.uses)}</span>;
           return (
             <button
               key={entry.name} type="button" className="chord-panel-tile" aria-pressed={entry.name === name}

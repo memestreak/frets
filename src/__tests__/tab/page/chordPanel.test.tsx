@@ -80,8 +80,8 @@ function changeChord(name: string) {
 }
 
 describe('a Chord set tile\'s dot', () => {
-  it('counts the uses: none for an unused chord, 99 spelled out, 99+ past it', () => {
-    expect(countBadge(0)).toBeNull();
+  it('counts the uses: 0 for an unused chord, 99 spelled out, 99+ past it', () => {
+    expect(countBadge(0)).toBe('0');
     expect(countBadge(1)).toBe('1');
     expect(countBadge(99)).toBe('99');
     expect(countBadge(100)).toBe('99+');
@@ -89,13 +89,13 @@ describe('a Chord set tile\'s dot', () => {
 });
 
 describe('the Chords panel', () => {
-  it('shows the Chord set as tiles: a used one says how often on hover and in its dot, an unused one has no dot or tint; no icons, no name field or shapes', async () => {
+  it('shows the Chord set as tiles: a used one says how often on hover and in its dot, an unused one says 0 in its dot, with no tint; no icons, no name field or shapes', async () => {
     await open();
     fireEvent.click(paletteHeader('Chords'));
     expect(tile('G')).toHaveAttribute('title', 'Used 1 time');
     expect(tile('G').querySelector('.chord-panel-count')).toHaveTextContent('1');
     expect(tile('C')).toHaveAttribute('title', 'Not used');
-    expect(tile('C').querySelector('.chord-panel-count')).toBeNull();
+    expect(tile('C').querySelector('.chord-panel-count')).toHaveTextContent('0');
     expect(tile('C')).not.toHaveAttribute('data-unused');
     expect(tile('G').querySelector('svg')).not.toBeNull();
     expect(inPanel().queryByRole('textbox')).toBeNull();

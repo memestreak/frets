@@ -795,7 +795,7 @@ body:has(.tab-stack-panel[data-dragging]) { cursor: grabbing; user-select: none;
 .chord-editor-title:focus-visible { outline: none; }
 .chord-panel-tile-empty { visibility: hidden; }
 /* A tile's use count: a solid dot on its diagram's bottom right corner, just over it, or
-   centred under the name of a chord with no shape; none for an unused chord. */
+   centred under the name of a chord with no shape; 0 for an unused chord. */
 .chord-panel-thumb { position: relative; }
 .chord-panel-thumb > .chord-panel-count { position: absolute; right: -8px; bottom: 1px; }
 .chord-panel-count {
