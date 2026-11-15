@@ -109,15 +109,15 @@ describe('the Chords panel', () => {
   });
 
   it('puts a shapeless chord\'s dot right under its name, with no room kept for a diagram', async () => {
-    const text = ['\\title "Riffs"', '\\ts (4 4)', '\\chord ("Riff A")', '3.1.4{ch "Riff A"} 3.1.4{ch "Riff A"} r.4 r.4 |'].join('\n');
+    const text = ['\\title "Chords"', '\\ts (4 4)', '\\chord ("Dm7")', '3.1.4{ch "Dm7"} 3.1.4{ch "Dm7"} r.4 r.4 |'].join('\n');
     renderAt(`#tab=${encodeURIComponent(text)}`);
     await screen.findByRole('heading', { name: 'Chords' }, SLOW);
     fireEvent.click(paletteHeader('Chords'));
-    expect(tile('Riff A')).toHaveAttribute('title', 'Used 2 times');
-    const parts = [...tile('Riff A').children].map(c => c.className);
+    expect(tile('Dm7')).toHaveAttribute('title', 'Used 2 times');
+    const parts = [...tile('Dm7').children].map(c => c.className);
     expect(parts).toEqual(['chord-panel-tile-name', 'chord-panel-count']);
-    expect(tile('Riff A').querySelector('.chord-panel-count')).toHaveTextContent('2');
-    expect(tile('Riff A').querySelector('.chord-panel-thumb')).toBeNull();
+    expect(tile('Dm7').querySelector('.chord-panel-count')).toHaveTextContent('2');
+    expect(tile('Dm7').querySelector('.chord-panel-thumb')).toBeNull();
   });
 
   it('shows eight tiles a page; the carets page through them, the count saying where, a short last page keeping its room', async () => {
@@ -591,9 +591,9 @@ describe('Add a chord (+)', () => {
     fireEvent.change(field, { target: { value: 'G' } });
     expect(add.getByText('“G” is already in the Chord set.')).toBeInTheDocument();
     expect(add.getByRole('button', { name: 'Add chord' })).toBeDisabled();
-    fireEvent.change(field, { target: { value: 'Riff A' } });
+    fireEvent.change(field, { target: { value: 'Dm7' } });
     fireEvent.click(add.getByRole('button', { name: 'Add chord' }));
-    expect(definitions()).toContain('\\chord ("Riff A")');
+    expect(definitions()).toContain('\\chord ("Dm7")');
   });
 
   it('with the cursor on a column of notes: offers their fingering first, picked, and names them', async () => {

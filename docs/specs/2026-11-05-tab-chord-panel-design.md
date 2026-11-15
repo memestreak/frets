@@ -105,7 +105,7 @@ and the Penpot page "Tab Chords panel (issue 400)".
     "These notes are" (or "The notes at the cursor are") offers up to four
     names for its notes, each filling Name.
   - Nothing changes until a button: **Add chord** (new) puts the chord in
-    the set with the shape (none for a name with no shape, "Riff A"),
+    the set with the shape (none for a name with no shape, "Dm7"),
     picks it for Insert, and leaves the columns as they were. **Save
     chord** (on a chord) renames the chord and gives it the shape, then
     goes back to Edit chord on it; with nothing changed it just goes back
@@ -279,7 +279,7 @@ Settled while building (my calls, open to change):
   x-x-0-2-3-0; Add chord defines `0 3 2 0 x x` as "Dsus2", unused and
   picked for Insert, no column changed; the editor closes. Another shape
   picked is the one added; Enter in Name adds. The magnifier: "Em"
-  Enter gives Root E, Type minor; "Hendrix" says "No chord". "Riff A"
+  Enter gives Root E, Type minor; "Hendrix" says "No chord". "Dm7"
   typed with no shape is added with none. "G" can't be added again.
 - With the cursor on the C column: the cursor's fingering x-3-2-0-1-0
   "at the cursor" is picked, Name's placeholder "C", "The notes at the
