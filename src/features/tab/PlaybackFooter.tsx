@@ -33,14 +33,15 @@ import type { MidiPort } from './midiOut';
 export const PLAYBACK_KEY = 'frets.tab.playback';
 import { useMock, type Mock } from '@/components/mocks/useMock';
 
-/** MOCK (issue #504): the clean electric guitars to try, as `?guitar=b`. */
+/** MOCK (issue #504): the clean electric guitars to try, as `?guitar=d`. */
 const CLEAN_ELECTRIC_MOCK: Mock = {
   param: 'guitar',
   label: 'Clean electric',
   options: [
     { value: 'a', label: 'a Today (Karoryfer)' },
-    { value: 'b', label: 'b MuseScore (MS Basic)' },
-    { value: 'c', label: 'c GeneralUser GS' },
+    { value: 'd', label: 'd Karoryfer Green' },
+    { value: 'e', label: 'e Karoryfer Black' },
+    { value: 'f', label: 'f FreePats Fender' },
   ],
 };
 

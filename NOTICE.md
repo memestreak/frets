@@ -72,20 +72,16 @@ samples under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Changed
 
 ## Clean electric guitar trials (issue #504; one stays once picked)
 
-`public/soundfont/trial-ms-basic-clean.sf3` is the Clean Guitar preset (program 27) of MuseScore 4's
-MS Basic soundfont (MuseScore_General v0.2, from
-[MuseScore v4.4.0](https://github.com/musescore/MuseScore/tree/v4.4.0/share/sound)), whose clean
-guitar is FluidR3 Mono's. FluidR3 (original version) by Frank Wen Copyright (c) 2000-02; Mono
-conversion (FluidR3Mono) by Michael Cowgill Copyright (c) 2014-17; adaptation for
-MuseScore_General.sf2 by S. Christian Collins Copyright (c) 2018-19; under the
-[MIT license](https://opensource.org/licenses/MIT). Changed: that one preset kept
-(`scripts/build-soundfonts.py extract`).
+`public/soundfont/trial-karoryfer-green.sf3` and `trial-karoryfer-black.sf3` are the green and the
+black guitar of [Black And Green Guitars](https://github.com/sfzinstruments/karoryfer.black-and-green-guitars)
+by Karoryfer Samples, dedicated to the public domain under
+[CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). Changed: one recording per semitone
+(mf, first round robin) kept, shortened with a fade and compressed (`scripts/build-soundfonts.py notes`).
 
-`public/soundfont/trial-generaluser-clean.sf3` is the Clean Guitar preset (program 27) of
-[GeneralUser GS](https://www.schristiancollins.com/generaluser.php) 2.0.3 by S. Christian Collins,
-1997-2025, under its License v2.0 ("feel free to use it in your software projects, and to modify
-the SoundFont bank"). Changed: that one preset kept, compressed as Ogg Vorbis
-(`scripts/build-soundfonts.py extract`).
+`public/soundfont/trial-freepats-fsbs.sf3` is [Electric Guitar FSBS (clean)](https://github.com/freepats/electric-guitar-FSBS-clean)
+from FreePats, a Fender guitar's bridge pickup through an amplifier, under
+[CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). Changed: the loud layer's first
+round robin kept, shortened with a fade and compressed (`scripts/build-soundfonts.py notes`).
 
 ## Notation symbols: Bravura, via VexFlow
 

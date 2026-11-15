@@ -83,8 +83,9 @@ export const OWN_FONTS: readonly { program: number; url: string; level: number }
  */
 export const CLEAN_ELECTRIC_TRIALS: Readonly<Record<string, { url: string; level: number }>> = {
   a: { url: '/soundfont/guitar-electric-karoryfer.sf3', level: 0.79 },
-  b: { url: '/soundfont/trial-ms-basic-clean.sf3', level: 0.57 },
-  c: { url: '/soundfont/trial-generaluser-clean.sf3', level: 1.66 },
+  d: { url: '/soundfont/trial-karoryfer-green.sf3', level: 1.03 },
+  e: { url: '/soundfont/trial-karoryfer-black.sf3', level: 0.76 },
+  f: { url: '/soundfont/trial-freepats-fsbs.sf3', level: 0.52 },
 };
 let cleanElectricTrial = 'a';
 

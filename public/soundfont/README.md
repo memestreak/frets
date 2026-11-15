@@ -29,9 +29,12 @@ as edited in tonejs-instruments (samples CC BY 3.0). Changed: compressed:
 
     uv run --no-project scripts/build-soundfonts.py notes <tonejs samples/guitar-electric> public/soundfont/guitar-electric-karoryfer.sf3 --name "Clean Electric Guitar" --copyright "Karoryfer Samples, via tonejs-instruments, CC BY 3.0" --quality 4 --rate 44100 --as-program 27
 
-`trial-ms-basic-clean.sf3` and `trial-generaluser-clean.sf3` are clean electric guitars on trial
-(issue #504), played as Clean Electric Guitar with `?guitar=b` or `?guitar=c` on the Tab page;
-the one picked replaces `guitar-electric-karoryfer.sf3`. See `NOTICE.md`. Built with:
+`trial-karoryfer-green.sf3`, `trial-karoryfer-black.sf3` and `trial-freepats-fsbs.sf3` are clean
+electric guitars on trial (issue #504), played as Clean Electric Guitar with `?guitar=d`, `e` or `f`
+on the Tab page; the one picked replaces `guitar-electric-karoryfer.sf3`. See `NOTICE.md`. Each is
+built from a folder of one recording per note, named by it (Karoryfer's `twang_e3_mf_rr1.wav` is E2;
+FreePats' `E2_s1_01.flac` is E2):
 
-    uv run --no-project scripts/build-soundfonts.py extract "MS Basic.sf3" public/soundfont/trial-ms-basic-clean.sf3 --program 27 --as-program 27
-    uv run --no-project scripts/build-soundfonts.py extract GeneralUser-GS.sf2 public/soundfont/trial-generaluser-clean.sf3 --program 27 --as-program 27 --quality 4
+    uv run --no-project scripts/build-soundfonts.py notes <green notes> public/soundfont/trial-karoryfer-green.sf3 --name "Clean Electric Green" --copyright "Karoryfer Samples, Black And Green Guitars, CC0" --quality 4 --rate 44100 --as-program 27
+    uv run --no-project scripts/build-soundfonts.py notes <black notes> public/soundfont/trial-karoryfer-black.sf3 --name "Clean Electric Black" --copyright "Karoryfer Samples, Black And Green Guitars, CC0" --quality 4 --rate 44100 --as-program 27
+    uv run --no-project scripts/build-soundfonts.py notes <FSBS notes> public/soundfont/trial-freepats-fsbs.sf3 --name "Electric Guitar FSBS" --copyright "FreePats, Electric Guitar FSBS (clean), CC0" --quality 4 --rate 44100 --as-program 27
