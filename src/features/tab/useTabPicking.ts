@@ -3,7 +3,7 @@ import type { Part } from './clip';
 import { removeBarLine, setBarKey, setBarTime, setBeatText, setChordName, setEnding, setSection, setTempo } from './barEdits';
 import { isBarLine } from './barLines';
 import { barSelection, columnAt, growSelection, indexOf, noteAt, placeOf, selectedRange, setFret, type Cursor, type Selection, type Target } from './editing';
-import { moveInTime, type TimeMove } from './timeMoves';
+import { moveInTime, shiftInTime, type TimeMove } from './timeMoves';
 import { elementsOf, stepElement } from './elements';
 import { chainStart, isChained } from './ties';
 import { PANEL_DROP, PANEL_LEAD } from './fieldSpots';
@@ -453,7 +453,8 @@ export function useTabPicking(editor: EditorState, { drawn, layout, hearNote, se
     const by = drag.cancelled || !step ? 0 : Math.round(drag.by / step) * step;
     const before = from.good;
     if (by === 0) from.good = null;
-    else from.good = moveInTime(from.clip, from.target, by, from.alone) ?? from.good;
+    // In Insert mode the music after it moves too (`shiftInTime`).
+    else from.good = (editor.insertMode ? shiftInTime(from.clip, from.target, by) : moveInTime(from.clip, from.target, by, from.alone)) ?? from.good;
     const shown = from.good;
     if (drag.done) {
       timeFrom.current = null;

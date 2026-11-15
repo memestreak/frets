@@ -216,9 +216,10 @@ and in its spec.
   `2026-11-14-tab-insert-mode-design.md`.
 - `timeMoves.ts` — the picked note (alone), chord or selection moved earlier or later
   by the grid, written over what it lands on (`moveInTime`, Alt+← → and a
-  sideways drag); `ownStep`, a note's own length as the step when the grid
-  isn't fixed; `timeAtX`, the time under the pointer —
-  `2026-11-13-tab-move-in-time-design.md`.
+  sideways drag); in Insert mode `shiftInTime`, which pushes or pulls the
+  music after it instead; `ownStep`, a note's own length as the step when
+  the grid isn't fixed; `timeAtX`, the time under the pointer —
+  `2026-11-13-tab-move-in-time-design.md`, `2026-11-14-tab-insert-mode-design.md`.
 - `rangeBox.ts` — the box round a selected run, and its Range handles:
   where they are and where a dragged end lands —
   `2026-11-05-tab-range-handles-design.md`.

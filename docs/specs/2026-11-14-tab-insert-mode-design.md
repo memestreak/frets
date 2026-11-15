@@ -92,8 +92,29 @@ What doesn't push, and goes in as in Overwrite:
   takes that note away, as in Overwrite.
 - **Inside a tuplet**, and with **Grace entry** on: no time can be put in a
   tuplet, and a grace note takes none.
-- Normal mode's ↑ ↓ (pitch), Alt+← → (moving in time) and the palette's
-  marks change no time, so they work as always.
+- Normal mode's ↑ ↓ (pitch) and the palette's marks change no time, so
+  they work as always.
+
+### Moving in time
+
+Alt+← → and a sideways drag (`2026-11-13-tab-move-in-time-design.md`)
+write nothing over in Insert mode (Jeremy, 2026-11-15):
+
+- **Later** (Alt+→, a drag right): a Gap of the step goes in before the
+  picked note, chord or selection, so it and all the music after it move
+  on in every Voice of the Track. With `5 7 5 7 |` and the first 5 picked,
+  Alt+→ gives `r.4 5 7 5 | 7 …`: nothing is lost.
+- **Earlier** (Alt+←, a drag left): the time before it is taken out,
+  pulling it and the music after it back, but only when that time is
+  quiet in every Voice (rests and Gaps, with no note sounding into it and
+  no mark on them). Over a note, or before the clip's start, nothing
+  moves, as a move that can't be made does today.
+- The whole Column moves, a note picked alone too, since the time is the
+  Track's. A rest alone, a grace note and a note in a tuplet don't move,
+  as in Overwrite; a push that would put a tuplet across a bar line is
+  refused.
+- As with Delete, a pull leaves the bars it empties at the end: Alt+→ then
+  Alt+← gives the music back, with a bar of rest after it.
 
 ### What pulls
 
@@ -202,6 +223,14 @@ overfull (P1).
 - Normal mode: = on a quarter pushes, − twice pulls back, . pushes a dot's
   worth; Shift and a digit's key pushes; a two-note selection made longer
   pushes by both notes' extra; the Overwrite results are as before.
+- Alt+→ on the first 5 of `5.1.4 7.1.4 5.1.4 7.1.4 |` twice over gives
+  `r.4 5.1.4 7.1.4 5.1.4 |`, `7.1.4 5.1.4 7.1.4 5.1.4 |`, `7.1.4 r.4 r.2 |`;
+  Alt+← brings it back (with `r.1 |` after it); out of Insert mode Alt+→
+  writes it over the 7 (`r.4 5.1.4 5.1.4 7.1.4 |`).
+- `shiftInTime`: later keeps the cursor and a selection on the same notes;
+  earlier over rests pulls back (an 8th: `r.4 r.8 5.1.8 -.1.8 7.1.4 r.8 |`),
+  and is refused over a note, another Voice's note or the clip's start; a
+  rest alone doesn't move.
 - Paste is Insert paste; Delete on a lone note pulls back and leaves a
   Gap at the end; Delete on one note of a chord takes only it; cut takes
   the time. Out of Insert mode Delete leaves rests as before.
@@ -228,6 +257,9 @@ overfull (P1).
   leaves after. `stepDuration`, `setValue`, `cycleDots` and `applyTool`
   pass it on (`isLengthTool`).
 - `ties.ts`: `tieOnInput` takes `insert`.
+- `timeMoves.ts`: `shiftInTime`, Insert mode's move (`pushTime` later,
+  `pullTime` earlier over quiet time), used by Alt+← → (`editorKeys.ts`)
+  and the drag (`useTabPicking.ts`).
 - `timeline.ts`: `withoutAddedRests`.
 - `TabPage.tsx`: paste is Insert paste in Insert mode, cut takes the time,
   the palette's length tools skip the every-Voice edit, `highlight.insert`,

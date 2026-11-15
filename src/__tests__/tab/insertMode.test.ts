@@ -10,6 +10,7 @@ import { partOf, WHOLE, type Part } from '@/features/tab/clip';
 import type { Cursor } from '@/features/tab/editing';
 import { deleteTakesTime } from '@/features/tab/insertMode';
 import { cycleDots, setValue, stepDuration } from '@/features/tab/noteEdits';
+import { shiftInTime } from '@/features/tab/timeMoves';
 import { pushTime, withoutAddedRests } from '@/features/tab/timeline';
 
 function clipOf(text: string): Part {
@@ -64,6 +65,34 @@ describe('Insert mode: length changes push and pull', () => {
   it('a push that would put a tuplet across a bar line changes nothing', () => {
     const clip = clipOf('5.1.8 r.8 7.1.4 r.4 7.1.8{tu 3} 7.1.8{tu 3} 7.1.8{tu 3} |');
     expect(bars(stepDuration(clip, only(at(0, 0, 0)), 1, true))).toBe(bars(clip));
+  });
+});
+
+describe('Insert mode: moving in time pushes and pulls (Alt+← →, a drag)', () => {
+  const Q = WHOLE / 4;
+  it('later: a Gap goes in before the note, which moves on with all the music after it, nothing written over', () => {
+    const clip = clipOf('5.1.4 7.1.4 5.1.4 7.1.4 |\n5.1.4 7.1.4 5.1.4 7.1.4 |');
+    const moved = shiftInTime(clip, only(at(0, 0, 0)), Q)!;
+    expect(bars(moved.clip)).toBe('r.4 5.1.4 7.1.4 5.1.4 |\n7.1.4 5.1.4 7.1.4 5.1.4 |\n7.1.4 r.4 r.2 |');
+    expect(moved.cursor).toEqual(at(0, 1, 0));
+  });
+  it('earlier: the rests before it are taken out, pulling it and the music after it back', () => {
+    const moved = shiftInTime(clipOf('r.4 5.1.4 7.1.4 r.4 |'), only(at(0, 1, 0)), -Q)!;
+    expect(bars(moved.clip)).toBe('5.1.4 7.1.4 r.2 |');
+    expect(moved.cursor).toEqual(at(0, 0, 0));
+    // By an 8th, split and tied by the meter.
+    expect(bars(shiftInTime(clipOf('r.2 5.1.4 7.1.4 |'), only(at(0, 1, 0)), -Q / 2)!.clip)).toBe('r.4 r.8 5.1.8 -.1.8 7.1.4 r.8 |');
+  });
+  it('earlier is refused over a note, over another Voice\'s note, and before the clip\'s start', () => {
+    expect(shiftInTime(clipOf('5.1.4 7.1.4 r.2 |'), only(at(0, 1, 0)), -Q)).toBeNull();
+    expect(shiftInTime(clipOf('\\voice r.4 5.1.4 7.1.4 r.4 \\voice 0.6.2 r.2 |'), only(at(0, 1, 0)), -Q)).toBeNull();
+    expect(shiftInTime(clipOf('5.1.4 7.1.4 r.2 |'), only(at(0, 0, 0)), -Q)).toBeNull();
+  });
+  it('a selection moves with the music after it and stays on the same notes; a rest alone doesn\'t move', () => {
+    const moved = shiftInTime(clipOf('5.1.8 7.1.8 9.1.4 r.2 |'), { cursor: at(0, 1, 0), selection: { anchor: 0, focus: 1 } }, Q)!;
+    expect(bars(moved.clip)).toBe('r.4 5.1.8 7.1.8 9.1.4 r.4 |');
+    expect(moved.selection).toEqual({ anchor: 1, focus: 2 });
+    expect(shiftInTime(clipOf('r.4 5.1.4 7.1.4 r.4 |'), only(at(0, 0, 0)), Q)).toBeNull();
   });
 });
 

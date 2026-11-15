@@ -243,6 +243,17 @@ describe('TabPage: lengths, paste, Delete and cut in Insert mode', () => {
     expect(alphaTex()).toBe('5.1.2 7.1.4 r.4 |');
   });
 
+  it('Alt+→ moves the note and the music after it a quarter later; Alt+← brings them back', async () => {
+    await open('5.1.4 7.1.4 5.1.4 7.1.4 |\n5.1.4 7.1.4 5.1.4 7.1.4 |');
+    keys('i', { key: 'ArrowRight', altKey: true });
+    expect(alphaTex()).toBe('r.4 5.1.4 7.1.4 5.1.4 |\n7.1.4 5.1.4 7.1.4 5.1.4 |\n7.1.4 r.4 r.2 |');
+    keys({ key: 'ArrowLeft', altKey: true });
+    expect(alphaTex()).toBe('5.1.4 7.1.4 5.1.4 7.1.4 |\n5.1.4 7.1.4 5.1.4 7.1.4 |\nr.1 |');
+    // Out of Insert mode, as before: the 5 is written over the 7.
+    keys('i', { key: 'ArrowRight', altKey: true });
+    expect(alphaTex().split('\n')[0]).toBe('r.4 5.1.4 5.1.4 7.1.4 |');
+  });
+
   it('paste puts the copy in before the picked note, as Insert paste does', async () => {
     await open('5.1.4 7.1.4 r.2 |');
     keys('ArrowRight', 'i');

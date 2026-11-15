@@ -20,7 +20,7 @@ import { movedPitch, moveNotes, moveToString, notesToMove, stringAtPitch, type T
 import { applyCyclingKey, toolForKey, type ToolId } from './tools';
 import { jumpCursor, jumpFocus, jumpForKey, type Lines } from './jumps';
 import { advance } from './grid';
-import { moveInTime, ownStep } from './timeMoves';
+import { moveInTime, ownStep, shiftInTime } from './timeMoves';
 import { digitOfCode, nextInChord, pitchAt, selectedNotes, stepFrets, valueForDigit } from './normalMode';
 import { noteInputModeKeyDown, toStaff, toTab } from './noteInputModeKeys';
 import { deleteTakesTime, restEditor, withRoom } from './insertMode';
@@ -194,8 +194,9 @@ function moveInTimeKey(editor: EditorKeys, step: 1 | -1) {
   if (noteInputMode || picked) return;
   const by = fixedGrid ? gridStep : ownStep(clip, target);
   if (!by) return;
-  // A note picked by itself moves alone; a chord picked whole (its Column) moves whole.
-  const moved = moveInTime(clip, target, step * by, !columnOnly);
+  // A note picked by itself moves alone; a chord picked whole (its Column) moves whole. In Insert mode the
+  // music after it moves too, and nothing is written over (`shiftInTime`).
+  const moved = editor.insertMode ? shiftInTime(clip, target, step * by) : moveInTime(clip, target, step * by, !columnOnly);
   if (!moved) return;
   commit(moved.clip, moved.cursor, moved.selection);
   editor.hearNote(moved.cursor);
