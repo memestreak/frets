@@ -12,7 +12,7 @@ import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { partOf } from '@/features/tab/clip';
 import { layoutClip, type Layout } from '@/features/tab/layout';
 import { textBox, type WordHit } from '@/features/tab/layoutText';
-import { CHORD_PANEL_KEY, countBadge, parseChordPanel } from '@/features/tab/ChordPanel';
+import { countBadge } from '@/features/tab/ChordPanel';
 import { setUpPage, renderAt, SLOW, editor, keys, alphaTexText } from './helpers';
 import { paletteHeader } from '../tool';
 
@@ -740,24 +740,13 @@ describe('Hear', () => {
   });
 });
 
-describe('folding the list', () => {
-  it('folds from its heading, kept across visits', async () => {
+describe('the Chord set\'s heading', () => {
+  it('is a plain heading that never folds, with + at its right', async () => {
     await open();
     fireEvent.click(paletteHeader('Chords'));
-    const heading = () => inPanel().getByRole('button', { name: 'Chord set' });
-    fireEvent.click(heading());
-    expect(heading()).toHaveAttribute('aria-expanded', 'false');
-    expect(inPanel().queryByRole('button', { name: /^G, / })).toBeNull();
-    // + stays in the heading, folded or not.
-    expect(inPanel().getByRole('button', { name: 'Add a chord' })).toBeInTheDocument();
-    expect(JSON.parse(localStorage.getItem(CHORD_PANEL_KEY)!)).toEqual({ folded: ['chords'] });
-    fireEvent.click(heading());
-    expect(JSON.parse(localStorage.getItem(CHORD_PANEL_KEY)!)).toEqual({ folded: [] });
-  });
-
-  it('reads what was kept, each id checked', () => {
-    expect(parseChordPanel(JSON.stringify({ folded: ['chords', 'shape', 3] }))).toEqual(['chords']);
-    expect(parseChordPanel('not json')).toEqual([]);
-    expect(parseChordPanel(null)).toEqual([]);
+    expect(list().getByRole('heading', { name: 'Chord set' })).toBeInTheDocument();
+    expect(list().queryByRole('button', { name: 'Chord set' })).toBeNull();
+    expect(list().getByRole('button', { name: 'Add a chord' })).toBeInTheDocument();
   });
 });
+

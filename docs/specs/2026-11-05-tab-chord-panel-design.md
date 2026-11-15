@@ -40,10 +40,10 @@ and the Penpot page "Tab Chords panel (issue 400)".
   double-click opens Edit chord; a right-click (or a long press, or
   Shift+F10) opens its menu: **Insert** (at the cursor, as the button),
   **Edit**, **Rename**, **Copy to new chord**, and **Delete** while no
-  column uses it. The section folds from its heading (a 16px chevron,
-  down while open), kept across visits in `frets.tab.chordPanel`
-  `{ folded }`, like the open panel, not a preference; the + to add a
-  chord sits at the heading's right, folded or not. Moving the cursor
+  column uses it. Its heading, "Chord set", is plain text that never
+  folds (Jeremy, 2026-11-15: it folded from a chevron, kept in
+  `frets.tab.chordPanel`; the palette itself folds), with the + to add a
+  chord at its right. Moving the cursor
   changes nothing in the panel but Insert's label (Jeremy, 2026-11-06).
 - **Insert's button**, under the tiles with Name | Notes | Both, says
   where it writes: "Insert at bar 3, beat 2" (¼ ½ ¾ for beats between),
@@ -199,7 +199,7 @@ Settled while building (my calls, open to change):
 - `playback.ts`: `shapeAlone`, `Player.hearShape`; `PlaybackFooter.tsx`:
   `hearShape`, and `hearChords` in the Playback settings; `tabSettings.tsx`
   lists it.
-- `ChordPanel.tsx`: the panel; `Fold`, `parseChordPanel`,
+- `ChordPanel.tsx`: the panel;
   `HearChordsToggle` (which `TabRail` shows in the panel's head through
   `chordsHead`), `insertedColumn`, `freeName` (the copy's "C 2"),
   `cursorPlace` (Insert's "bar 3, beat 2"); the tiles, pager and menu
@@ -308,7 +308,7 @@ Settled while building (my calls, open to change):
 - `parseLayout` reads `chords`.
 - `shapeAlone`: nothing for no strings; a quarter at 120 bpm, strummed
   down. `parsePlaybackSettings` reads `hearChords`, false by default.
-- The Chord set folds, + staying, kept; `parseChordPanel` drops ids it doesn't know.
+- The Chord set's heading is a heading, not a button, with + at its right.
 - Hear is off at first, in the panel's head; its toggle turns it on and
   saves `hearChords`.
 - An unused chord's menu Delete takes its definition out and leaves

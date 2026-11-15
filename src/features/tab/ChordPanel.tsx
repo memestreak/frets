@@ -10,7 +10,7 @@
  * + and Copy to new chord open the chord dialog (`ChordEditor`). Picking a chord only picks it; moving the
  * cursor changes nothing here. With its Hear toggle on, picking a chord or a shape sounds it.
  */
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { ShapeMenu, type MenuItem } from '@/components/chords/export/ShapeMenu';
 import { menuSpot, useMenuTrigger } from '@/components/chords/export/useMenuTrigger';
 import { ChordDiagram } from '@/components/chords/ChordDiagram';
@@ -38,69 +38,6 @@ export function insertedColumn(column: Column, what: InsertWhat, name: string, f
 export function countBadge(uses: number): string | null {
   if (uses <= 0) return null;
   return uses > 99 ? '99+' : String(uses);
-}
-
-/** The panel's sections that fold: the track's chords (more may come). */
-type FoldId = 'chords';
-const FOLD_IDS: readonly FoldId[] = ['chords'];
-/** Which of the Chords panel's sections are folded, kept across visits like the open panel (not a preference). */
-export const CHORD_PANEL_KEY = 'frets.tab.chordPanel';
-
-/** The sections `frets.tab.chordPanel` keeps folded; none for anything unreadable. */
-export function parseChordPanel(text: string | null): FoldId[] {
-  try {
-    const saved: unknown = JSON.parse(text ?? 'null');
-    if (saved && typeof saved === 'object' && 'folded' in saved && Array.isArray(saved.folded)) {
-      return FOLD_IDS.filter(id => (saved.folded as unknown[]).includes(id));
-    }
-  } catch {
-    // Unreadable: all open.
-  }
-  return [];
-}
-
-/** The folded sections and a toggle for one, kept in `frets.tab.chordPanel`. */
-function useFolded(): [readonly FoldId[], (id: FoldId) => void] {
-  const [folded, setFolded] = useState<readonly FoldId[]>([]);
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- what is kept exists only in the browser.
-  useEffect(() => setFolded(parseChordPanel(localStorage.getItem(CHORD_PANEL_KEY))), []);
-  const fold = (id: FoldId) => {
-    const next = folded.includes(id) ? folded.filter(f => f !== id) : [...folded, id];
-    setFolded(next);
-    try {
-      localStorage.setItem(CHORD_PANEL_KEY, JSON.stringify({ folded: next }));
-    } catch {
-      // Not kept: it still folds now.
-    }
-  };
-  return [folded, fold];
-}
-
-/** A section of the panel that folds from its heading, each on its own; `extra` sits at the heading's right, folded or not. */
-function Fold({ id, title, label = title, folded, onFold, extra, children }: {
-  id: FoldId; title: string; label?: string; folded: readonly FoldId[]; onFold: (id: FoldId) => void; extra?: ReactNode; children: ReactNode;
-}) {
-  const open = !folded.includes(id);
-  return (
-    <section className="chord-panel-section" aria-label={label}>
-      <div className="chord-panel-row">
-        <h3 className="chord-panel-label">
-          <button
-            type="button" className="chord-panel-fold" aria-expanded={open}
-            onMouseDown={e => e.preventDefault()} onClick={() => onFold(id)}
-          >
-            {/* A chevron: down while open, right while folded. */}
-            <svg className="chord-panel-chevron" width={16} height={16} viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.8} data-open={open || undefined}>
-              <path d="M6 3.5L10.5 8 6 12.5" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            {title}
-          </button>
-        </h3>
-        {extra}
-      </div>
-      {open && children}
-    </section>
-  );
 }
 
 /** The Chords panel's Hear toggle, in its head by the title: picking a chord or a shape sounds it while on. */
@@ -209,7 +146,6 @@ export function ChordPanel({ clip, track, cursor, tabFocused, at, follow, onChan
     onDone();
   };
   const [what, setWhat] = useState<InsertWhat>('both');
-  const [folded, fold] = useFolded();
   const [menu, setMenu] = useState<{ x: number; y: number; name: string } | null>(null);
   const menuTrigger = useMenuTrigger();
   // A name's Edit picks that chord and opens its chord editor.
@@ -404,9 +340,13 @@ export function ChordPanel({ clip, track, cursor, tabFocused, at, follow, onChan
 
   return (
     <div className="chord-panel" ref={panelRef}>
-      <Fold id="chords" title="Chord set" folded={folded} onFold={fold} extra={addButton}>
+      <section className="chord-panel-section" aria-label="Chord set">
+        <div className="chord-panel-row">
+          <h3 className="chord-panel-label">Chord set</h3>
+          {addButton}
+        </div>
         {set.length === 0 ? <p className="chord-panel-note">None yet. Press + to add one.</p> : chords}
-      </Fold>
+      </section>
 
       {editorOpen && (
         <section className="chord-panel-section" aria-label="Chord editor">
