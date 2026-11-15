@@ -1,0 +1,16 @@
+// frets:fx on; distortion on drive=0.05 tone=0.5; reverb on amount=0.2 decay=1.2
+\title "Light drive"
+\instrument electricguitarclean
+\ts (4 4)
+\tempo 84
+(3.6 2.5 0.4 0.3 0.2 3.1).2{ch "G" txt "**1.** Listen\nSpace plays. Drive is at 5%: clean, with a little edge on the chords"}
+  0.3.8 2.2.8 3.1.8 2.2.8 |
+(3.5 2.4 0.3 1.2 0.1).2{ch "C" txt "**2.** Clean\nFX, then drag Drive down to 0%: the plain clean sound, no jump"}
+  0.3.8 1.2.8 0.1.8 1.2.8 |
+(0.4 2.3 3.2 2.1).2{ch "D" txt "**3.** Turn it up\nDrag Drive up slowly while it plays: the edge grows smoothly, with no clicks"}
+  2.3.8 3.2.8 2.1.8 3.2.8 |
+(0.6 2.5 2.4 0.3 0.2 0.1).2{ch "Em" txt "**4.** Crunch\nFrom about 31% up it sounds as Drive did from its lowest before"}
+  0.4.8 0.3.8 0.2.8 0.3.8 |
+5.4.8{txt "**5.** A single line\nTry 0%, 10% and 20% on this line too"} 7.4.8 5.3.8 7.3.8 5.2.8 8.2.8 5.1.8 8.1.8 |
+7.1.8 5.1.8 8.2.8 5.2.8 7.3.8 5.3.8 7.4.8 5.4.8 |
+(3.6 2.5 0.4 0.3 0.2 3.1).1{ch "G" txt "**6.** Tone\nAt Drive 1% Tone barely changes the sound; it takes over as Drive nears 31%"} |

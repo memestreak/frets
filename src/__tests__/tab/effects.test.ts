@@ -1,5 +1,5 @@
 import {
-  CURVE_SLOPE, DEFAULT_FX, heardEffects, DECAY_SECONDS, distortionCurve, driveGain, driveMakeup, NO_EFFECTS, plateImpulse, reverbWet, secondStage, toneFrequency,
+  ampColour, CURVE_SLOPE, DEFAULT_FX, heardEffects, DECAY_SECONDS, distortionCurve, driveGain, driveMakeup, NO_EFFECTS, plateImpulse, reverbWet, secondStage, toneFrequency,
 } from '@/features/tab/effects';
 
 // The playback effects' numbers (issue #199): what each knob does, and the plate's ring.
@@ -36,16 +36,41 @@ describe('the playback effects', () => {
     expect(curve[0]).not.toBeCloseTo(-curve[curve.length - 1], 2);
   });
 
-  it('drive the shaper from 6 dB to 46 dB, evenly in dB, and bring the level back down', () => {
-    expect(20 * Math.log10(driveGain(0))).toBeCloseTo(6);
-    expect(20 * Math.log10(driveGain(0.5))).toBeCloseTo(26);
+  /** The Drive knob's position for a gain into the first shaper, in dB. */
+  const at = (dB: number) => (dB + 12) / 58;
+
+  it('drive the shaper from -12 dB to 46 dB, evenly in dB, with the old range above 6 dB', () => {
+    expect(20 * Math.log10(driveGain(0))).toBeCloseTo(-12);
+    expect(20 * Math.log10(driveGain(0.5))).toBeCloseTo(17);
     expect(20 * Math.log10(driveGain(1))).toBeCloseTo(46);
-    expect(driveMakeup(1)).toBeLessThan(driveMakeup(0.1));
+    // Where Drive used to start, and its old halfway, are now about 31% and 66%.
+    expect(at(6)).toBeCloseTo(0.31, 2);
+    expect(at(26)).toBeCloseTo(0.66, 2);
   });
 
-  it('add a second stage from halfway up Drive, left alone below that', () => {
+  it('keep the level about the clean one: undoing the drive at the lowest, squashed in the distorted range', () => {
+    // At the lowest the shaper is a straight line of slope CURVE_SLOPE, so the level undoes it.
+    expect(driveGain(0) * CURVE_SLOPE * driveMakeup(0)).toBeCloseTo(1);
+    // From the old lowest up, the old level.
+    expect(driveMakeup(at(6))).toBeCloseTo(0.19);
+    expect(driveMakeup(1)).toBeCloseTo(0.19 / 2.2);
+    // Falling all the way, with no step.
+    for (let drive = 0.01; drive <= 1; drive += 0.01) {
+      expect(driveMakeup(drive)).toBeLessThan(driveMakeup(drive - 0.01));
+      expect(driveMakeup(drive) / driveMakeup(drive - 0.01)).toBeGreaterThan(10 ** (-1.5 / 20));
+    }
+  });
+
+  it('fade the amp\'s colour in from none at the lowest Drive to full where Drive used to start', () => {
+    expect(ampColour(0)).toBe(0);
+    expect(ampColour(at(-3))).toBeCloseTo(0.5);
+    expect(ampColour(at(6))).toBeCloseTo(1);
+    expect(ampColour(1)).toBe(1);
+  });
+
+  it('add a second stage from halfway up the old range, left alone below that', () => {
     // Below halfway its push and its level out undo each other where the curve is a straight line.
-    for (const drive of [0, 0.25, 0.5]) {
+    for (const drive of [0, 0.25, 0.5, at(26)]) {
       const { gain, back } = secondStage(drive);
       expect(gain * CURVE_SLOPE * back).toBeCloseTo(1);
       expect(gain * CURVE_SLOPE).toBeLessThan(0.3);
@@ -53,7 +78,7 @@ describe('the playback effects', () => {
     // At full it pushes hard into the second shaper, 12 dB.
     expect(20 * Math.log10(secondStage(1).gain)).toBeCloseTo(12);
     expect(secondStage(1).back).toBe(1);
-    expect(secondStage(0.75).gain).toBeGreaterThan(secondStage(0.5).gain);
+    expect(secondStage(0.85).gain).toBeGreaterThan(secondStage(at(26) + 0.01).gain);
     // The curve's slope at silence, measured.
     const curve = distortionCurve();
     const mid = (curve.length - 1) / 2;

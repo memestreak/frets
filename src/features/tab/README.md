@@ -771,6 +771,8 @@ MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
   tuning drawn in the score's head
 - `docs/specs/2026-10-28-tab-playback-effects-design.md`: distortion and plate
   reverb on playback
+- `docs/specs/2026-11-15-tab-light-drive-design.md`: Drive reaches down to
+  a clean sound with a few harmonics
 - `docs/specs/2026-10-28-tab-pinned-playback-design.md`: the playback controls
   stay in sight while scrolling
 - `docs/specs/2026-11-14-tab-metronome-parity-design.md`: the metronome's

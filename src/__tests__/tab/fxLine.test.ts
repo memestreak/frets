@@ -30,7 +30,7 @@ function clipOf(text: string): Part {
 describe('the FX line', () => {
   it('writes the FX button, then each effect with its switch and settings', () => {
     expect(fxLine(FX)).toBe(LINE);
-    expect(fxLine(DEFAULT_FX)).toBe('// frets:fx off; distortion on drive=0.5 tone=0.5; reverb on amount=0.3 decay=1.5');
+    expect(fxLine(DEFAULT_FX)).toBe('// frets:fx off; distortion on drive=0.66 tone=0.5; reverb on amount=0.3 decay=1.5');
   });
 
   it('writes settings to two decimal places', () => {
@@ -83,7 +83,7 @@ describe('each track\'s FX', () => {
   const TWO = (first: string, second: string) =>
     `\\title "Duo"\n\\track "Lead"\n${first}\\ts (4 4)\n5.6.4 7.6.4 r.2 |\n\\track "Rhythm"\n${second}3.6.2 r.2 |\n`;
   const OTHER: FxSettings = { ...DEFAULT_FX, on: true, reverbOn: false };
-  const OTHER_LINE = '// frets:fx on; distortion on drive=0.5 tone=0.5; reverb off amount=0.3 decay=1.5';
+  const OTHER_LINE = '// frets:fx on; distortion on drive=0.66 tone=0.5; reverb off amount=0.3 decay=1.5';
 
   it('reads the line under each track\'s \\track as that track\'s, and writes it back there', () => {
     const text = TWO(`${LINE}\n`, `${OTHER_LINE}\n`);
