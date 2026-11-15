@@ -289,14 +289,15 @@ export function WordField({ kind, initial, x, y, up = false, size = null, onResi
           onMouseDown={e => e.preventDefault()}
           onKeyDown={e => { e.stopPropagation(); if (e.key === 'Escape') setListOpen(false); }}
           onClick={e => {
-            const picked = (e.target as HTMLElement).closest<HTMLElement>('[data-choice]')?.dataset.choice;
+            const option = (e.target as HTMLElement).closest<HTMLElement>('[role="option"]');
+            const picked = option?.dataset.dynamic ?? option?.dataset.technique;
             if (picked) finish(picked, true);
           }}
         >
           {choices.map((d, i) => (
             <div
               key={d} id={`${listId}-${i}`} ref={i === active ? activeRef : undefined} role="option" aria-selected={i === active}
-              tabIndex={-1} data-choice={d} className="tab-word-option"
+              tabIndex={-1} {...(kind === 'dynamic' ? { 'data-dynamic': d } : { 'data-technique': d })} className="tab-word-option"
               onMouseMove={() => { if (i !== active) setActive(i); }}
             >
               {kind === 'dynamic' ? (
