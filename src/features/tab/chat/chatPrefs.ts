@@ -1,7 +1,7 @@
 /**
  * The Chat panel's Settings section, Tab › Chat (`docs/specs/2026-11-08-tab-chat-design.md`): the
- * OpenRouter key the page calls models with, the model it calls, and the system prompt's two editable
- * parts (`docs/specs/2026-11-09-tab-chat-prompt-design.md`, issue #426). Saved on this device only,
+ * OpenRouter key the page calls models with, the model it calls, the system prompt's two editable
+ * parts (`docs/specs/2026-11-09-tab-chat-prompt-design.md`, issue #426) and the advanced view (issue #495). Saved on this device only,
  * under `frets.tab.chat`; the key never goes into a link.
  */
 
@@ -36,9 +36,11 @@ export interface ChatPrefs {
   instructions: string | null;
   /** The viewer's own prompt, sent last, after the agent guide (Q3); '' for none. */
   custom: string;
+  /** The advanced view: each reply's requests and responses shown under it, folded (issue #495). */
+  advanced: boolean;
 }
 
-export const DEFAULT_CHAT: ChatPrefs = { apiKey: '', model: DEFAULT_MODEL, instructions: null, custom: '' };
+export const DEFAULT_CHAT: ChatPrefs = { apiKey: '', model: DEFAULT_MODEL, instructions: null, custom: '', advanced: false };
 
 /** The instructions sent: the viewer's, or the default. */
 export function instructionsOf(prefs: Pick<ChatPrefs, 'instructions'>): string {
@@ -60,5 +62,6 @@ export function parseChatPrefs(raw: unknown): ChatPrefs {
   const model = typeof saved.model === 'string' && saved.model.trim() ? saved.model.trim() : DEFAULT_CHAT.model;
   const instructions = typeof saved.instructions === 'string' ? keptInstructions(saved.instructions) : DEFAULT_CHAT.instructions;
   const custom = typeof saved.custom === 'string' ? saved.custom : DEFAULT_CHAT.custom;
-  return { apiKey, model, instructions, custom };
+  const advanced = typeof saved.advanced === 'boolean' ? saved.advanced : DEFAULT_CHAT.advanced;
+  return { apiKey, model, instructions, custom, advanced };
 }

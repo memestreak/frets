@@ -923,6 +923,44 @@ body:has(.tab-stack-panel[data-dragging]) { cursor: grabbing; user-select: none;
   .tab-chat-list { max-height: 50vh; }
 }
 /* The Chat panel's Model field: a list of presets and models under it, all shown until the viewer types. */
+/* The Model field and the advanced view's toggle beside it (issue #495), lit like the Chords panel's Hear toggle. */
+.tab-chat-model-row { display: flex; align-items: center; gap: 4px; }
+.tab-chat-model-row .tab-chat-picker { flex: 1; min-width: 0; }
+.tab-chat-advanced {
+  flex: none; display: grid; place-items: center; width: 28px; height: 28px; padding: 0;
+  color: var(--ink-muted); background: none; border: 1px solid transparent; border-radius: var(--radius-sm); cursor: pointer;
+}
+.tab-chat-advanced:hover { color: var(--ink); background: var(--surface-sunken); }
+.tab-chat-advanced[aria-pressed="true"] { color: var(--ink); background: var(--select-soft); border-color: var(--line-strong); }
+.tab-chat-advanced:focus-visible { outline: none; }
+.tab-chat-advanced svg { width: 18px; height: 18px; }
+
+/* The advanced view under a reply (chat/CallDetails.tsx): folded sections in small monospace, each indented under its heading. */
+.tab-chat-calls, .tab-chat-fold { min-width: 0; font-size: 12px; line-height: 16px; color: var(--ink-muted); }
+.tab-chat-calls { margin-top: 2px; border-top: 1px solid var(--line); padding-top: 4px; }
+.tab-chat-calls summary, .tab-chat-fold summary {
+  display: flex; gap: 6px; align-items: baseline; padding: 1px 0; cursor: pointer; list-style: none; min-width: 0;
+}
+.tab-chat-calls summary::-webkit-details-marker, .tab-chat-fold summary::-webkit-details-marker { display: none; }
+.tab-chat-calls summary::before, .tab-chat-fold summary::before { content: '▸'; flex: none; width: 10px; color: var(--ink-muted); }
+.tab-chat-calls[open] > summary::before, .tab-chat-fold[open] > summary::before { content: '▾'; }
+.tab-chat-calls summary:hover, .tab-chat-fold summary:hover { color: var(--ink); }
+.tab-chat-fold-title { min-width: 0; overflow-wrap: anywhere; }
+.tab-chat-fold[data-failed] > summary { color: var(--danger); }
+.tab-chat-new {
+  flex: none; padding: 0 4px; border-radius: var(--radius-sm); background: var(--surface-sunken);
+  font-size: 10px; line-height: 14px; color: var(--ink);
+}
+.tab-chat-fold-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; padding: 2px 0 4px 12px; }
+.tab-chat-field, .tab-chat-field-text { margin: 0; overflow-wrap: anywhere; color: var(--ink); }
+.tab-chat-field span { color: var(--ink-muted); }
+.tab-chat-field-text[data-failed] { color: var(--danger); }
+.tab-chat-pre {
+  margin: 0; padding: 4px 6px; max-height: 320px; overflow: auto; border-radius: var(--radius-sm);
+  background: var(--surface-sunken); color: var(--ink); font: 11.5px/16px var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.tab-chat-raw-actions { display: flex; justify-content: flex-end; }
+
 .tab-chat-picker { position: relative; }
 .tab-chat-picker .input { width: 100%; padding-right: 28px; }
 .tab-chat-picker-toggle {

@@ -5,12 +5,14 @@
  * the open arrangement, or ask it to change it. The page calls OpenRouter itself with the viewer's key
  * (Settings › Tab › Chat). The conversation is the page's (`useChatSession`), so it lasts for this visit
  * though the panel closes (issue #442). Each reply's changes are applied at once, and one Undo takes them all back.
- * Images pasted into the message go with the ask, for the model to transcribe (issue #465).
+ * Images pasted into the message go with the ask, for the model to transcribe (issue #465). The advanced
+ * view shows, under each reply, every request it sent and every response it got (issue #495).
  */
 import { useEffect, useRef, useState, type ClipboardEvent, type KeyboardEvent } from 'react';
 import { Modal } from '@/components/Modal';
 import { ModelPicker } from './ModelPicker';
 import { ReplyMarkdown } from './ReplyMarkdown';
+import { CallDetails } from './CallDetails';
 import { fetchPresets, fetchToolModels, knownBlind, type ModelInfo, type Preset, type Usage } from './openRouter';
 import { imageFiles, type ChatImage } from './images';
 import type { ChatPrefs } from './chatPrefs';
@@ -19,13 +21,15 @@ import type { ChatSession, Entry, Note } from './useChatSession';
 export interface ChatPanelProps {
   prefs: ChatPrefs;
   onModel: (model: string) => void;
+  /** Turns the advanced view on or off: the same saved value as its check box in Settings › Tab › Chat. */
+  onAdvanced: (on: boolean) => void;
   /** The conversation, kept by the page (`useChatSession`). */
   session: ChatSession;
   /** Opens Settings at Tab › Chat. */
   onOpenSettings: () => void;
 }
 
-export function ChatPanel({ prefs, onModel, session, onOpenSettings }: ChatPanelProps) {
+export function ChatPanel({ prefs, onModel, onAdvanced, session, onOpenSettings }: ChatPanelProps) {
   const { entries, working, draft, setDraft, images, addImages, removeImage, send, stop, clear } = session;
   const [models, setModels] = useState<ModelInfo[]>([]);
   /** The image shown full size, with its label. */
@@ -83,7 +87,18 @@ export function ChatPanel({ prefs, onModel, session, onOpenSettings }: ChatPanel
     <div className="tab-chat">
       <div className="tab-chat-model">
         <span aria-hidden="true">Model</span>
-        <ModelPicker value={prefs.model} onChange={onModel} presets={presets} models={models.map(m => m.id)} disabled={!!working} />
+        <div className="tab-chat-model-row">
+          <ModelPicker value={prefs.model} onChange={onModel} presets={presets} models={models.map(m => m.id)} disabled={!!working} />
+          <button
+            type="button" className="tab-chat-advanced" aria-pressed={prefs.advanced}
+            aria-label="Advanced view" title="Advanced view: show each request and response under its reply"
+            onMouseDown={e => e.preventDefault()} onClick={() => onAdvanced(!prefs.advanced)}
+          >
+            <svg viewBox="0 0 18 18" aria-hidden="true">
+              <path d="M6.5 3.5c-1.5 0-2 .8-2 2v1.8c0 .9-.5 1.5-1.5 1.7 1 .2 1.5.8 1.5 1.7v1.8c0 1.2.5 2 2 2M11.5 3.5c1.5 0 2 .8 2 2v1.8c0 .9.5 1.5 1.5 1.7-1 .2-1.5.8-1.5 1.7v1.8c0 1.2-.5 2-2 2" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </div>
       </div>
       {!prefs.apiKey && (
         <p className="tab-chat-hint">
@@ -98,11 +113,12 @@ export function ChatPanel({ prefs, onModel, session, onOpenSettings }: ChatPanel
             <button type="button" className="tab-chat-link" onClick={onOpenSettings}>More settings</button>
           </p>
         )}
-        {entries.map((entry, i) => <ChatEntry key={i} entry={entry} onView={view} />)}
+        {entries.map((entry, i) => <ChatEntry key={i} entry={entry} onView={view} advanced={prefs.advanced} />)}
         {working && (
           <div className="tab-chat-reply">
             <Notes notes={working.notes} />
             <p className="tab-chat-working">Thinking…</p>
+            {prefs.advanced && <CallDetails calls={working.calls} />}
           </div>
         )}
       </div>
@@ -155,7 +171,7 @@ export function ChatPanel({ prefs, onModel, session, onOpenSettings }: ChatPanel
 
 type OnView = (image: ChatImage, label: string) => void;
 
-function ChatEntry({ entry, onView }: { entry: Entry; onView: OnView }) {
+function ChatEntry({ entry, onView, advanced }: { entry: Entry; onView: OnView; advanced: boolean }) {
   if (entry.kind === 'ask') {
     return (
       <div className="tab-chat-ask">
@@ -173,6 +189,7 @@ function ChatEntry({ entry, onView }: { entry: Entry; onView: OnView }) {
       <div className="tab-chat-reply">
         <Notes notes={entry.notes} />
         <p className="tab-chat-error"><span aria-hidden="true">⚠ </span>{entry.text}</p>
+        {advanced && <CallDetails calls={entry.calls} />}
       </div>
     );
   }
@@ -181,6 +198,7 @@ function ChatEntry({ entry, onView }: { entry: Entry; onView: OnView }) {
       <Notes notes={entry.notes} />
       {entry.text && <ReplyMarkdown text={entry.text} />}
       <p className="tab-chat-meta">{usageLine(entry.model, entry.usage)}</p>
+      {advanced && <CallDetails calls={entry.calls} />}
     </div>
   );
 }

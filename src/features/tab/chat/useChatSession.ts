@@ -12,7 +12,7 @@ import type { Clip } from '../clip';
 import { arrangementNow, type PageSpot } from './arrangementTools';
 import { completeWithOpenRouter, type ChatMessage, type Complete, type Usage } from './openRouter';
 import { loadGuide } from './guide';
-import { askWithArrangement, IMAGES_ONLY_ASK, runReply, systemPrompt, userContent } from './reply';
+import { askWithArrangement, IMAGES_ONLY_ASK, runReply, systemPrompt, userContent, type CallRecord } from './reply';
 import { imageFromFile, type ChatImage } from './images';
 import type { ChatPrefs } from './chatPrefs';
 
@@ -22,8 +22,11 @@ export type Note = { text: string; failed?: boolean };
 /** One entry in the panel's list. */
 export type Entry =
   | { kind: 'ask'; text: string; images: ChatImage[] }
-  | { kind: 'reply'; text: string; notes: Note[]; model: string; usage: Usage; changed: boolean }
-  | { kind: 'error'; text: string; notes: Note[]; changed: boolean };
+  | { kind: 'reply'; text: string; notes: Note[]; model: string; usage: Usage; changed: boolean; calls: CallRecord[] }
+  | { kind: 'error'; text: string; notes: Note[]; changed: boolean; calls: CallRecord[] };
+
+/** A reply still running: its notes so far, and its model calls so far for the advanced view (issue #495). */
+export type Working = { notes: Note[]; calls: CallRecord[] };
 
 /** What Chat's icon shows: nothing, a reply running, or a reply not yet seen. */
 export type ChatStatus = 'idle' | 'working' | 'unread';
@@ -43,8 +46,8 @@ export interface ChatSessionOptions {
 
 export interface ChatSession {
   entries: Entry[];
-  /** The reply running: its notes so far, and how to stop it. */
-  working: { notes: Note[] } | null;
+  /** The reply running: its notes and model calls so far (issue #495). */
+  working: Working | null;
   draft: string;
   setDraft: (text: string) => void;
   /** The images waiting to go with the draft (issue #465). */
@@ -70,7 +73,7 @@ export function useChatSession(options: ChatSessionOptions): ChatSession {
   const history = useRef<ChatMessage[]>([]);
   const [draft, setDraft] = useState('');
   const [images, setImages] = useState<ChatImage[]>([]);
-  const [working, setWorking] = useState<{ notes: Note[] } | null>(null);
+  const [working, setWorking] = useState<Working | null>(null);
   const stopper = useRef<AbortController | null>(null);
   const [unread, setUnread] = useState(false);
   // Opening the panel shows the reply, so it is read.
@@ -94,7 +97,8 @@ export function useChatSession(options: ChatSessionOptions): ChatSession {
     const stop = new AbortController();
     stopper.current = stop;
     const notes: Note[] = [];
-    setWorking({ notes: [] });
+    let calls: CallRecord[] = [];
+    setWorking({ notes: [], calls: [] });
     // The conversation keeps the ask alone; the request carries it with the arrangement as it is now,
     // so the model needn't spend a call reading it first.
     // Its images stay in the conversation too, so a later ask can refer to them.
@@ -109,15 +113,16 @@ export function useChatSession(options: ChatSessionOptions): ChatSession {
         messages: [{ role: 'system', content: systemPrompt(await guide(), prefs) }, ...history.current, withArrangement],
         current, read: readAlphaTex, signal: stop.signal,
         onClip: clip => { latest.current.onClip(clip, !changed); changed = true; },
-        onNote: note => { notes.push(note); setWorking({ notes: [...notes] }); },
+        onNote: note => { notes.push(note); setWorking({ notes: [...notes], calls }); },
+        onCalls: made => { calls = made; setWorking({ notes: [...notes], calls }); },
       });
       history.current = [...history.current, asked, ...result.messages];
-      setEntries(list => [...list, { kind: 'reply', text: result.text, notes: result.notes, model: result.model, usage: result.usage, changed }]);
+      setEntries(list => [...list, { kind: 'reply', text: result.text, notes: result.notes, model: result.model, usage: result.usage, changed, calls: result.calls }]);
     } catch (e) {
       const text = stop.signal.aborted ? 'Stopped.' : e instanceof Error ? e.message : 'Something went wrong.';
       // The ask stays in the conversation, so the next one can refer to it.
       history.current = [...history.current, asked, { role: 'assistant', content: `(No answer: ${text})` }];
-      setEntries(list => [...list, { kind: 'error', text, notes, changed }]);
+      setEntries(list => [...list, { kind: 'error', text, notes, changed, calls }]);
     } finally {
       stopper.current = null;
       setWorking(null);

@@ -45,6 +45,24 @@ export interface Completion {
   /** The model that answered, which OpenRouter may name more fully than asked. */
   model: string;
   usage: Usage;
+  /** What crossed the wire, for the advanced view (issue #495); a test's own `Complete` may leave it out. */
+  exchange?: Exchange;
+}
+
+/**
+ * One call as it went over the wire (issue #495): where it went, the headers with the key masked, the body
+ * exactly as sent, and what came back. The advanced view shows it; nothing else reads it.
+ */
+export interface Exchange {
+  url: string;
+  headers: Record<string, string>;
+  body: unknown;
+  /** The HTTP status, or undefined when no answer came (offline, stopped). */
+  status?: number;
+  /** The answer's body, parsed when it was JSON, else its text; undefined when no answer came. */
+  response?: unknown;
+  /** How long the call took, in milliseconds. */
+  ms: number;
 }
 
 /** One request: the conversation so far, the tools, and the model. */
@@ -58,32 +76,57 @@ export interface CompletionRequest {
 
 export type Complete = (request: CompletionRequest) => Promise<Completion>;
 
-/** A failed call, with what to tell the viewer. */
-export class ChatError extends Error {}
+/** A failed call, with what to tell the viewer, and what crossed the wire when it got that far. */
+export class ChatError extends Error {
+  constructor(message: string, readonly exchange?: Exchange) {
+    super(message);
+  }
+}
+
+/** A key as the advanced view shows it: dots and its last 4 characters, so which key was used is clear. */
+export function maskedKey(apiKey: string): string {
+  return `••••${apiKey.slice(-4)}`;
+}
 
 /** Asks OpenRouter for the model's next message. */
 export const completeWithOpenRouter: Complete = async ({ apiKey, model, messages, tools, signal }) => {
+  const headers = {
+    Authorization: `Bearer ${apiKey}`,
+    'Content-Type': 'application/json',
+    // How OpenRouter names the app in its activity list.
+    'X-Title': 'Frets',
+  };
+  const body = { model, messages: wireMessages(messages), tools, usage: { include: true } };
+  const started = Date.now();
+  const exchange = (status?: number, response?: unknown): Exchange => ({
+    url: OPENROUTER_URL, headers: { ...headers, Authorization: `Bearer ${maskedKey(apiKey)}` }, body, status, response, ms: Date.now() - started,
+  });
   let response: Response;
   try {
-    response = await fetch(OPENROUTER_URL, {
-      method: 'POST',
-      signal,
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        // How OpenRouter names the app in its activity list.
-        'X-Title': 'Frets',
-      },
-      body: JSON.stringify({ model, messages: wireMessages(messages), tools, usage: { include: true } }),
-    });
+    response = await fetch(OPENROUTER_URL, { method: 'POST', signal, headers, body: JSON.stringify(body) });
   } catch (e) {
     if (signal?.aborted) throw e;
-    throw new ChatError('Couldn\'t reach OpenRouter. Check the connection and try again.');
+    throw new ChatError('Couldn\'t reach OpenRouter. Check the connection and try again.', exchange());
   }
-  const body: unknown = await response.json().catch(() => null);
-  if (!response.ok) throw new ChatError(errorText(response.status, body));
-  return readCompletion(body, model);
+  const text = await response.text().catch(() => '');
+  const answer = parsedOrText(text);
+  const sent = exchange(response.status, answer);
+  if (!response.ok) throw new ChatError(errorText(response.status, answer), sent);
+  try {
+    return { ...readCompletion(answer, model), exchange: sent };
+  } catch (e) {
+    throw e instanceof ChatError ? new ChatError(e.message, sent) : e;
+  }
 };
+
+/** An answer's body: its JSON when it parses, else its text as it came. */
+function parsedOrText(text: string): unknown {
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return text;
+  }
+}
 
 /**
  * The messages as sent: the system prompt (the instructions and the whole alphaTex guide, most of every
