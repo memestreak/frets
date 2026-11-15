@@ -967,3 +967,18 @@ body:has(.tab-stack-panel[data-dragging]) { cursor: grabbing; user-select: none;
 .tab-page .btn-toggle[aria-pressed='true'] {
   background: var(--select-soft); color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--line-strong);
 }
+
+/* The Chat popover over the tab (ChatPopover.tsx, issue #488): a prompt, then the reply under it. */
+.tab-chat-popover {
+  position: absolute; z-index: 20; display: grid; gap: 6px; padding: 10px; width: 340px; color: var(--ink);
+}
+.tab-chat-popover-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.tab-chat-popover-scope {
+  font-size: 11px; line-height: 16px; padding: 0 6px; border-radius: 999px;
+  color: var(--select); background: var(--surface-sunken);
+}
+.tab-chat-popover-input { width: 100%; }
+.tab-chat-popover-reply {
+  display: grid; gap: 6px; max-height: 240px; overflow-y: auto; padding-top: 6px; border-top: 1px solid var(--line);
+}
+.tab-chat-popover-actions { display: flex; justify-content: flex-end; gap: 4px; }

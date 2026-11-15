@@ -77,6 +77,8 @@ import { useActiveVoice, useVoicePick } from './useVoicePick';
 import { useWidth } from './useWidth';
 import { showShortcuts } from '@/components/shortcuts/useShortcuts';
 import { isMac } from '@/lib/shortcuts';
+import { ChatPopover } from './chat/ChatPopover';
+import { WHOLE, aboutBars, aboutThing, noteWords, pickedWords, type About } from './chat/about';
 
 /** What a press may land on and keep the selection and the playback line: controls, the drawing and the palette. */
 const TAB_KEEPS = `${KEEPS_SELECTION}, .tab-editor svg, .tab-palette, .tab-stack-strip, .tab-rail-panel`;
@@ -335,14 +337,20 @@ export default function TabPage() {
     // A second change in the same answer reads this one, before the page draws it.
     wholeNow.current = next;
   };
+  /** The bar a picked thing is in. */
+  const pickedBar = (hit: Picked) => ('bar' in hit ? hit.bar : placeOf(clip, hit.index).bar);
   const chatSpot = (): PageSpot => ({
     track,
     cursorBar: cursor.bar,
     selectedBars: selection ? [placeOf(clip, selectedRange(selection)[0]).bar, placeOf(clip, selectedRange(selection)[1]).bar] : null,
+    picked: picked ? pickedWords(picked, pickedBar(picked)) : null,
   });
+  /** Where the Chat popover is open, and the bars its prompt is about (issue #488). */
+  const [chatAt, setChatAt] = useState<{ x: number; y: number; about: About } | null>(null);
   // The conversation is the page's, not the panel's, so closing the panel keeps it and its running reply (issue #442).
+  // A reply shown in the Chat popover is read too.
   const chat = useChatSession({
-    prefs: prefs.chat, current: () => ({ clip: wholeNow.current, spot: chatSpot() }), onClip: chatClip, open: palettes.shown('chat'),
+    prefs: prefs.chat, current: () => ({ clip: wholeNow.current, spot: chatSpot() }), onClip: chatClip, open: palettes.shown('chat') || chatAt !== null,
   });
   const [chordsAt, setChordsAt] = useState<{ name: string | null } | null>(null);
   // Chords folded or the column collapsed drops its ask, so opening it again doesn't open the chord asked for before.
@@ -634,6 +642,26 @@ export default function TabPage() {
   const openTuplets = () => {
     if (view === 'tab') setTupletPanel(cursorSpot(layout, cursor));
   };
+  /**
+   * The Chat popover (issue #488): Ctrl/⌘+I, or the right-click menus' Chat…, opens it at the selection's start,
+   * else the cursor (where a press put it). Its prompt is about the selected bars, else the whole arrangement.
+   */
+  const openChatPopover = () => {
+    const range = selection ? selectedRange(selection) : null;
+    const at = range ? { ...cursor, ...placeOf(clip, range[0]) } : cursor;
+    // The selection, else what is picked, else the note the cursor is on, else the whole arrangement.
+    const note = !columnOnly ? noteAt(clip, cursor) : null;
+    const about = range ? aboutBars([placeOf(clip, range[0]).bar, placeOf(clip, range[1]).bar])
+      : picked ? aboutThing(pickedWords(picked, pickedBar(picked)))
+        : note ? aboutThing(noteWords(note.fret, cursor.string, cursor.bar, cursor.column))
+          : WHOLE;
+    setChatAt({ ...cursorSpot(layout, at), about });
+  };
+  const closeChatPopover = (byKey: boolean) => {
+    setChatAt(null);
+    if (byKey) editorRef.current?.focus({ preventScroll: true });
+  };
+
   const closeTuplets = (byKey: boolean) => {
     setTupletPanel(null);
     if (byKey) editorRef.current?.focus({ preventScroll: true });
@@ -701,6 +729,8 @@ export default function TabPage() {
     return range !== null && pickedNotes(clip, { anchor: range[0], focus: range[1] }).length > 0;
   };
   /** The note and bar menus' Chord from notes, on picked notes. */
+  /** The note and bar menus' last item: the Chat popover, at what was pressed (issue #488, Q3). */
+  const chatItem = { label: 'Chat…', onSelect: openChatPopover };
   const chordFromNotesItem = menu && !menu.hit && hasPickedNotes() ? [{ label: 'Chord from notes', onSelect: chordFromPicked }] : [];
 
   /** Each drawn line of tab's first and last column, as laid out now, for Shift+Home / End. */
@@ -716,7 +746,14 @@ export default function TabPage() {
     commit, toPitch, setColumnOnly, setStaffPitch, startRegion, setPicked, deletePicked, editPicked, addBar, onTool, hearNote, onNotice: setNotice,
     dropLine, leave: () => editorRef.current?.blur(),
   });
-  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => editorKeyDown(e, editorKeys());
+  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key.toLowerCase() === 'i' && (isMac() ? e.metaKey : e.ctrlKey) && !e.altKey && !e.shiftKey) {
+      e.preventDefault();
+      openChatPopover();
+      return;
+    }
+    editorKeyDown(e, editorKeys());
+  };
 
 
   /**
@@ -1106,6 +1143,12 @@ export default function TabPage() {
             {view === 'tab' && clipWidth > 0 && <Playhead clip={drawn} layout={layout} width={clipWidth} playback={playback} mark={markAt} markOnly={!showPlayback} layer="over" insert={insertMode && !tabFocused} />}
             {view === 'tab' && showPlayback && clipWidth > 0 && <LoopHandles layout={layout} width={clipWidth} playback={playback} />}
             {head.panels}
+            {view === 'tab' && chatAt && (
+              <ChatPopover
+                {...chatAt} session={chat} hasKey={!!prefs.chat.apiKey} onClose={closeChatPopover}
+                onUndo={() => dispatchClip({ type: 'undo' })} onOpenChat={() => { closeChatPopover(false); palettes.show('chat'); }}
+              />
+            )}
             {view === 'tab' && tupletPanel && (
               <TupletPanel
                 {...tupletPanel} current={noteInputMode ? tupletEntry : (cursorKinds.tuplet?.tupletSpan ? null : cursorKinds.tuplet?.tuplet ?? null)}
@@ -1186,6 +1229,7 @@ export default function TabPage() {
             insertPasteItem,
             // A selection of whole bars (an arpeggio over a bar): the chord its notes make.
             ...(selection ? chordFromNotesItem : []),
+            chatItem,
           ] : [
             // The note menu. Picked or selected notes: into another Voice (Q11); a selection over several Voices: one of them alone (Q21).
             ...(!noteInputMode && (selection || (!columnOnly && noteAt(clip, cursor))) ? [{
@@ -1201,6 +1245,7 @@ export default function TabPage() {
             // On notes that can take a Beam override, the two beam tools, ticked as set (spec Q9).
             ...(canBeamTarget(clip, beamTarget, 'break') ? [{ label: 'Break beam before', checked: beamLit(clip, beamTarget, 'break'), onSelect: () => onTool('beamBreak') }] : []),
             ...(canBeamTarget(clip, beamTarget, 'join') ? [{ label: 'Join beam to previous', checked: beamLit(clip, beamTarget, 'join'), onSelect: () => onTool('beamJoin') }] : []),
+            chatItem,
           ]}
         />
       )}

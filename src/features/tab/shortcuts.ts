@@ -22,6 +22,7 @@ const PAGE: ShortcutGroup = {
     { keys: ['Mod+S'], does: 'Save' },
     { keys: ['Mod+Shift+S'], does: 'Save as…' },
     { keys: ['Mod+O'], does: 'Arrangements…' },
+    { keys: ['Mod+I'], does: 'Chat popover: a prompt about the selected bars, else the whole arrangement' },
   ],
 };
 
@@ -153,6 +154,15 @@ const TEXT_FIELD: ShortcutGroup = {
   ],
 };
 
+const CHAT_POPOVER: ShortcutGroup = {
+  title: 'In the Chat popover (Mod+I)',
+  shortcuts: [
+    { keys: ['Enter'], does: 'Send the prompt' },
+    { keys: ['Up', 'Down'], does: 'Earlier or later prompts sent from it' },
+    { keys: ['Esc'], does: 'Close it' },
+  ],
+};
+
 const CHOOSER: ShortcutGroup = {
   title: 'In Arrangements…',
   shortcuts: [
@@ -200,4 +210,4 @@ export function paletteShortcuts(): ShortcutGroup {
   return { title: 'Palette', shortcuts: [...duration.map(t => ({ keys: [t.key], does: t.label })), ...shortcuts] };
 }
 
-export const TAB_SHORTCUTS: readonly ShortcutGroup[] = [PAGE, MOVING, INPUT, NORMAL, PICKED, STAFF, paletteShortcuts(), CHORD_FIELD, LYRICS, TEXT_FIELD, LINE, HEAD, CHORDS, CHOOSER];
+export const TAB_SHORTCUTS: readonly ShortcutGroup[] = [PAGE, MOVING, INPUT, NORMAL, PICKED, STAFF, paletteShortcuts(), CHORD_FIELD, LYRICS, TEXT_FIELD, CHAT_POPOVER, LINE, HEAD, CHORDS, CHOOSER];

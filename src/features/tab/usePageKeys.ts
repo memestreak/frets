@@ -18,7 +18,7 @@ export const TEXT_FIELDS = 'input, select, textarea, dialog';
 
 /** Where the focus may go from the tab and note input mode stay on: the clip's own fields, the palettes and their collapsed strip, panels and menus. */
 /** What the tab gives the focus to for a while, staying lit and keeping what is picked (`onEditorBlur`). */
-const TAB_KEEPERS = '.shape-menu, .tab-tuplet-panel, .tab-word';
+const TAB_KEEPERS = '.shape-menu, .tab-tuplet-panel, .tab-word, .tab-chat-popover';
 const NOTE_INPUT_KEEPERS = '[data-testid="tab-paper"], .tab-palette, .tab-stack-strip, .tab-rail-panel, [role="dialog"], [role="menu"], .shape-menu, dialog';
 
 /**
