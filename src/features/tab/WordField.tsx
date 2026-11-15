@@ -34,6 +34,9 @@ function settable(kind: FieldKind, value: string): boolean {
   return kind !== 'dynamic' || value.trim() === '' || dynamicOf(value) !== null;
 }
 
+/** The Text annotation field's width as it opens (`.tab-word`); its corner drags it wider. */
+const TEXT_FIELD_WIDTH = 180;
+
 /** The most rows the Text field grows to as new lines are typed; past them it scrolls. */
 const TEXT_ROWS = 6;
 
@@ -53,12 +56,21 @@ interface WordFieldProps {
   y: number;
   /** The field hangs up from `y`, so a text annotation's new lines grow away from the line it is over. */
   up?: boolean;
+  /** A text annotation's field: the size its corner was dragged to, kept as the popover moves on, and where a drag reports it. */
+  size?: TextSize | null;
+  onResize?: (size: TextSize) => void;
   /**
    * What was typed, or null for Esc; `byKey` when a key finished it, not leaving the field. A chord name's
    * field (the chord popover, issue #342) also gives where Space, Shift+Space, Tab or Shift+Tab moves it, and
    * a text annotation's field (the text annotation popover) where Tab or Shift+Tab does.
    */
   onDone: (value: string | null, byKey: boolean, move?: PopoverMove) => void;
+}
+
+/** The size a text annotation's field was dragged to, as CSS lengths ('' for one never dragged). */
+export interface TextSize {
+  width: string;
+  height: string;
 }
 
 /** Every dynamic in alphabetical order, so a word comes before the longer ones it starts: p, pf, pp, ppp… */
@@ -73,7 +85,7 @@ export function dynamicsFor(typed: string): readonly Dynamic[] {
   return ALPHABETICAL.filter(d => d.startsWith(start));
 }
 
-export function WordField({ kind, initial, x, y, up = false, onDone }: WordFieldProps) {
+export function WordField({ kind, initial, x, y, up = false, size = null, onResize, onDone }: WordFieldProps) {
   const [value, setValue] = useState(initial);
   const digits = NUMBER_LENGTH[kind];
   const inputRef = useRef<HTMLInputElement & HTMLTextAreaElement>(null);
@@ -86,6 +98,18 @@ export function WordField({ kind, initial, x, y, up = false, onDone }: WordField
     done.current = true;
     onDone(result, byKey, move);
   };
+  // A drag of a text annotation field's corner sets its own size, kept for the next column (issue #342). The
+  // pointer can end the drag off the field, so its size is watched rather than a pointerup on it.
+  useEffect(() => {
+    const field = inputRef.current;
+    if (kind !== 'text' || !field || !onResize || typeof ResizeObserver === 'undefined') return;
+    const watch = new ResizeObserver(() => {
+      const { width, height } = field.style;
+      if (width || height) onResize({ width, height });
+    });
+    watch.observe(field);
+    return () => watch.disconnect();
+  }, [kind, onResize]);
   // Where the selection goes once a Cmd+B change is drawn.
   const selectAfter = useRef<TypedText | null>(null);
   useLayoutEffect(() => {
@@ -200,11 +224,15 @@ export function WordField({ kind, initial, x, y, up = false, onDone }: WordField
   };
   const showList = kind === 'dynamic' && listOpen;
   return (
-    <span className={`tab-word card${digits ? ' tab-word-fit' : ''}${up ? ' tab-word-up' : ''}`} style={{ left: x, top: y }} role="dialog" aria-label={CAPTIONS[kind]}>
+    <span
+      className={`tab-word card${digits ? ' tab-word-fit' : ''}${isText ? ' tab-word-free' : ''}${up ? ' tab-word-up' : ''}`}
+      // A text annotation's field keeps its left edge where it opened, so dragging its corner wider grows it to the right.
+      style={{ left: isText ? x - TEXT_FIELD_WIDTH / 2 : x, top: y }} role="dialog" aria-label={CAPTIONS[kind]}>
       <span className="tab-time-caption">{CAPTIONS[kind]}</span>
       {isText ? (
         <textarea
           {...shared} className="input tab-word-input tab-word-text" rows={Math.min(TEXT_ROWS, value.split('\n').length)}
+          style={size ? { width: size.width || undefined, height: size.height || undefined } : undefined}
           onChange={e => setValue(e.target.value)}
         />
       ) : (

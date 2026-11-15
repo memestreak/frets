@@ -54,7 +54,7 @@ lyrics.
 ## The Text field
 
 - The Text field is a textarea, one row high, growing a row for each new
-  line up to six, then scrolling; its corner drags it taller
+  line up to six, then scrolling; its corner drags it taller and wider
   (`2026-11-14-tab-text-popover-design.md`). Other words' fields stay
   one-line inputs.
 - Enter sets the Text, Shift+Enter starts a new line, Esc leaves it as

@@ -408,8 +408,14 @@
 .tab-word-up { transform: translate(-50%, -100%); }
 .tab-word-input { width: 100%; }
 /* The Text annotation field: one line high, as tall as its text (not the 40px control height), growing a line
-   for each Shift+Enter (issue #445); its corner drags it taller (Jeremy, 2026-11-15). */
-.tab-word-text { display: block; resize: vertical; min-height: 0; padding-block: 5px; line-height: 20px; }
+   for each Shift+Enter (issue #445); its corner drags it taller and wider (Jeremy, 2026-11-15). Its card fits it,
+   left edge kept where it opened, so the corner follows the pointer. */
+.tab-word-text {
+  display: block; resize: both; min-height: 0; padding-block: 5px; line-height: 20px;
+  width: 160px; min-width: 160px; max-width: 640px;
+}
+.tab-word-free { width: auto; transform: none; }
+.tab-word-free.tab-word-up { transform: translateY(-100%); }
 /* The input and, for a dynamic that isn't one, its small red ⚠ beside it (issue #437). */
 .tab-word-row { display: flex; align-items: center; gap: 6px; }
 .tab-word-problem { display: inline-flex; color: var(--danger); cursor: default; }

@@ -15,6 +15,20 @@ const type = (text: string, key: { key: string; shiftKey?: boolean }) => {
   fireEvent.keyDown(field(), key);
 };
 
+// jsdom has no ResizeObserver: a stand-in that the test fires as a drag of the corner would.
+let resized = () => {};
+beforeAll(() => {
+  globalThis.ResizeObserver = class {
+    constructor(private readonly onChange: () => void) {}
+    observe() { resized = this.onChange; }
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver;
+});
+afterAll(() => {
+  delete (globalThis as { ResizeObserver?: unknown }).ResizeObserver;
+});
+
 describe('the text annotation popover', () => {
   it('types a series of text annotations with Tab, across a bar line, and closes on Enter', async () => {
     await openWith('5.1.2 7.1.2 |\n3.2.1 |');
@@ -74,6 +88,24 @@ describe('the text annotation popover', () => {
     type('end', { key: 'Tab', shiftKey: true });
     type('Chorus riff', { key: 'Enter' });
     expect(alphaTex()).toBe('5.1.1 |\nr.1{txt "Chorus riff"} |\n3.2.1{txt "end"} |');
+  }, 20000);
+
+  it('keeps the size its corner was dragged to while it moves on, and opens at one line again', async () => {
+    await openWith('5.1.2 7.1.2 |');
+    act(() => editor().focus());
+    keys({ key: 'X', shiftKey: true });
+    expect(field().style.width).toBe('');
+    // A drag of the corner sets the field's own size (jsdom can't drag or watch sizes, so do as the browser does).
+    field().style.width = '300px';
+    field().style.height = '60px';
+    act(() => resized());
+    fireEvent.keyDown(field(), { key: 'Tab' });
+    expect(field().style.width).toBe('300px');
+    expect(field().style.height).toBe('60px');
+    fireEvent.keyDown(field(), { key: 'Escape' });
+    act(() => editor().focus());
+    keys({ key: 'X', shiftKey: true });
+    expect(field().style.width).toBe('');
   }, 20000);
 
   it('opens on a new arrangement’s empty bar', async () => {

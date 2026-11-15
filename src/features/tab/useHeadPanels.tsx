@@ -15,7 +15,7 @@ import type { Typing } from './ClipWords';
 import { TempoPanel } from './TempoPanel';
 import { TuningPanel } from './TuningPanel';
 import type { EditorState } from './useEditorState';
-import { WordField, type FieldKind } from './WordField';
+import { WordField, type FieldKind, type TextSize } from './WordField';
 import { popoverStep, type PopoverMove } from './popoverStep';
 
 /**
@@ -52,6 +52,8 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
   const [word, setWord] = useState<{ kind: FieldKind; bar: number; column: number; turn?: number } | null>(null);
   /** The note whose syllable the Lyrics field is typing, and its Lyric line (issue #408). */
   const [lyric, setLyricField] = useState<{ bar: number; column: number; line: number; turn?: number } | null>(null);
+  /** The size the Text annotation field's corner was dragged to, kept while it goes column to column; it opens at one line again next time. */
+  const [textSize, setTextSize] = useState<TextSize | null>(null);
   /** Where the Lyrics field was dragged to, kept while it goes note to note; it opens over the note again next time. */
   const [lyricNudge, setLyricNudge] = useState<LyricNudge>({ dx: 0, dy: 0 });
   /**
@@ -94,6 +96,7 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
       openTempo(at.bar);
       return;
     }
+    setTextSize(null);
     // A chord name, a text annotation or a dynamic can go on an empty bar too: it lands on the first of the rests that fill it (P1).
     if ((kind === 'chord' || kind === 'text' || kind === 'dynamic') && !columnAt(clip, at)) {
       if (clip.bars[at.bar]?.columns.length !== 0) return;
@@ -274,6 +277,7 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
         <WordField
           key={`${word.kind}-${word.bar}-${word.column}-${word.turn ?? 0}`} kind={word.kind} {...wordSpot(layout, width, word)}
           initial={wordNow(clip, word)} onDone={finishWord}
+          size={textSize} onResize={setTextSize}
         />
       )}
       {tab && lyric && drawn && (

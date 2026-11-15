@@ -61,8 +61,10 @@ step makes it the text annotation popover.
 - **Its size.** The field is one line high, as tall as its text rather
   than the 40px of other fields, with "Start fog machines" as its
   placeholder (not "let ring", which is a Mark of its own). It grows a
-  line for each Shift+Enter, and its corner drags it taller (Jeremy,
-  2026-11-15).
+  line for each Shift+Enter, and its corner drags it taller and wider
+  (Jeremy, 2026-11-15), up to 640px, its left edge staying put. The size
+  it was dragged to stays as the popover moves on, and it opens at one
+  line again next time.
 - Cmd+B (bold, issue #446) and the 200-character limit are as before.
 
 ## Tests
@@ -75,6 +77,8 @@ step makes it the text annotation popover.
   the same column; Esc leaves that column as it was.
 - A two-line text annotation (Shift+Enter) is set whole by Tab.
 - The field's placeholder is "Start fog machines".
+- A size dragged to stays when Tab moves the popover on; opened again,
+  the field is back to its own size.
 - An empty bar passed over stays empty; a text annotation set on it
   lands on its first rest; a new arrangement's empty bar takes one.
 - `wordSpot`: on a later line the field hangs up from over the text
