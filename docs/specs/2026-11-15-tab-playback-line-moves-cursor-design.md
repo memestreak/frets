@@ -30,6 +30,10 @@ Insert paste.
   where the next entry or paste goes, as the cursor does. Out of Insert
   mode it has none. When the tab takes the keys again, the line goes and
   the notches are back on the cursor.
+- **The cursor's notches stand where the line would**: in the gap just
+  before the cursor's Column, not over the middle of its note (Jeremy,
+  2026-11-15). The insert point looks the same from the cursor and from
+  the line.
 - An open panel, menu or dialog takes Esc first: Esc closes it and leaves
   the selection and the line as they were. Before, an Esc that reached the
   page while the Tuplet panel was open could also let a selection go.
@@ -54,6 +58,8 @@ shows, so the page shows one place, not two.
 - `line-insert-notches` (two notches) shows on the line in Insert mode,
   not out of it, and goes when the tab takes the keys again, the cursor's
   `insert-notches` back.
+- The cursor's `insert-notches` are at the same x as the line put before
+  its Column.
 - The Tuplet panel test: Esc closes the panel and changes nothing (its
   press on the 7 now lands where the quintuplet left it, not beside it,
   which selected the bar).
@@ -69,6 +75,8 @@ shows, so the page shows one place, not two.
 - `PlaybackFooter.tsx`: `Playhead` draws `line-insert-notches` when
   `insert` is set; its layer lets them overflow, since the ▲ under the
   last system's band reaches past the drawing's foot.
+- `TabClip.tsx`: the cursor's notches at the Column's start (its Grid
+  place when it has one).
 - `editing.ts`: a cursor one bar past the end counts as a bar line for a
   paste of whole bars.
 - `editorKeys.ts`: `lineKeyDown` leaves Esc to an open popup

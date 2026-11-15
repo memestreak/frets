@@ -363,6 +363,14 @@ describe('TabPage: the playback line acts as the cursor (2026-11-15)', () => {
     expect(alphaTex()).toBe('5.1.4 7.1.4 5.1.4 7.1.4 |\n9.1.1 |');
   });
 
+  it('the cursor\'s notches stand in the gap before its note, where the line does', async () => {
+    await open(BAR);
+    keys('ArrowRight', 'ArrowRight', 'i');
+    const notchX = Number(/^M([\d.-]+) /.exec(screen.getByTestId('insert-notches').querySelector('path')!.getAttribute('d')!)![1]) + 5;
+    pressAbove(BAR, 2);
+    expect(Number(screen.getByTestId('play-mark').getAttribute('x1'))).toBeCloseTo(notchX, 5);
+  });
+
   it('in Insert mode the line has the cursor\'s notches; out of it, it has none', async () => {
     await open(BAR);
     pressAbove(BAR, 2);

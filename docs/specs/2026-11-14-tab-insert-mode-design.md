@@ -33,9 +33,12 @@ Principles: P1 (bars always full) stays. P2 and A11 in
   names I. Pressing it leaves the focus where it was: it doesn't take the
   keys to the tab, which would light the note the cursor was last on
   (Jeremy, 2026-11-15).
-- While it is on, the cursor has **▼ ▲ notches**, one above its Column
-  and one below, as Dorico's caret does, in both note input mode and
-  normal mode, on the tab and on the staff. Over a staff they go round the
+- While it is on, the cursor has **▼ ▲ notches**, one above and one
+  below, as Dorico's caret does. They mark the insert point: the gap just
+  before the cursor's Column, where the playback line stands, not the
+  middle of the note (Jeremy, 2026-11-15: "more clear than being on top
+  of the note"); with the Grid, its place inside the Column. They show in both note input mode
+  and normal mode, on the tab and on the staff. Over a staff they go round the
   notes that reach past its lines, so a high or low note never hides them.
   While the playback line shows and the tab doesn't have the keys, the
   line has the notches instead, since the cursor moves with it and a paste

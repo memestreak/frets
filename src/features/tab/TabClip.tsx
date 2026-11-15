@@ -681,15 +681,20 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
               stroke="var(--select)" strokeWidth={2} data-testid="tab-caret"
             />
           )}
-          {/* Insert mode: ▼ over the cursor's column and ▲ under it, as Dorico's caret shows it, in both modes. */}
+          {/*
+            Insert mode: ▼ over the cursor's column and ▲ under it, as Dorico's caret shows it, in both modes, at the
+            insert point: the gap just before the column, where the playback line stands (Jeremy, 2026-11-15), or the
+            Grid's place inside it.
+          */}
           {highlight.insert && (rows.tab || rows.score) && (() => {
+            const x = highlight.at ? spot.x : spot.start;
             // Over the staff, over the notes that reach past its top line too, so a high note doesn't hide it.
             const top = rows.score ? Math.min(rows.score.top - 12, (rows.score.above ?? rows.score.top) + 1) : stringY(rows, 0) - 12;
             const bottom = rows.tab ? stringY(rows, STRING_COUNT - 1) + 12 : Math.max(rows.score!.bottom + 12, (rows.score!.below ?? rows.score!.bottom) - 1);
             return (
               <g fill="var(--select)" pointerEvents="none" data-testid="insert-notches">
-                <path d={`M${spot.x - 5} ${top - 5}h10l-5 6z`} />
-                <path d={`M${spot.x - 5} ${bottom + 5}h10l-5 -6z`} />
+                <path d={`M${x - 5} ${top - 5}h10l-5 6z`} />
+                <path d={`M${x - 5} ${bottom + 5}h10l-5 -6z`} />
               </g>
             );
           })()}
