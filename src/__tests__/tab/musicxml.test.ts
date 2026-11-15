@@ -10,7 +10,7 @@ import { validateXML } from 'xmllint-wasm';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { writeAlphaTex } from '@/features/tab/alphatex';
 import { builtinsFrom } from '@/features/tab/builtins';
-import { readBuiltinFiles } from '@/features/tab/builtinFiles';
+import { readBuiltinFiles } from '@/__tests__/tab/testArrangements';
 import { type Clip } from '@/features/tab/clip';
 import { divisionsOf, harmonyOf, musicXmlLosses, writeMusicXml } from '@/features/tab/musicxml';
 

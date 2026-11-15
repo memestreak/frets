@@ -68,7 +68,10 @@ folder of their own, the built-ins as files in the repository.
   file. All but `samples/` are round-trip tests (read with no warnings, every
   bar full, written back exactly); `samples/` is for trying things out.
   The topic folders replace the `example_` names Jeremy sketched:
-  `articulations`, `rhythm`, `song_structure`, `sweet_child`, `samples`.
+  `articulations`, `rhythm`, `song_structure`, `samples`. `sweet_child`
+  left the list on 2026-11-15 (Jeremy): its excerpts are test fixtures in
+  `src/__tests__/tab/fixtures/sweet_child/`, still read and written back as
+  built-ins are, but for the wah solo, now the sample Sweet Child Run.
 
 ## Storage
 

@@ -4,7 +4,7 @@ import TabPage from '@/features/tab/TabPage';
 import { METRONOME_KEY, PLAYBACK_KEY } from '@/features/tab/PlaybackFooter';
 import { EDITING_KEY } from '@/features/tab/editingPrefs';
 import { IMPORT_KEY } from '@/features/tab/importPrefs';
-import { readBuiltinFiles } from '@/features/tab/builtinFiles';
+import { readBuiltinFiles } from '@/__tests__/tab/testArrangements';
 import { BUILTIN_URL } from '@/features/tab/builtins';
 import { APPEARANCE_KEY } from '@/lib/theme';
 

@@ -10,7 +10,7 @@ import { Client } from '@modelcontextprotocol/client';
 import { InMemoryTransport } from '@modelcontextprotocol/server';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { builtinsFrom, SAMPLES_FOLDER } from '@/features/tab/builtins';
-import { readBuiltinFiles } from '@/features/tab/builtinFiles';
+import { readBuiltinFiles } from '@/__tests__/tab/testArrangements';
 import { STANDARD_TUNING, partOf, type Bar, type Column, type Note, type Part } from '@/features/tab/clip';
 import { APP_INFO, REPORT_DELAY_MS, TabApp } from '@/features/tab/mcp/TabApp';
 import { describeLine, describeLoop, lineFromInput, lineOf, loopOf } from '@/features/tab/mcp/lineJson';

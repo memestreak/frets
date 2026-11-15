@@ -11,7 +11,7 @@ import { LetGoAfterUse } from '@/components/LetGoAfterUse';
 import '@coderline/alphatab';
 import { arrangementKey, DRAFT_KEY, LIBRARY_KEY, loadLibrary } from '@/features/tab/arrangements';
 import { BUILTIN_URL, builtinsFrom } from '@/features/tab/builtins';
-import { readBuiltinFiles } from '@/features/tab/builtinFiles';
+import { readBuiltinFiles } from '@/__tests__/tab/testArrangements';
 import { type Clip } from '@/features/tab/clip';
 import { tool } from '../tool';
 

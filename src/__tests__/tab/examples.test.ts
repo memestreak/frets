@@ -7,7 +7,7 @@ import { writeAlphaTex } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { unevenMessage, partOf } from '@/features/tab/clip';
 import { builtinsFrom, folderTitle, SAMPLES_FOLDER } from '@/features/tab/builtins';
-import { readBuiltinFiles } from '@/features/tab/builtinFiles';
+import { readBuiltinFiles } from '@/__tests__/tab/testArrangements';
 import { reBarImport } from '@/features/tab/reBarImport';
 
 const builtins = builtinsFrom(await readBuiltinFiles());
@@ -35,10 +35,11 @@ describe('the built-in arrangements', () => {
     expect(result.clip.name).toBe(sample.title);
   });
 
-  it('include the samples Chords and fills and Minor Wing', () => {
+  it('include the samples Chords and fills, Minor Wing and Sweet Child Run', () => {
     expect(builtins.filter(b => b.folder === SAMPLES_FOLDER).map(b => [b.id, b.title])).toEqual(expect.arrayContaining([
       ['chords-and-fills', 'Chords and fills'],
       ['minor-wing', 'Minor Wing'],
+      ['sweet-child-run', 'Sweet Child Run'],
     ]));
   });
 

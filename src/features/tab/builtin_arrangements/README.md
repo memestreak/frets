@@ -27,4 +27,9 @@ these folders and answers `/tab/builtin.json`. `npm run dev` reads them on
 every request, so a new file shows the next time Arrangements… opens;
 `npm run build` writes the list once, as `out/tab/builtin.json`.
 
+The Sweet Child excerpts that were the `sweet_child/` folder are test
+fixtures now (`src/__tests__/tab/fixtures/sweet_child/`): the tests read them
+with these files, through `src/__tests__/tab/testArrangements.ts`, but the Tab
+page does not list them.
+
 Never commit a whole copyrighted song here: excerpts of up to 12 bars only.

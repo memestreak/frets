@@ -63,7 +63,7 @@ as today. A second Voice stays a choice, never forced.
 - **Shaped marks** play or draw over the note's own length: a bend, a
   slide out, and the Column's whammy bar. A note or Column carrying one
   keeps its written pieces, neither split nor merged, or the shape would
-  move in time (found while building: `sweet_child/song-ending` bends
+  move in time (found while building: `fixtures/sweet_child/song-ending` bends
   over a dotted quarter on the off-beat).
 
 ### Beat groups
@@ -162,7 +162,7 @@ but take none of the syncopations above.
   give no notes.
 - A tied piece's own bend and chord name are read at its place and
   written back on the same piece, as its own written note (the held
-  bends at the start of bar 2 of `sweet_child/solo-bend-rise.atex`).
+  bends at the start of bar 2 of `fixtures/sweet_child/solo-bend-rise.atex`).
 - A bent note, and a Column with the whammy bar, keep their written
   pieces: a bent dotted quarter on the off-beat stays `q.`, and a bent
   `q~e` stays two notes.

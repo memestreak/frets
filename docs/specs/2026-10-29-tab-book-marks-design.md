@@ -35,5 +35,5 @@ the way Guitar Pro's printed book does. The alphaTex is unchanged.
 
 ## Tests
 
-`src/__tests__/tab/bookMarks.test.tsx`; the built-in arrangement `sweet_child/bend-starts.atex`
+`src/__tests__/tab/bookMarks.test.tsx`; the test arrangement `src/__tests__/tab/fixtures/sweet_child/bend-starts.atex`
 (the book's bars 110 and 116).
