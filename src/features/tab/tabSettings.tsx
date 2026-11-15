@@ -414,7 +414,7 @@ export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: Playback
           textField('model', 'Model', { placeholder: DEFAULT_CHAT.model }),
           instructionsField,
           customField,
-          checkField('advanced', 'Advanced view: each request and response'),
+          checkField('advanced', 'Advanced view'),
         ],
       }),
     ],

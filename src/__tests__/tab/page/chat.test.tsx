@@ -460,7 +460,7 @@ describe('the Chat panel’s advanced view', () => {
     // Settings shows the same value, and turning it off there hides the view.
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
     fireEvent.click(await screen.findByRole('treeitem', { name: 'Chat' }));
-    const box = screen.getByRole('checkbox', { name: 'Advanced view: each request and response' });
+    const box = screen.getByRole('checkbox', { name: 'Advanced view' });
     expect(box).toHaveAttribute('aria-checked', 'true');
     fireEvent.click(box);
     fireEvent.click(screen.getByRole('button', { name: 'OK' }));

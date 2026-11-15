@@ -13,8 +13,8 @@ Chat panel (`2026-11-08-tab-chat-design.md`, issue #424).
 ## What it does
 
 - **The toggle (Q1).** A preference, `advanced` in `frets.tab.chat`, off at
-  first. Settings › Tab › Chat lists it as the check box "Advanced view: each
-  request and response". A `{ }` toggle at the end of the Chat panel's Model
+  first. Settings › Tab › Chat lists it as the check box "Advanced view" (a
+  short label, so the section's label column stays narrow). A `{ }` toggle at the end of the Chat panel's Model
   row ("Advanced view", lit when on, like the Chords panel's Hear toggle)
   changes the same saved value at once.
 - **Where (Q2).** With the view on, each reply, each error and the reply
