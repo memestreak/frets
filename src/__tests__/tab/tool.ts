@@ -1,12 +1,13 @@
 import { fireEvent, screen } from '@testing-library/react';
 import { PANELS } from '@/features/tab/TabRail';
 
-/** The palettes' column (issue #454). */
-export const column = () => screen.getByRole('complementary', { name: 'Palettes' });
+/** A side's column of palettes (issues #454 and #490): the left one, Notes to Chords on a first visit, unless asked. */
+export const column = (side: 'left' | 'right' = 'left') =>
+  screen.getByRole('complementary', { name: `${side === 'left' ? 'Left' : 'Right'} palettes` });
 
 /** A palette's header, the button that opens and folds it (a palette's own tools may share its name, as Chords' Notes does). */
 export function paletteHeader(name: string): HTMLElement {
-  const header = [...column().querySelectorAll<HTMLElement>('.tab-stack > section > .tab-stack-head > .tab-stack-toggle')]
+  const header = [...document.querySelectorAll<HTMLElement>('.tab-stack > section > .tab-stack-head > .tab-stack-toggle')]
     .find(b => b.textContent === name);
   if (!header) throw new Error(`No palette named ${name}`);
   return header;

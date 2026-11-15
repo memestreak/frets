@@ -52,12 +52,13 @@ const ask = (text: string) => {
 };
 
 describe('the Chat panel', () => {
-  it('is the last palette, after Chords, and in Settings, with no flag in the address', async () => {
+  it('is alone on the clip’s right on a first visit, Chords last on the left, and in Settings, with no flag in the address (issue #490)', async () => {
     serve();
     renderAt(TEX);
     await screen.findAllByTestId('tab-system', undefined, SLOW);
-    const names = [...column().querySelectorAll('.tab-stack > section')].map(r => r.getAttribute('aria-label'));
-    expect(names.slice(-2)).toEqual(['Chords', 'Chat']);
+    const names = (side: 'left' | 'right') => [...column(side).querySelectorAll('.tab-stack > section')].map(r => r.getAttribute('aria-label'));
+    expect(names('left').at(-1)).toBe('Chords');
+    expect(names('right')).toEqual(['Chat']);
     fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
     expect(screen.getByRole('treeitem', { name: 'Chat' })).toBeInTheDocument();
   });
@@ -238,6 +239,13 @@ describe('the Chat conversation outside the panel', () => {
     await waitFor(() => expect(chatIcon()).toHaveAttribute('data-status', 'unread'));
     expect(chatIcon()).toHaveAttribute('data-tip', 'Chat: New reply');
     expect(alphaTex()).toBe('12.6.1 |\n5.6.4 6.6.4 7.6.4 8.6.4 |');
+    // Its side collapsed, the strip of the side Chat is on says so, and only that one (issue #490).
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse right palettes' }));
+    expect(screen.getByRole('button', { name: 'Expand right palettes' })).toHaveAttribute('data-status', 'unread');
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse left palettes' }));
+    expect(screen.getByRole('button', { name: 'Expand left palettes' })).not.toHaveAttribute('data-status');
+    fireEvent.click(screen.getByRole('button', { name: 'Expand left palettes' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Expand right palettes' }));
     // Chat again: the ask, its notes and the reply are there, and the mark is gone.
     fireEvent.click(chatButton());
     expect(within(chatPanel()).getByText('Make bar 1 a whole note')).toBeInTheDocument();

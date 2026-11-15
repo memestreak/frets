@@ -1,13 +1,15 @@
 'use client';
 
 /**
- * The Tab page's palettes, in one column on the clip's left (`docs/specs/2026-11-09-tab-palettes-design.md`,
- * issue #454; before it, a rail of one-at-a-time panels, issues #301 and #431). Every palette is listed by its
- * header, its icon before its name: Notes, Articulations, Bars, Chords, Chat. A press on a header opens or folds
- * that palette, and several may be open at once; dragging a header moves the palette, and the line under an
- * open palette sets its height. One button at the column's top collapses it to a strip and expands it again.
- * Dragging the line between the column and the clip sets its width. All of it is kept across visits
- * (`frets.tab.layout`), but it is how the window is laid out, not a preference, so Settings doesn't list it.
+ * The Tab page's palettes, in a column on either side of the clip (`docs/specs/2026-11-09-tab-palettes-design.md`,
+ * issue #454; `docs/specs/2026-11-15-tab-palette-sides-design.md`, issue #490; before them, a rail of
+ * one-at-a-time panels, issues #301 and #431). Every palette is listed by its header, its icon before its name:
+ * Notes, Articulations, Bars and Chords on the left, Chat on the right, until moved. A press on a header opens
+ * or folds that palette, and several may be open at once; dragging a header moves the palette, up or down its
+ * column or across to the other side, and the line under an open palette sets its height. Each side has one
+ * button at its top that collapses it to a strip and expands it again, and its own width, set by dragging the
+ * line between it and the clip. All of it is kept across visits (`frets.tab.layout`), but it is how the window
+ * is laid out, not a preference, so Settings doesn't list it.
  */
 import {
   useEffect, useRef, useState,
@@ -22,13 +24,17 @@ export type DrawPalette = (groups: readonly string[], className?: string, input?
 
 export type PanelId = 'notes' | 'articulations' | 'bars' | 'chords' | 'chat';
 
-/** The tool palettes, in their first order, and the Tool groups each holds; Chords and Chat come after them. */
+/** The side of the clip a column of palettes is on. */
+export type Side = 'left' | 'right';
+const SIDES: readonly Side[] = ['left', 'right'];
+
 /**
  * The Articulations palette's icon: a vibrato's wavy line, drawn as the other palettes' icons are (the accent's
  * wedge read as an expand chevron).
  */
 const ARTICULATIONS_ICON = <path d="M4 12 q2 -5 4 0 t4 0 t4 0 t4 0" strokeLinecap="round" strokeLinejoin="round" />;
 
+/** The tool palettes, in their first order, and the Tool groups each holds; Chords and Chat come after them. */
 export const PANELS: readonly { id: Exclude<PanelId, 'chords' | 'chat'>; name: string; icon: ReactNode; groups: readonly string[]; input?: boolean }[] = [
   { id: 'notes', name: 'Notes', icon: ICONS.quarter, groups: ['Duration', 'Rhythm'], input: true },
   { id: 'articulations', name: 'Articulations', icon: ARTICULATIONS_ICON, groups: ['Joins', 'Bends', 'Techniques', 'Accents'] },
@@ -37,8 +43,10 @@ export const PANELS: readonly { id: Exclude<PanelId, 'chords' | 'chat'>; name: s
 
 export const LAYOUT_KEY = 'frets.tab.layout';
 
-/** The column's width in px: 17rem until the divider is dragged, and never narrower or wider than these. */
+/** A column's width in px: 17rem until its divider is dragged, and never narrower or wider than these. */
 export const PANEL_WIDTH = { start: 272, min: 224, max: 560 } as const;
+/** A collapsed column's strip, in px. */
+const STRIP_WIDTH = 40;
 /** The clip keeps at least this much width beside a column being widened. */
 const CLIP_MIN = 400;
 /** A palette's least height, below its header, when dragged shorter: about one row of tools. */
@@ -48,13 +56,16 @@ export const PALETTE_MIN = 48;
 export interface PaletteLayout {
   /** The open palettes. */
   open: readonly PanelId[];
-  /** Every palette, top to bottom. */
+  /** Every palette, top to bottom; each side lists its own in this order. */
   order: readonly PanelId[];
+  /** The palettes on the clip's right; every other one is on its left (issue #490). */
+  right: readonly PanelId[];
   /** The heights dragged, in px, below each header; a palette not listed is as tall as its tools. */
   heights: Partial<Record<PanelId, number>>;
-  /** Whether the column is collapsed to its strip. */
-  collapsed: boolean;
-  width: number;
+  /** Whether each side is collapsed to its strip. */
+  collapsed: Record<Side, boolean>;
+  /** Each side's width, in px, while expanded. */
+  width: Record<Side, number>;
 }
 
 /** The Chords palette's icon: a chord diagram's grid with one dot. */
@@ -101,12 +112,39 @@ const isPanel = (id: unknown): id is PanelId => FIRST_ORDER.includes(id as Panel
 export const clampWidth = (px: number, max: number = PANEL_WIDTH.max) =>
   Math.round(Math.min(Math.max(px, PANEL_WIDTH.min), Math.max(PANEL_WIDTH.min, max)));
 
-/** A first visit: Notes open, every palette in its first order, the column expanded. */
-const FIRST_LAYOUT: PaletteLayout = { open: ['notes'], order: FIRST_ORDER, heights: {}, collapsed: false, width: PANEL_WIDTH.start };
+/** A first visit: Notes open, every palette in its first order, Chat on the right, both sides expanded. */
+const FIRST_LAYOUT: PaletteLayout = {
+  open: ['notes'], order: FIRST_ORDER, right: ['chat'], heights: {},
+  collapsed: { left: false, right: false }, width: { left: PANEL_WIDTH.start, right: PANEL_WIDTH.start },
+};
+
+/** The side `id` is on. */
+export const sideOf = (layout: Pick<PaletteLayout, 'right'>, id: PanelId): Side => (layout.right.includes(id) ? 'right' : 'left');
+
+/** The palettes on `side`, top to bottom. */
+export const paletteList = (layout: Pick<PaletteLayout, 'order' | 'right'>, side: Side) =>
+  layout.order.filter(id => sideOf(layout, id) === side);
+
+/** What `side` shows: an open column, its strip, or nothing when it has no palettes. */
+export const sideState = (layout: PaletteLayout, side: Side): 'open' | 'strip' | undefined =>
+  (!paletteList(layout, side).length ? undefined : layout.collapsed[side] ? 'strip' : 'open');
+
+/** How wide `side`'s column is, in px: its width, its strip, or 0 when it has no palettes. */
+export const sideRoom = (layout: PaletteLayout, side: Side) =>
+  ({ open: layout.width[side], strip: STRIP_WIDTH, none: 0 })[sideState(layout, side) ?? 'none'];
+
+/** A side's own field of a kept `{ left, right }`, or undefined when it isn't of `type`. */
+const sideField = (value: unknown, side: Side, type: 'boolean' | 'number') => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const field = (value as Record<string, unknown>)[side];
+  return typeof field === type && (type === 'boolean' || Number.isFinite(field)) ? field : undefined;
+};
 
 /** Reads `frets.tab.layout`; a field missing or unreadable is as on a first visit. */
 export function parseLayout(text: string | null): PaletteLayout {
-  const layout: PaletteLayout = { ...FIRST_LAYOUT, heights: {} };
+  const layout: PaletteLayout = {
+    ...FIRST_LAYOUT, heights: {}, collapsed: { ...FIRST_LAYOUT.collapsed }, width: { ...FIRST_LAYOUT.width },
+  };
   let saved: unknown;
   try {
     saved = JSON.parse(text ?? 'null');
@@ -121,13 +159,18 @@ export function parseLayout(text: string | null): PaletteLayout {
     const known = (s.order as unknown[]).filter(isPanel).filter((id, i, all) => all.indexOf(id) === i);
     layout.order = [...known, ...FIRST_ORDER.filter(id => !known.includes(id))];
   }
+  if (Array.isArray(s.right)) layout.right = FIRST_ORDER.filter(id => (s.right as unknown[]).includes(id));
   if (s.heights && typeof s.heights === 'object' && !Array.isArray(s.heights)) {
     for (const [id, px] of Object.entries(s.heights)) {
       if (isPanel(id) && typeof px === 'number' && Number.isFinite(px)) layout.heights[id] = Math.max(PALETTE_MIN, Math.round(px));
     }
   }
-  if (typeof s.collapsed === 'boolean') layout.collapsed = s.collapsed;
-  if (typeof s.width === 'number' && Number.isFinite(s.width)) layout.width = clampWidth(s.width);
+  for (const side of SIDES) {
+    const collapsed = sideField(s.collapsed, side, 'boolean');
+    if (collapsed !== undefined) layout.collapsed[side] = collapsed as boolean;
+    const width = sideField(s.width, side, 'number');
+    if (width !== undefined) layout.width[side] = clampWidth(width as number);
+  }
   return layout;
 }
 
@@ -136,11 +179,11 @@ export interface Palettes {
   layout: PaletteLayout;
   /** Changes the layout; kept across visits unless `keep` is false (a drag's moves, before it ends). */
   change: (change: Partial<PaletteLayout>, keep?: boolean) => void;
-  /** Expands the column, opens `id` and brings it into view. */
+  /** Expands the side `id` is on, opens `id` and brings it into view. */
   show: (id: PanelId) => void;
-  /** Whether `id` is open and the column expanded, so it can be seen. */
+  /** Whether `id` is open and its side expanded, so it can be seen. */
   shown: (id: PanelId) => boolean;
-  /** A new value each time `show` asks for a palette, which the column then scrolls to. */
+  /** A new value each time `show` asks for a palette, which its column then scrolls to. */
   ask: { id: PanelId } | null;
 }
 
@@ -164,25 +207,38 @@ export function usePalettes(): Palettes {
     });
   };
   const show = (id: PanelId) => {
-    change({ collapsed: false, open: layout.open.includes(id) ? layout.open : [...layout.open, id] });
+    change({
+      collapsed: { ...layout.collapsed, [sideOf(layout, id)]: false },
+      open: layout.open.includes(id) ? layout.open : [...layout.open, id],
+    });
     setAsk({ id });
   };
-  return { layout, change, show, shown: id => !layout.collapsed && layout.open.includes(id), ask };
+  const shown = (id: PanelId) => !layout.collapsed[sideOf(layout, id)] && layout.open.includes(id);
+  return { layout, change, show, shown, ask };
 }
 
 /**
- * The line between the column and the clip, as a handle: drag it, or tab to it and press ← →
- * (Shift for bigger steps), to set the column's width. A press doesn't take the focus from the tab.
+ * The line between a column and the clip, as a handle: drag it, or tab to it and press ← → (Shift for bigger
+ * steps), to set the column's width; on the right side, leftwards widens it. A press doesn't take the focus
+ * from the tab.
  */
-function WidthHandle({ width, onWidth }: { width: number; onWidth: (px: number, keep?: boolean) => void }) {
+function WidthHandle({ side, width, other, onWidth }: {
+  side: Side;
+  width: number;
+  /** How wide the other side's column is now, in px (0 when there is none). */
+  other: number;
+  onWidth: (px: number, keep?: boolean) => void;
+}) {
   const drag = useRef<{ x: number; width: number; max: number; now: number } | null>(null);
   const [dragging, setDragging] = useState(false);
+  /** +1 when moving right widens the column, -1 when it narrows it. */
+  const grows = side === 'left' ? 1 : -1;
   /** The widest the column may be now: the clip keeps `CLIP_MIN` of the layout's width. */
   const widest = (el: HTMLElement) => {
     const layout = el.closest('.tab-rail-layout');
     // Not laid out (as in tests): no limit but the column's own.
     if (!layout?.clientWidth) return PANEL_WIDTH.max;
-    return Math.min(PANEL_WIDTH.max, layout.clientWidth - CLIP_MIN);
+    return Math.min(PANEL_WIDTH.max, layout.clientWidth - CLIP_MIN - other);
   };
   const down = (e: PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
@@ -193,7 +249,7 @@ function WidthHandle({ width, onWidth }: { width: number; onWidth: (px: number, 
   const move = (e: PointerEvent<HTMLDivElement>) => {
     const d = drag.current;
     if (!d) return;
-    d.now = clampWidth(d.width + e.clientX - d.x, d.max);
+    d.now = clampWidth(d.width + grows * (e.clientX - d.x), d.max);
     onWidth(d.now, false);
   };
   const up = () => {
@@ -209,13 +265,14 @@ function WidthHandle({ width, onWidth }: { width: number; onWidth: (px: number, 
     if (!by) return;
     e.preventDefault();
     e.stopPropagation();
-    onWidth(clampWidth(width + by, widest(e.currentTarget)));
+    onWidth(clampWidth(width + grows * by, widest(e.currentTarget)));
   };
   // A focusable separator is ARIA's window splitter, an interactive widget, which jsx-a11y doesn't know.
   /* eslint-disable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex */
   return (
     <div
-      className="tab-rail-divider" role="separator" aria-orientation="vertical" aria-label="Palette width"
+      className="tab-rail-divider" data-side={side} role="separator" aria-orientation="vertical"
+      aria-label={`${side === 'left' ? 'Left' : 'Right'} palette width`}
       aria-valuenow={width} aria-valuemin={PANEL_WIDTH.min} aria-valuemax={PANEL_WIDTH.max} tabIndex={0}
       data-dragging={dragging ? '' : undefined}
       // Keep the focus, and so the cursor, on the tab; no text is selected while dragging.
@@ -299,10 +356,11 @@ function Chevron({ open }: { open: boolean }) {
   );
 }
 
-/** The collapse button's icon: a sidebar with a chevron pointing the way it will go. */
-function CollapseIcon({ collapsed }: { collapsed: boolean }) {
+/** The collapse button's icon: a sidebar on the button's side, with a chevron pointing the way it will go. */
+function CollapseIcon({ side, collapsed }: { side: Side; collapsed: boolean }) {
   return (
-    <svg width={20} height={20} viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5}>
+    <svg width={20} height={20} viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5}
+      style={side === 'right' ? { transform: 'scaleX(-1)' } : undefined}>
       <rect x="4" y="5" width="16" height="14" rx="1.5" />
       <path d="M9.5 5v14" />
       <path d={collapsed ? 'M13 10l2 2-2 2' : 'M15 10l-2 2 2 2'} strokeLinecap="round" strokeLinejoin="round" />
@@ -310,7 +368,10 @@ function CollapseIcon({ collapsed }: { collapsed: boolean }) {
   );
 }
 
-/** One palette in the column: its header opens and folds it, and moves it when dragged; the line under it sets its height. */
+/** The Alt+arrow keys on a focused header, and the way each moves its palette. */
+const MOVE_KEYS: Record<string, 'up' | 'down' | Side> = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
+
+/** One palette in a column: its header opens and folds it, and moves it when dragged; the line under it sets its height. */
 function Palette({ id, name, icon, status, open, height, drop, dragging, onToggle, onGrab, onMoveKey, onHeight, head, children }: {
   id: PanelId;
   name: string;
@@ -324,8 +385,8 @@ function Palette({ id, name, icon, status, open, height, drop, dragging, onToggl
   dragging: boolean;
   onToggle: () => void;
   onGrab: (e: PointerEvent<HTMLButtonElement>) => void;
-  /** Alt+↑ ↓ on the header: move the palette up or down one. */
-  onMoveKey: (by: -1 | 1) => void;
+  /** Alt+↑ ↓ on the header: move the palette up or down one; Alt+← →: to that side. */
+  onMoveKey: (way: 'up' | 'down' | Side) => void;
   onHeight: (px: number | undefined, keep?: boolean) => void;
   /** What the header shows right of the name while open (Chords' Hear toggle). */
   head?: ReactNode;
@@ -345,10 +406,11 @@ function Palette({ id, name, icon, status, open, height, drop, dragging, onToggl
           // Keep the focus, and so the cursor, on the tab.
           onMouseDown={e => e.preventDefault()} onClick={onToggle} onPointerDown={onGrab}
           onKeyDown={e => {
-            if (!e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+            const way = MOVE_KEYS[e.key];
+            if (!e.altKey || !way) return;
             e.preventDefault();
             e.stopPropagation();
-            onMoveKey(e.key === 'ArrowUp' ? -1 : 1);
+            onMoveKey(way);
           }}
         >
           <Chevron open={open} />
@@ -371,75 +433,106 @@ function Palette({ id, name, icon, status, open, height, drop, dragging, onToggl
   );
 }
 
-/** How near the column's top or bottom edge, in px, a dragged header scrolls it. */
+/** How near a column's top or bottom edge, in px, a dragged header scrolls it. */
 const SCROLL_EDGE = 32;
-/** How far the column scrolls each frame while a header is dragged at its edge. */
+/** How far a column scrolls each frame while a header is dragged at its edge. */
 const SCROLL_STEP = 8;
 
-/** Moves `id` to land before the palette now at `to` in `order` (`order.length`: last). */
-export function moveTo(order: readonly PanelId[], id: PanelId, to: number): PanelId[] {
-  const from = order.indexOf(id);
-  const rest = order.filter(x => x !== id);
-  const at = to > from ? to - 1 : to;
-  return [...rest.slice(0, at), id, ...rest.slice(at)];
+/**
+ * Moves `id` to `side`, landing before the palette now at `to` in that side's list (its length: last). The
+ * order of the palettes on the other side doesn't change.
+ */
+export function placeOn(layout: Pick<PaletteLayout, 'order' | 'right'>, id: PanelId, side: Side, to: number): Pick<PaletteLayout, 'order' | 'right'> {
+  const list = paletteList(layout, side);
+  // Landing before itself is staying put: before the one after it.
+  const before = list[to] === id ? list[to + 1] : list[to];
+  const rest = layout.order.filter(x => x !== id);
+  const others = list.filter(x => x !== id);
+  const at = before !== undefined ? rest.indexOf(before) : others.length ? rest.indexOf(others[others.length - 1]) + 1 : rest.length;
+  const right = layout.right.filter(x => x !== id);
+  return { order: [...rest.slice(0, at), id, ...rest.slice(at)], right: side === 'right' ? [...right, id] : right };
 }
+
+/** Under 900px both sides sit over the clip in one column, so a drag never changes a palette's side. */
+const narrow = () => typeof window !== 'undefined' && !!window.matchMedia?.('(max-width: 899px)').matches;
+
+/** Where a dragged palette would land: its side and the index in that side's list. */
+interface DragAt { id: PanelId; side: Side; to: number }
 
 /**
  * Dragging a header to move its palette: a press that moves 5px becomes a drag, a line shows where it would
- * land, and letting go moves it there. Near the column's top or bottom edge the column scrolls.
+ * land, and letting go moves it there. Past the clip's middle, it lands on the other side: among that side's
+ * palettes, or last when that side is collapsed or has none. Near a column's top or bottom edge, it scrolls.
  */
-function useReorder(column: RefObject<HTMLDivElement | null>, order: readonly PanelId[], onOrder: (order: PanelId[]) => void) {
-  const [drag, setDrag] = useState<{ id: PanelId; to: number } | null>(null);
+function useReorder(frame: RefObject<HTMLDivElement | null>, layout: PaletteLayout, onPlace: (at: DragAt) => void) {
+  const [drag, setDrag] = useState<DragAt | null>(null);
   /** A drag ends in a click on its header; that click must not open or fold it. */
   const dragged = useRef(false);
-  /** Where a pointer at `y` would drop a palette: before the first palette whose middle is below it. */
-  const dropIndex = (y: number) => {
-    const sections = [...(column.current?.querySelectorAll<HTMLElement>(':scope > .tab-stack-panel') ?? [])];
+  const stackOf = (side: Side) => frame.current?.querySelector<HTMLElement>(`.tab-rail-column[data-side="${side}"] .tab-stack`) ?? null;
+  /** Where a pointer at `y` would drop a palette on `side`: before the first palette whose middle is below it. */
+  const dropIndex = (side: Side, y: number) => {
+    const sections = [...(stackOf(side)?.querySelectorAll<HTMLElement>(':scope > .tab-stack-panel') ?? [])];
+    if (!sections.length) return paletteList(layout, side).length;
     const i = sections.findIndex(el => {
       const r = el.getBoundingClientRect();
       return y < r.top + r.height / 2;
     });
     return i < 0 ? sections.length : i;
   };
+  /** The side a pointer at `x` is over, for a palette dragged from `from`: the other once past the clip's middle. */
+  const sideAt = (from: Side, x: number): Side => {
+    const clip = frame.current?.querySelector('.tab-rail-clip')?.getBoundingClientRect();
+    if (!clip || narrow()) return from;
+    const middle = clip.left + clip.width / 2;
+    if (from === 'left') return x > middle ? 'right' : 'left';
+    return x < middle ? 'left' : 'right';
+  };
   const grab = (id: PanelId) => (e: PointerEvent<HTMLButtonElement>) => {
     if (e.button !== 0) return;
+    const from = sideOf(layout, id);
+    const startX = e.clientX;
     const startY = e.clientY;
+    let x = startX;
     let y = startY;
     let moving = false;
-    let to = -1;
-    let frame = 0;
-    dragged.current = false;
+    let at: DragAt | null = null;
+    let tick = 0;
+    const aim = () => {
+      const side = sideAt(from, x);
+      at = { id, side, to: dropIndex(side, y) };
+      setDrag(at);
+    };
     // While the pointer rests at the column's edge, scroll a step a frame.
     const scroll = () => {
-      const box = column.current;
+      const box = at && stackOf(at.side);
       if (box) {
         const r = box.getBoundingClientRect();
         const by = y < r.top + SCROLL_EDGE ? -SCROLL_STEP : y > r.bottom - SCROLL_EDGE ? SCROLL_STEP : 0;
         if (by) {
           box.scrollTop += by;
-          to = dropIndex(y);
-          setDrag({ id, to });
+          aim();
         }
       }
-      frame = requestAnimationFrame(scroll);
+      tick = requestAnimationFrame(scroll);
     };
     const move = (ev: globalThis.PointerEvent) => {
+      x = ev.clientX;
       y = ev.clientY;
-      if (!moving && Math.abs(y - startY) < 5) return;
-      if (!moving) frame = requestAnimationFrame(scroll);
+      if (!moving && Math.hypot(x - startX, y - startY) < 5) return;
+      if (!moving) tick = requestAnimationFrame(scroll);
       moving = true;
       dragged.current = true;
-      to = dropIndex(y);
-      setDrag({ id, to });
+      aim();
     };
     const up = () => {
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
       window.removeEventListener('pointercancel', up);
-      cancelAnimationFrame(frame);
-      if (moving && to >= 0) onOrder(moveTo(order, id, to));
+      cancelAnimationFrame(tick);
+      if (moving && at) onPlace(at);
       setDrag(null);
     };
+    dragged.current = false;
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
     window.addEventListener('pointercancel', up);
@@ -468,25 +561,30 @@ interface TabRailProps {
   children: ReactNode;
 }
 
-/** The clip's card with the palettes' column, or its collapsed strip, on its left. */
+/** The clip's card with a column of palettes, or its collapsed strip, on each side that has any. */
 export function TabRail({ palette, palettes, chords, chordsHead, chat, chatStatus = 'idle', children }: TabRailProps) {
   const { layout, change, ask } = palettes;
-  const column = useRef<HTMLDivElement>(null);
-  const { drag, grab, endsDrag } = useReorder(column, layout.order, order => change({ order }));
-  const listed = layout.order.map(id => PALETTES.find(p => p.id === id)!);
+  const frame = useRef<HTMLDivElement>(null);
+  const place = ({ id, side, to }: DragAt) => {
+    // A palette dropped on a collapsed side expands it, so it can be seen where it went.
+    change({ ...placeOn(layout, id, side, to), collapsed: { ...layout.collapsed, [side]: false } });
+  };
+  const { drag, grab, endsDrag } = useReorder(frame, layout, place);
   const isOpen = (id: PanelId) => layout.open.includes(id);
+  const lists: Record<Side, PanelId[]> = { left: paletteList(layout, 'left'), right: paletteList(layout, 'right') };
+  const room = (side: Side) => sideRoom(layout, side);
 
-  // A palette the page asked for (a chord's Edit opens Chords): scroll the column, never the page, to its header.
+  // A palette the page asked for (a chord's Edit opens Chords): scroll its column, never the page, to its header.
   useEffect(() => {
     if (!ask) return;
-    const frame = requestAnimationFrame(() => {
-      const box = column.current;
-      const el = box?.querySelector<HTMLElement>(`[data-panel="${ask.id}"]`);
+    const tick = requestAnimationFrame(() => {
+      const el = frame.current?.querySelector<HTMLElement>(`[data-panel="${ask.id}"]`);
+      const box = el?.closest<HTMLElement>('.tab-stack');
       if (!box || !el) return;
       const top = el.getBoundingClientRect().top - box.getBoundingClientRect().top + box.scrollTop;
       if (top < box.scrollTop || top + 40 > box.scrollTop + box.clientHeight) box.scrollTop = top;
     });
-    return () => cancelAnimationFrame(frame);
+    return () => cancelAnimationFrame(tick);
   }, [ask]);
 
   const contents = (id: PanelId) => {
@@ -498,10 +596,18 @@ export function TabRail({ palette, palettes, chords, chordsHead, chat, chatStatu
     if (endsDrag()) return;
     change({ open: isOpen(id) ? layout.open.filter(x => x !== id) : [...layout.open, id] });
   };
-  const moveBy = (id: PanelId, by: -1 | 1) => {
-    const at = layout.order.indexOf(id);
-    if (at + by < 0 || at + by >= layout.order.length) return;
-    change({ order: moveTo(layout.order, id, by < 0 ? at - 1 : at + 2) });
+  const moveKey = (id: PanelId, way: 'up' | 'down' | Side) => {
+    const side = sideOf(layout, id);
+    const list = lists[side];
+    const at = list.indexOf(id);
+    if (way === 'up' || way === 'down') {
+      const by = way === 'up' ? -1 : 1;
+      if (at + by < 0 || at + by >= list.length) return;
+      change(placeOn(layout, id, side, by < 0 ? at - 1 : at + 2));
+      return;
+    }
+    // Alt+← →: across to that side, last there.
+    if (way !== side) place({ id, side: way, to: lists[way].length });
   };
   const setHeight = (id: PanelId, px: number | undefined, keep = true) => {
     const heights = { ...layout.heights };
@@ -509,58 +615,79 @@ export function TabRail({ palette, palettes, chords, chordsHead, chat, chatStatu
     else heights[id] = px;
     change({ heights }, keep);
   };
-  const dropAt = (i: number): 'before' | 'after' | undefined => {
-    if (!drag || drag.id === listed[i].id) return undefined;
+  /** The blue line on palette `i` of `side`, while a drag would land there. */
+  const dropAt = (side: Side, i: number): 'before' | 'after' | undefined => {
+    const list = lists[side];
+    if (!drag || drag.side !== side || drag.id === list[i]) return undefined;
     if (drag.to === i) return 'before';
-    return drag.to === listed.length && i === listed.length - 1 ? 'after' : undefined;
+    return drag.to === list.length && i === list.length - 1 ? 'after' : undefined;
   };
-
-  const collapsed = layout.collapsed;
-  const collapseButton = (
-    <button
-      type="button" className="tab-stack-collapse" aria-label={collapsed ? 'Expand palettes' : 'Collapse palettes'}
-      aria-expanded={!collapsed} data-tip={collapsed ? 'Expand palettes' : 'Collapse palettes'}
-      // Collapsed, the strip still says a Chat reply is running or new.
-      data-status={collapsed && chatStatus !== 'idle' ? chatStatus : undefined}
-      onMouseDown={e => e.preventDefault()} onClick={() => change({ collapsed: !collapsed })}
-    >
-      <CollapseIcon collapsed={collapsed} />
-    </button>
-  );
-
+  /** Whether a drag from the other side would land on `side`, so its strip lights up while collapsed. */
+  const targeted = (side: Side) => !!drag && drag.side === side && sideOf(layout, drag.id) !== side;
+  const column = (side: Side) => {
+    const collapsed = layout.collapsed[side];
+    const chatHere = sideOf(layout, 'chat') === side;
+    const label = `${collapsed ? 'Expand' : 'Collapse'} ${side} palettes`;
+    const collapseButton = (
+      <button
+        type="button" className="tab-stack-collapse" aria-label={label} aria-expanded={!collapsed} data-tip={label}
+        // Collapsed, the strip still says a Chat reply is running or new.
+        data-status={collapsed && chatHere && chatStatus !== 'idle' ? chatStatus : undefined}
+        onMouseDown={e => e.preventDefault()} onClick={() => change({ collapsed: { ...layout.collapsed, [side]: !collapsed } })}
+      >
+        <CollapseIcon side={side} collapsed={collapsed} />
+      </button>
+    );
+    return (
+      <div className="tab-rail-column" data-side={side}>
+        <HoverTips className="tab-rail-tips">
+          {collapsed ? (
+            <div className="tab-stack-strip" data-drop={targeted(side) ? '' : undefined}>{collapseButton}</div>
+          ) : (
+            <aside className="tab-rail-panel tab-stack-frame" aria-label={`${side === 'left' ? 'Left' : 'Right'} palettes`}>
+              <div className="tab-stack-top">{collapseButton}</div>
+              <div className="tab-stack">
+                {lists[side].map((id, i) => {
+                  const p = PALETTES.find(x => x.id === id)!;
+                  return (
+                    <Palette
+                      key={id} id={id} name={p.name} icon={p.icon} status={id === 'chat' ? chatStatus : undefined}
+                      open={isOpen(id)} height={layout.heights[id]} drop={dropAt(side, i)} dragging={drag?.id === id}
+                      onToggle={() => toggle(id)} onGrab={grab(id)} onMoveKey={way => moveKey(id, way)}
+                      onHeight={(px, keep) => setHeight(id, px, keep)}
+                      head={id === 'chords' ? chordsHead : undefined}
+                    >
+                      {contents(id)}
+                    </Palette>
+                  );
+                })}
+              </div>
+              <WidthHandle
+                side={side} width={layout.width[side]} other={room(side === 'left' ? 'right' : 'left')}
+                onWidth={(px, keep) => change({ width: { ...layout.width, [side]: px } }, keep)}
+              />
+            </aside>
+          )}
+        </HoverTips>
+      </div>
+    );
+  };
   return (
     <div
-      className="tab-rail-layout" data-open={collapsed ? undefined : ''}
-      style={layout.width === PANEL_WIDTH.start ? undefined : { '--rail-panel-width': `${layout.width}px` } as CSSProperties}
+      ref={frame} className="tab-rail-layout" data-left={sideState(layout, 'left')} data-right={sideState(layout, 'right')}
+      style={{ '--rail-left': `${room('left')}px`, '--rail-right': `${room('right')}px` } as CSSProperties}
     >
-      <HoverTips className="tab-rail-column">
-        {collapsed ? (
-          <div className="tab-stack-strip">{collapseButton}</div>
-        ) : (
-          <aside className="tab-rail-panel tab-stack-frame" aria-label="Palettes">
-            <div className="tab-stack-top">{collapseButton}</div>
-            <div ref={column} className="tab-stack">
-              {listed.map((p, i) => (
-                <Palette
-                  key={p.id} id={p.id} name={p.name} icon={p.icon} status={p.id === 'chat' ? chatStatus : undefined}
-                  open={isOpen(p.id)} height={layout.heights[p.id]} drop={dropAt(i)} dragging={drag?.id === p.id}
-                  onToggle={() => toggle(p.id)} onGrab={grab(p.id)} onMoveKey={by => moveBy(p.id, by)}
-                  onHeight={(px, keep) => setHeight(p.id, px, keep)}
-                  head={p.id === 'chords' ? chordsHead : undefined}
-                >
-                  {contents(p.id)}
-                </Palette>
-              ))}
-            </div>
-            <WidthHandle width={layout.width} onWidth={(width, keep) => change({ width }, keep)} />
-          </aside>
-        )}
-        {/* Says a reply started or ended though Chat can't be seen, and its own live list with it. */}
-        <span className="sr-only" role="status">
-          {palettes.shown('chat') ? '' : CHAT_STATUS[chatStatus] && `Chat: ${CHAT_STATUS[chatStatus]}`}
-        </span>
-      </HoverTips>
+      {lists.left.length > 0 && column('left')}
       <div className="tab-rail-clip">{children}</div>
+      {lists.right.length > 0 && column('right')}
+      {/* While a header is dragged, a side with no palettes shows where it can be dropped (issue #490). */}
+      {drag && SIDES.filter(side => !lists[side].length).map(side => (
+        <div key={side} className="tab-rail-drop" data-side={side} data-target={drag.side === side ? '' : undefined} aria-hidden="true" />
+      ))}
+      {/* Says a reply started or ended though Chat can't be seen, and its own live list with it. */}
+      <span className="sr-only" role="status">
+        {palettes.shown('chat') ? '' : CHAT_STATUS[chatStatus] && `Chat: ${CHAT_STATUS[chatStatus]}`}
+      </span>
     </div>
   );
 }

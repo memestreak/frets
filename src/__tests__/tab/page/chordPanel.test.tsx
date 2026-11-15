@@ -199,7 +199,7 @@ describe('Edit chord', () => {
 
   it('a Chord chart chord’s Edit expands a collapsed column, Chords open and the palettes open before still open (issue #454)', async () => {
     await open();
-    fireEvent.click(screen.getByRole('button', { name: 'Collapse palettes' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse left palettes' }));
     fireEvent.doubleClick(screen.getByRole('button', { name: 'G, edit' }));
     expect(paletteHeader('Chords')).toHaveAttribute('aria-expanded', 'true');
     expect(paletteHeader('Notes')).toHaveAttribute('aria-expanded', 'true');
