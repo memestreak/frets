@@ -34,7 +34,7 @@ type HeadPanel =
  * and from the score's head (title and credits, tuning, tempo): which one is open, where, and what
  * closing it keeps. `panels` draws the open one; the page puts it over the drawing.
  */
-export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown }: {
+export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown, onTechnique }: {
   /** The drawn clip's layout, and its width in the drawing's units. */
   layout: Layout;
   width: number;
@@ -42,6 +42,8 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
   zoom: number;
   /** Whether the drawn tab is shown (the Notation view), and has a width yet. */
   shown: { tab: boolean; drawn: boolean };
+  /** Adds the technique the technique popover named (issue #501), as its palette button would. */
+  onTechnique: (name: string) => void;
 }) {
   const { clip, cursor, commit, commitReBar, dispatch, editorRef, setNotice } = editor;
   /**
@@ -97,6 +99,8 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
       return;
     }
     setTextSize(null);
+    // A technique goes on notes, so the technique popover opens only on a column.
+    if (kind === 'technique' && !columnAt(clip, at)) return;
     // A chord name, a text annotation or a dynamic can go on an empty bar too: it lands on the first of the rests that fill it (P1).
     if ((kind === 'chord' || kind === 'text' || kind === 'dynamic') && !columnAt(clip, at)) {
       if (clip.bars[at.bar]?.columns.length !== 0) return;
@@ -145,6 +149,7 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown 
     // After Enter or Esc the keys go back to the tab; leaving the field leaves the focus where it went.
     if (byKey) editorRef.current?.focus({ preventScroll: true });
     if (!w || value === null) return;
+    if (w.kind === 'technique') onTechnique(value);
     if (w.kind === 'section') commit(setSection(clip, w.bar, value));
     // The field lets only a dynamic or nothing through; nothing takes it away.
     if (w.kind === 'dynamic') {

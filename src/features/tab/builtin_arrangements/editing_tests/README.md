@@ -55,6 +55,7 @@ PR, or removes the file and its row when the behaviour is gone.
 | `strum-roll-buttons.atex` | The Strum and Rolled chord buttons put their sign left of a chord, one replacing another, pressed again taking it away; a drawn sign is picked, lights its button, and Delete takes it away | `docs/specs/2026-11-09-tab-strums-rolled-chords-design.md`, #384 |
 | `text-markdown.atex` | `**bold**` in a Text drawn bold, Ctrl/⌘+B in the Text field on and off, Shift+Enter for a new line, a short bold Text under its chord name, other marks as typed | `docs/specs/2026-11-09-tab-text-markdown-design.md`, #446, #445 |
 | `text-popover.atex` | Shift+X opens the text annotation popover; Tab and Shift+Tab type a series of text annotations; Esc leaves a column as it was; it sits over the line's text annotations | `docs/specs/2026-11-14-tab-text-popover-design.md` |
+| `technique-popover.atex` | Shift+P adds a technique by name or short form; the list as you type; over a selection; it only adds; a ⚠ for what names nothing | `docs/specs/2026-11-15-tab-technique-popover-design.md` |
 | `tie-chain-is-one-note.atex` | A press on any Tied note picks the whole Tie chain, and Delete takes all of it | `docs/specs/2026-11-04-tab-ties-forward-design.md` |
 | `tie-forward.atex` | T ties a note on to the next one, in normal mode and in note input mode | `docs/specs/2026-11-04-tab-ties-forward-design.md` |
 | `tuplet-entry.atex` | Tuplet entry: a triplet typed note by note, the Tuplet button lit while it is on | `docs/specs/2026-11-04-tab-tuplets-grace-rest-design.md` |

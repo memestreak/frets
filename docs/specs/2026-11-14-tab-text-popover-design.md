@@ -107,5 +107,7 @@ step makes it the text annotation popover.
 
 - Older specs and code comments still say "Text" for a text annotation;
   renaming them is a follow-up.
-- The rest of issue #342's popovers; Time signature (Shift+M) is next.
+- The rest of issue #342's popovers. The technique popover (Shift+P) came
+  next (`2026-11-15-tab-technique-popover-design.md`); then Time signature
+  (Shift+M).
 - A text annotation at any time in a bar (issue #399, as for chord names).

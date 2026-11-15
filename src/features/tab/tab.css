@@ -432,6 +432,9 @@
 }
 .tab-word-option[aria-selected="true"] { background: var(--surface-sunken); }
 .tab-word-option-text { font-size: 12px; color: var(--ink-muted); }
+/* The technique popover's list (issue #501): each name with its palette group, small, at the right. */
+.tab-word-option-group { font-size: 12px; color: var(--ink-muted); white-space: nowrap; }
+.tab-word-technique { width: 240px; }
 .tab-word-none { padding: 2px 8px; font-size: 12px; color: var(--ink-muted); }
 /* A number's box: room for 7 digits, never more (Jeremy, 2026-10-27), with the field fitting round it. */
 .tab-word-number { width: calc(7ch + 23px); }
