@@ -28,3 +28,10 @@ plays: a clean electric guitar from Karoryfer Samples (https://www.karoryfer.com
 as edited in tonejs-instruments (samples CC BY 3.0). Changed: compressed:
 
     uv run --no-project scripts/build-soundfonts.py notes <tonejs samples/guitar-electric> public/soundfont/guitar-electric-karoryfer.sf3 --name "Clean Electric Guitar" --copyright "Karoryfer Samples, via tonejs-instruments, CC BY 3.0" --quality 4 --rate 44100 --as-program 27
+
+`trial-ms-basic-clean.sf3` and `trial-generaluser-clean.sf3` are clean electric guitars on trial
+(issue #504), played as Clean Electric Guitar with `?guitar=b` or `?guitar=c` on the Tab page;
+the one picked replaces `guitar-electric-karoryfer.sf3`. See `NOTICE.md`. Built with:
+
+    uv run --no-project scripts/build-soundfonts.py extract "MS Basic.sf3" public/soundfont/trial-ms-basic-clean.sf3 --program 27 --as-program 27
+    uv run --no-project scripts/build-soundfonts.py extract GeneralUser-GS.sf2 public/soundfont/trial-generaluser-clean.sf3 --program 27 --as-program 27 --quality 4

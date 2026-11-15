@@ -70,6 +70,23 @@ Changed: shortened with a fade and compressed (`scripts/build-soundfonts.py`).
 samples under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Changed: compressed
 (`scripts/build-soundfonts.py`).
 
+## Clean electric guitar trials (issue #504; one stays once picked)
+
+`public/soundfont/trial-ms-basic-clean.sf3` is the Clean Guitar preset (program 27) of MuseScore 4's
+MS Basic soundfont (MuseScore_General v0.2, from
+[MuseScore v4.4.0](https://github.com/musescore/MuseScore/tree/v4.4.0/share/sound)), whose clean
+guitar is FluidR3 Mono's. FluidR3 (original version) by Frank Wen Copyright (c) 2000-02; Mono
+conversion (FluidR3Mono) by Michael Cowgill Copyright (c) 2014-17; adaptation for
+MuseScore_General.sf2 by S. Christian Collins Copyright (c) 2018-19; under the
+[MIT license](https://opensource.org/licenses/MIT). Changed: that one preset kept
+(`scripts/build-soundfonts.py extract`).
+
+`public/soundfont/trial-generaluser-clean.sf3` is the Clean Guitar preset (program 27) of
+[GeneralUser GS](https://www.schristiancollins.com/generaluser.php) 2.0.3 by S. Christian Collins,
+1997-2025, under its License v2.0 ("feel free to use it in your software projects, and to modify
+the SoundFont bank"). Changed: that one preset kept, compressed as Ogg Vorbis
+(`scripts/build-soundfonts.py extract`).
+
 ## Notation symbols: Bravura, via VexFlow
 
 `src/features/tab/smufl.ts` holds the outlines of a few music symbols (the

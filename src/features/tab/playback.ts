@@ -76,6 +76,29 @@ export const OWN_FONTS: readonly { program: number; url: string; level: number }
   { program: 27, url: '/soundfont/guitar-electric-karoryfer.sf3', level: 0.79 },
 ];
 
+/**
+ * MOCK (issue #504): clean electric guitars to try, picked by `?guitar=` on the Tab page. `a` is
+ * today's. Each `level` brings it to Karoryfer's loudness, measured by rendering the
+ * `clean-electric` sample with each. Goes once one is picked.
+ */
+export const CLEAN_ELECTRIC_TRIALS: Readonly<Record<string, { url: string; level: number }>> = {
+  a: { url: '/soundfont/guitar-electric-karoryfer.sf3', level: 0.79 },
+  b: { url: '/soundfont/trial-ms-basic-clean.sf3', level: 0.57 },
+  c: { url: '/soundfont/trial-generaluser-clean.sf3', level: 1.66 },
+};
+let cleanElectricTrial = 'a';
+
+/** MOCK: plays Clean Electric Guitar from this trial's soundfont. */
+export function tryCleanElectric(option: string) {
+  if (option in CLEAN_ELECTRIC_TRIALS) cleanElectricTrial = option;
+}
+
+/** A sound's own soundfont, if it has one. */
+function ownFont(program: number): { program: number; url: string; level: number } | undefined {
+  if (program === 27) return { program, ...CLEAN_ELECTRIC_TRIALS[cleanElectricTrial] };
+  return OWN_FONTS.find(f => f.program === program);
+}
+
 export type Sound = number;
 
 /**
@@ -1208,7 +1231,7 @@ export class TabPlayer {
 
   /** The sound's own level, which the volume is scaled by (`OWN_FONTS`). */
   private level(): number {
-    return OWN_FONTS.find(f => f.program === this.sound)?.level ?? 1;
+    return ownFont(this.sound)?.level ?? 1;
   }
 
   /** The metronome on or off; a clip playing clicks (or stops clicking) at once. */
@@ -1245,7 +1268,7 @@ export class TabPlayer {
    * make you wait for the instrument), so a Play finds it ready. The view stays as it is.
    */
   preload(sound: Sound) {
-    const font = OWN_FONTS.find(f => f.program === sound);
+    const font = ownFont(sound);
     if (font && !this.fonts.has(font.url)) this.fetchFont(font.url).catch(() => undefined);
   }
 
@@ -1255,7 +1278,7 @@ export class TabPlayer {
    * the synthesizer. The view shows Loading meanwhile. Whether it had to wait.
    */
   private async loadFont(sound: Sound): Promise<boolean> {
-    const font = OWN_FONTS.find(f => f.program === sound);
+    const font = ownFont(sound);
     const own = font && !this.fonts.has(font.url) ? this.fetchFont(font.url) : null;
     const waiting = [...this.loading.values()];
     if (waiting.length === 0) return false;

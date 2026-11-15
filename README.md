@@ -74,6 +74,9 @@ check on every pull request and every push to `main`.
   guitar from [Karoryfer Samples](https://www.karoryfer.com/karoryfer-samples), both via
   [tonejs-instruments](https://github.com/nbrosowsky/tonejs-instruments),
   [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
+- Clean electric guitar trials: MuseScore's MS Basic (FluidR3 Mono's guitar, Frank Wen, Michael
+  Cowgill, S. Christian Collins, [MIT](https://opensource.org/licenses/MIT)) and
+  [GeneralUser GS](https://www.schristiancollins.com/generaluser.php) (S. Christian Collins).
 - Notation symbols from the [Bravura](https://github.com/steinbergmedia/bravura)
   font, Steinberg Media Technologies GmbH,
   [SIL OFL 1.1](https://openfontlicense.org), as packaged in
