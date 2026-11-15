@@ -4,13 +4,33 @@
  * words or `MAX_STEPS` calls have been made. Every change goes to the page as it is made; the page
  * makes the reply's changes one Undo step (Q3).
  */
-import { runTool, TOOLS, type PageSpot, type ToolContext } from './arrangementTools';
-import { ChatError, type ChatMessage, type Complete, type ContentPart, type Usage } from './openRouter';
+import { runTool, TOOLS, type PageSpot, type ToolContext, type ToolDef } from './arrangementTools';
+import { ChatError, type ChatMessage, type Complete, type ContentPart, type Exchange, type ToolCall, type Usage } from './openRouter';
 import type { Clip } from '../clip';
 import { DEFAULT_CHAT, instructionsOf, type ChatPrefs } from './chatPrefs';
 
 /** The most model calls one reply makes, so a model that keeps calling tools stops. */
 export const MAX_STEPS = 12;
+
+/**
+ * One model call of a reply, as the advanced view shows it (issue #495): what was asked, what came back,
+ * and what each tool the model called answered it. Kept whether or not the view is on (Q7).
+ */
+export interface CallRecord {
+  request: { model: string; messages: ChatMessage[]; tools: ToolDef[] };
+  /** The index of the first message new since the reply's previous call (for its first call, the viewer's message). */
+  newFrom: number;
+  exchange?: Exchange;
+  /** The model's message, when one came. */
+  answer?: Extract<ChatMessage, { role: 'assistant' }>;
+  /** The model that answered and the call's own usage, when an answer came. */
+  model?: string;
+  usage?: Usage;
+  /** Each tool call the model made, with its arguments as sent and the tool's answer. */
+  results: { call: ToolCall; answer: string; failed?: boolean }[];
+  /** Why the call failed, when it did. */
+  error?: string;
+}
 
 /** What the panel shows of a reply: its text, what its tools did, and what it cost. */
 export interface ReplyResult {
@@ -20,6 +40,8 @@ export interface ReplyResult {
   notes: { text: string; failed?: boolean }[];
   model: string;
   usage: Usage;
+  /** Each model call, in order (issue #495). */
+  calls: CallRecord[];
 }
 
 export interface ReplyOptions {
@@ -35,31 +57,54 @@ export interface ReplyOptions {
   onClip: (clip: Clip) => void;
   /** Something new to show while the reply goes on. */
   onNote?: (note: { text: string; failed?: boolean }) => void;
+  /** The calls so far, each time one is made, answered or fails, for the advanced view. */
+  onCalls?: (calls: CallRecord[]) => void;
   signal?: AbortSignal;
 }
 
 export async function runReply(options: ReplyOptions): Promise<ReplyResult> {
-  const { complete, apiKey, model, current, read, onClip, onNote, signal } = options;
+  const { complete, apiKey, model, current, read, onClip, onNote, onCalls, signal } = options;
   const added: ChatMessage[] = [];
   const notes: ReplyResult['notes'] = [];
   const usage: Usage = {};
+  const calls: CallRecord[] = [];
+  /** Replaces the newest call's record with `record`, and tells the panel. */
+  const record = (changed: CallRecord) => {
+    calls[calls.length - 1] = changed;
+    onCalls?.([...calls]);
+  };
   let answeredBy = model;
   for (let step = 0; step < MAX_STEPS; step++) {
-    const answer = await complete({ apiKey, model, messages: [...options.messages, ...added], tools: TOOLS, signal });
+    const messages = [...options.messages, ...added];
+    const previous = calls.at(-1)?.request.messages.length;
+    calls.push({ request: { model, messages, tools: TOOLS }, newFrom: previous ?? messages.length - 1, results: [] });
+    onCalls?.([...calls]);
+    let answer;
+    try {
+      answer = await complete({ apiKey, model, messages, tools: TOOLS, signal });
+    } catch (e) {
+      const error = signal?.aborted ? 'Stopped.' : e instanceof Error ? e.message : 'Something went wrong.';
+      record({ ...calls[calls.length - 1], error, ...(e instanceof ChatError && e.exchange ? { exchange: e.exchange } : {}) });
+      throw e;
+    }
     answeredBy = answer.model;
     addUsage(usage, answer.usage);
     added.push(answer.message);
-    const calls = answer.message.tool_calls ?? [];
-    if (calls.length === 0) return { messages: added, text: answer.message.content ?? '', notes, model: answeredBy, usage };
-    for (const call of calls) {
+    let call: CallRecord = { ...calls[calls.length - 1], answer: answer.message, model: answer.model, usage: answer.usage, exchange: answer.exchange };
+    record(call);
+    const toolCalls = answer.message.tool_calls ?? [];
+    if (toolCalls.length === 0) return { messages: added, text: answer.message.content ?? '', notes, model: answeredBy, usage, calls };
+    for (const toolCall of toolCalls) {
       signal?.throwIfAborted();
       const { clip, spot } = current();
-      const outcome = await runTool(call.function.name, call.function.arguments, { clip, spot, read });
+      const outcome = await runTool(toolCall.function.name, toolCall.function.arguments, { clip, spot, read });
       if (outcome.clip) onClip(outcome.clip);
       const note = { text: outcome.note, ...(outcome.failed ? { failed: true } : {}) };
       notes.push(note);
       onNote?.(note);
-      added.push({ role: 'tool', tool_call_id: call.id, content: outcome.answer });
+      added.push({ role: 'tool', tool_call_id: toolCall.id, content: outcome.answer });
+      call = { ...call, results: [...call.results, { call: toolCall, answer: outcome.answer, ...(outcome.failed ? { failed: true } : {}) }] };
+      record(call);
     }
   }
   // The changes made so far stay, and Undo takes them back.

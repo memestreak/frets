@@ -92,7 +92,7 @@ describe('the Chat panel', () => {
     }
     fireEvent.change(key, { target: { value: '  sk-or-typed ' } });
     fireEvent.click(screen.getByRole('button', { name: 'OK' }));
-    expect(JSON.parse(localStorage.getItem(CHAT_KEY)!)).toEqual({ apiKey: 'sk-or-typed', model: 'anthropic/claude-opus-5.5', instructions: null, custom: '' });
+    expect(JSON.parse(localStorage.getItem(CHAT_KEY)!)).toEqual({ apiKey: 'sk-or-typed', model: 'anthropic/claude-opus-5.5', instructions: null, custom: '', advanced: false });
     expect(within(chatPanel()).getByRole('textbox', { name: 'Message' })).toBeEnabled();
   });
 
@@ -403,5 +403,100 @@ describe('the Chat prompt in Settings', () => {
     await waitFor(() => expect(sent).toHaveLength(2));
     expect(systemText(sent[1].body.messages[0])).toBe(`${DEFAULT_INSTRUCTIONS}\n\nTHE GUIDE\n\nThe guitarist's own instructions:\nAnswer in Spanish.`);
     expect(sent[1].body.messages.map(m => m.role)).toEqual(['system', 'user', 'assistant', 'user']);
+  });
+});
+
+// `docs/specs/2026-11-15-tab-chat-advanced-view-design.md` (issue #495): the advanced view.
+describe('the Chat panel’s advanced view', () => {
+  const toggle = () => within(chatPanel()).getByRole('button', { name: 'Advanced view' });
+  /** Opens the folded section whose heading starts with `title`, inside `within_`. */
+  const unfold = (title: string | RegExp, inside: HTMLElement = chatPanel()) => {
+    const summary = within(inside).getAllByText(title)[0].closest('summary')!;
+    const details = summary.parentElement as HTMLDetailsElement;
+    act(() => {
+      details.open = true;
+      details.dispatchEvent(new Event('toggle'));
+    });
+    return details;
+  };
+
+  it('is off at first; its toggle saves the same value as Settings’ check box, and shows every call folded', async () => {
+    withKey();
+    serve(
+      reply({ content: null, tool_calls: [call('a', 'read_arrangement', {})] }),
+      reply({ content: 'Two bars.' }),
+    );
+    renderAt(TEX);
+    await screen.findAllByTestId('tab-system', undefined, SLOW);
+    fireEvent.click(paletteHeader('Chat'));
+    ask('How many bars?');
+    await within(chatPanel()).findByText('Two bars.', undefined, SLOW);
+    expect(toggle()).toHaveAttribute('aria-pressed', 'false');
+    expect(within(chatPanel()).queryByText(/Requests and responses/)).toBeNull();
+    // Kept while off: turning it on shows the reply just made.
+    fireEvent.click(toggle());
+    expect(toggle()).toHaveAttribute('aria-pressed', 'true');
+    expect(JSON.parse(localStorage.getItem(CHAT_KEY)!).advanced).toBe(true);
+    const calls = within(chatPanel()).getByText('Requests and responses (2 calls)').closest('details')!;
+    expect(calls).not.toHaveAttribute('open');
+    // It comes first in the reply, above the tool lines and the text.
+    expect(calls.parentElement!.firstElementChild).toBe(calls);
+    expect(calls.compareDocumentPosition(within(chatPanel()).getByText('Two bars.')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // Folded sections draw nothing inside them.
+    expect(within(chatPanel()).queryByText(/^Call 1/)).toBeNull();
+    unfold('Requests and responses (2 calls)');
+    expect(within(chatPanel()).getByText('Call 1 · anthropic/claude-opus-5.5 · 900 in, 40 out', { exact: false })).toBeInTheDocument();
+    const second = unfold(/^Call 2/);
+    const request = unfold('Request', second);
+    expect(within(request).getByText(/^System prompt \(/)).toBeInTheDocument();
+    const messages = unfold(/^Messages \(3\)/, request);
+    // The second request's new messages: the model's tool call and the tool's answer.
+    expect(within(messages).getAllByText('new')).toHaveLength(2);
+    unfold('Headers', request);
+    expect(within(request).getByText(/"Authorization": "Bearer ••••test"/)).toBeInTheDocument();
+    expect(chatPanel().textContent).not.toContain('sk-or-test');
+    const first = unfold(/^Call 1/);
+    const results = unfold('Tool results (1)', first);
+    unfold('read_arrangement', results);
+    unfold('Answer', results);
+    expect(within(results).getByText(/\/\/ track 1, bar 2/)).toBeInTheDocument();
+    // Settings shows the same value, and turning it off there hides the view.
+    fireEvent.click(screen.getByRole('button', { name: 'Settings' }));
+    fireEvent.click(await screen.findByRole('treeitem', { name: 'Chat' }));
+    const box = screen.getByRole('checkbox', { name: 'Advanced view' });
+    expect(box).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(box);
+    fireEvent.click(screen.getByRole('button', { name: 'OK' }));
+    expect(within(chatPanel()).queryByText(/Requests and responses/)).toBeNull();
+    expect(toggle()).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('shows a failed call’s status and body under the error', async () => {
+    localStorage.setItem(CHAT_KEY, JSON.stringify({ apiKey: 'sk-or-test', model: 'anthropic/claude-opus-5.5', advanced: true }));
+    serve({ status: 401, error: { message: 'User not found.' } });
+    renderAt(TEX);
+    await screen.findAllByTestId('tab-system', undefined, SLOW);
+    fireEvent.click(paletteHeader('Chat'));
+    ask('Hi');
+    await within(chatPanel()).findByText(/OpenRouter didn't accept the key/);
+    unfold('Requests and responses (1 call)');
+    const failed = unfold(/^Call 1 · anthropic\/claude-opus-5\.5/);
+    expect(within(failed).getByText(/^Call 1 · .* · failed$/)).toBeInTheDocument();
+    const response = unfold('Response · failed', failed);
+    expect(within(response).getByText('401')).toBeInTheDocument();
+    unfold('Raw JSON', response);
+    expect(within(response).getByText(/"message": "User not found\."/)).toBeInTheDocument();
+  });
+
+  it('New chat clears the calls with the conversation', async () => {
+    localStorage.setItem(CHAT_KEY, JSON.stringify({ apiKey: 'sk-or-test', model: 'anthropic/claude-opus-5.5', advanced: true }));
+    serve(reply({ content: 'Hello.' }));
+    renderAt(TEX);
+    await screen.findAllByTestId('tab-system', undefined, SLOW);
+    fireEvent.click(paletteHeader('Chat'));
+    ask('Hi');
+    await within(chatPanel()).findByText('Requests and responses (1 call)');
+    fireEvent.click(within(chatPanel()).getByRole('button', { name: 'New chat' }));
+    expect(within(chatPanel()).queryByText(/Requests and responses/)).toBeNull();
   });
 });

@@ -41,7 +41,8 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
   `frets.tab.chat`: **OpenRouter key** (a plain text field, shown as typed; autocomplete and spellcheck off and password managers told to ignore it, but autocorrect and autocapitalize left alone, because on macOS dots, a password field or either of those set "off" stop Chrome's text replacement) and **Model**
   (`anthropic/claude-opus-5.5` by default). The key stays on this device:
   never in a link, never sent anywhere but OpenRouter. Trimmed when saved.
-- **The panel (Q7).** From the top: the **Model** field (the same setting as
+- **The panel (Q7).** From the top: the **Model** field, with the advanced
+  view's `{ }` toggle at its end (issue #495), (the same setting as
   in Settings: type any model, or pick from a list under it, opened by
   pressing the field, its ▾ or the Down arrow key, of the viewer's presets
   saved on OpenRouter, as `@preset/<slug>` with their descriptions, then
@@ -71,6 +72,9 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
   times)"), then the
   model's words (as markdown: `docs/specs/2026-11-08-tab-chat-markdown-design.md`), then the model, the tokens in (and how many came from the
   cache) and out, and the cost OpenRouter reports, so models can be compared.
+  With the advanced view on, a folded "Requests and responses" section
+  comes before all of these, holding every call's request and response
+  (`docs/specs/2026-11-15-tab-chat-advanced-view-design.md`, issue #495).
 - **Changes apply at once, one Undo step per reply (Q3).** A reply's first
   change is an undo step; its later changes join that step, so one Undo
   takes the whole reply back. If the viewer edits while a reply runs, the

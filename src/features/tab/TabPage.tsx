@@ -1033,7 +1033,8 @@ export default function TabPage() {
         )}
         chat={
           <ChatPanel
-            prefs={prefs.chat} onModel={model => prefs.setChat(c => ({ ...c, model }))} session={chat}
+            prefs={prefs.chat} onModel={model => prefs.setChat(c => ({ ...c, model }))}
+            onAdvanced={advanced => prefs.setChat(c => ({ ...c, advanced }))} session={chat}
             onOpenSettings={() => openSettings({ group: 'tab', section: 'chat' })}
           />
         }
