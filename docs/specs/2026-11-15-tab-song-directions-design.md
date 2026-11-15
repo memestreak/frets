@@ -66,7 +66,19 @@ What the other programs do (editing follows Dorico first,
     it can be taken away. Each toggle changes the clip at once and is its
     own undo step; Esc or a press elsewhere closes it, as the key
     signature's panel does.
-  - No key yet: Dorico's Shift+R popover comes with issue #342's popovers.
+  - **The direction popover, Shift+R** (Dorico's repeat structures key;
+    Jeremy, 2026-11-15, in this PR). It opens under the cursor's line
+    beside its column, as the technique popover (Shift+P) does, on any bar,
+    an empty one too. A name or short form typed lists the matching
+    Directions as you type, each with "Bar start" or "Bar end" beside it:
+    its name ("D.S. al Coda", case and dots not counting) or Dorico's words
+    (`ds al coda`, `dc al fine`, `to coda`, `tocoda`, `ds`, `dc`, `sign`).
+    The one named exactly comes first. Enter, or a press in the list, adds
+    it to the cursor's bar and closes, as one undo step; the keys go back to
+    the tab. Like Shift+P it only adds: a Direction the bar has stays, and
+    taking one away is the panel's or Delete's job. A word naming none
+    shows a ⚠ and keeps it open; Esc closes the list, then the popover,
+    adding nothing. Repeats and endings may join it later.
 - **Picking, editing, deleting** (Q5), as with sections and other marks
   over the tab: a press on a drawn Direction picks it alone, in blue;
   Ctrl/⌘+Alt+arrows step onto it (start ones after the bar's words, end
@@ -100,6 +112,9 @@ What the other programs do (editing follows Dorico first,
 - `layout.ts` / `rows.ts`: the Directions row and its levels;
   `layoutText.ts`: picking (`DirectionHit`); `ClipWords.tsx`:
   `DirectionMark` draws one.
+- `named.ts`: how the technique and direction popovers match what is
+  typed; `directions.ts` `directionsFor` and its words; `WordField.tsx`
+  kind `direction`; `editorKeys.ts` Shift+R.
 - `DirectionPanel.tsx`, opened by `useHeadPanels`; `tools.ts` and
   `TabPalette.tsx`: the Direction button; `TabPage.tsx`: the bar menu
   item.
@@ -129,6 +144,16 @@ What the other programs do (editing follows Dorico first,
   toggles add and take away at once; Esc closes and gives keys back to
   the tab; each toggle is an undo step.
 - The Direction button is lit while the cursor's bar has one.
+- Shift+R, then "D.S. al Coda" and Enter, adds it to the cursor's bar
+  as one undo step, closes, and gives the keys back to the tab.
+- Typing "ds" lists D.S., D.S. al Coda, D.S. al Fine, D.S. al Double
+  Coda first, each "Bar end"; "to coda" lists To Coda first; "sign" lists
+  Segno, "Bar start"; a press in the list adds it.
+- Shift+R on a bar that has a Segno, "segno" and Enter, leaves the clip
+  as it was; "bridge" lists nothing, Enter shows the ⚠, two Escs close it.
+- Shift+R opens on an empty bar too; Shift+R is in the `?` list.
+- `directionsFor`: names and Dorico's words, dots and case not counting,
+  the exact one first; nothing typed lists all 19, the panel's first.
 - The bar menu lists Directions… after Delete bar and opens the pressed
   bar's panel.
 - A right-clicked Direction is lit alone, and its menu is Edit, Delete;

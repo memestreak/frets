@@ -143,6 +143,9 @@ and in its spec.
   Shift+Space, Tab and Shift+Tab, and the text annotation popover (Shift+X) on Tab and
   Shift+Tab — `2026-11-10-tab-chord-popover-design.md`,
   `2026-11-14-tab-text-popover-design.md`.
+- `named.ts` — how the technique (Shift+P) and direction (Shift+R) popovers
+  match what is typed against names and short forms —
+  `2026-11-15-tab-song-directions-design.md`.
 - `techniques.ts` — the technique popover's (Shift+P) words: each technique's
   name, short forms and palette tool, the list for what is typed, and whether
   the notes have it already (it only adds) —
@@ -193,7 +196,8 @@ and in its spec.
 - `directions.ts` — the Directions over a bar (Segno, Coda, Fine, D.C.,
   D.S., To Coda; alphaTex's `\jump`): each one's look and end of its bar,
   `placeDirections` stacking a line's clear of each other, and
-  `toggleDirection` / `setDirection` — `2026-11-15-tab-song-directions-design.md`.
+  `toggleDirection` / `setDirection`, and the direction popover's (Shift+R)
+  words (`directionsFor`) — `2026-11-15-tab-song-directions-design.md`.
 - `DirectionPanel.tsx` — a bar's Direction panel: a toggle for each,
   drawn as on the tab, opened by the Bars palette's Direction button, the
   bar menu's Directions… or a picked Direction's Edit —

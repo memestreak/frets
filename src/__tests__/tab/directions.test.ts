@@ -8,7 +8,7 @@ import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { writeAlphaTex, writePart } from '@/features/tab/alphatex';
 import { parseClip, partOf, withPart, type Clip, type Part } from '@/features/tab/clip';
 import {
-  DIRECTION_LOOKS, directionName, directionParts, OFFERED_DIRECTIONS, placeDirections, setDirection, startsForm, toggleDirection,
+  DIRECTION_LOOKS, directionName, directionParts, OFFERED_DIRECTIONS, placeDirections, setDirection, startsForm, toggleDirection, directionsFor, directionNamed,
 } from '@/features/tab/directions';
 import { layoutClip, multiRests } from '@/features/tab/layout';
 import { directionY, textAt, textBox } from '@/features/tab/layoutText';
@@ -75,6 +75,26 @@ describe('reading and writing \\jump', () => {
     expect(part.bars[3].directions).toEqual(['dalsegnoalcoda']);
     const back = withPart(clip, setDirection(part, 0, 'fine', true));
     expect(back.masterBars[0].directions).toEqual(['fine']);
+  });
+});
+
+describe('the direction popover\'s words', () => {
+  it('finds a Direction by its name or Dorico\'s words, dots and case not counting, the one named exactly first', () => {
+    expect(directionsFor('ds al coda')[0]).toBe('dalsegnoalcoda');
+    expect(directionsFor('D.S.')[0]).toBe('dalsegno');
+    expect(directionsFor('tocoda')).toEqual(['dacoda']);
+    expect(directionsFor('dc al fine')[0]).toBe('dacapoalfine');
+    expect(directionsFor('coda')[0]).toBe('coda');
+    expect(directionsFor('bridge')).toEqual([]);
+    // Nothing typed lists them all, the panel's first.
+    expect(directionsFor('').slice(0, 3)).toEqual(['segno', 'coda', 'fine']);
+    expect(directionsFor('')).toHaveLength(19);
+  });
+
+  it('reads a listed name back as its Direction', () => {
+    expect(directionNamed('D.S. al Coda')).toBe('dalsegnoalcoda');
+    expect(directionNamed('Segno')).toBe('segno');
+    expect(directionNamed('Bridge')).toBeNull();
   });
 });
 

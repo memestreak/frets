@@ -7,12 +7,13 @@ import { DYNAMICS, dynamicOf, type Dynamic } from './clip';
 import { DYNAMIC_REACH, dynamicWord } from './dynamics';
 import type { PopoverMove } from './popoverStep';
 import { techniquesFor } from './techniques';
+import { directionName, directionsFor, DIRECTION_LOOKS } from './directions';
 
 /**
  * What a field sets: a palette word, a picked ending bracket's number, or how many times a picked repeat
  * is played. A tempo has its own panel (`TempoPanel.tsx`).
  */
-export type FieldKind = Exclude<WordKind, 'tempo'> | 'ending' | 'repeat' | 'technique';
+export type FieldKind = Exclude<WordKind, 'tempo'> | 'ending' | 'repeat' | 'technique' | 'direction';
 
 const CAPTIONS: Record<FieldKind, string> = {
   chord: 'Chord name',
@@ -22,23 +23,40 @@ const CAPTIONS: Record<FieldKind, string> = {
   repeat: 'Times played, 2 to 9',
   dynamic: 'Dynamic',
   technique: 'Technique',
+  direction: 'Direction',
 };
-const PLACEHOLDERS: Record<FieldKind, string> = { chord: 'Am7', text: 'Start fog machines', section: 'Chorus', ending: '2', repeat: '3', dynamic: 'mf, or ↓ for the list', technique: 'let ring, pm, vib…' };
+const PLACEHOLDERS: Record<FieldKind, string> = { chord: 'Am7', text: 'Start fog machines', section: 'Chorus', ending: '2', repeat: '3', dynamic: 'mf, or ↓ for the list', technique: 'let ring, pm, vib…', direction: 'segno, ds al coda, fine…' };
 /** The words that are numbers: only digits can be typed, and only as many as the largest takes. */
 const NUMBER_LENGTH: Partial<Record<FieldKind, number>> = { ending: 1, repeat: 1 };
 /** The longest a word can be typed: free text may run to a few lines, as it wraps over its column (issue #323). */
 const WORD_LENGTH = (kind: FieldKind) => (kind === 'text' ? 200 : kind === 'dynamic' ? 6 : 40);
 /** What a ⚠ by the technique popover says when what is typed names nothing it can add. */
 export const NOT_A_TECHNIQUE = 'Not a technique: press the Down arrow key for the list (let ring, pm, vib, bend, ho…)';
+/** What a ⚠ by the direction popover says when what is typed names no Direction. */
+export const NOT_A_DIRECTION = 'Not a direction: press the Down arrow key for the list (segno, coda, fine, to coda, ds al coda…)';
+
+/**
+ * The popovers that add a thing named from a list as you type (the technique popover, issue #501; the
+ * direction popover, issue #496): what the list holds for what is typed, each with the group shown beside it.
+ */
+const NAMED: Partial<Record<FieldKind, { list: (typed: string) => { name: string; group: string }[]; label: string; noun: string; problem: string }>> = {
+  technique: { list: typed => techniquesFor(typed).map(t => ({ name: t.name, group: t.group })), label: 'Techniques', noun: 'technique', problem: NOT_A_TECHNIQUE },
+  direction: {
+    list: typed => directionsFor(typed).map(d => ({ name: directionName(d), group: DIRECTION_LOOKS[d].at === 'start' ? 'Bar start' : 'Bar end' })),
+    label: 'Directions', noun: 'direction', problem: NOT_A_DIRECTION,
+  },
+};
+
 /** What a ⚠ by a dynamic's field says when what is typed isn't one. */
 export const NOT_A_DYNAMIC = 'Not a dynamic: press the Down arrow key for the list (ppp to fff, sf, sfz, fp…)';
 
 /**
  * Whether what is typed can be set: a dynamic's field takes only a dynamic, or nothing to take it away; the
- * technique popover only what its list offers, or nothing (it closes).
+ * technique and direction popovers only what their lists offer, or nothing (they close).
  */
 function settable(kind: FieldKind, value: string): boolean {
-  if (kind === 'technique') return value.trim() === '' || techniquesFor(value).length > 0;
+  const named = NAMED[kind];
+  if (named) return value.trim() === '' || named.list(value).length > 0;
   return kind !== 'dynamic' || value.trim() === '' || dynamicOf(value) !== null;
 }
 
@@ -135,9 +153,11 @@ export function WordField({ kind, initial, x, y, up = false, size = null, onResi
   // Over the field when the window has no room for it under the field, so it never runs off the page.
   const [listUp, setListUp] = useState(false);
   // A dynamic's list holds dynamics; the technique popover's (issue #501) the techniques whose names start with what is typed.
-  const hasList = kind === 'dynamic' || kind === 'technique';
-  const techniques = kind === 'technique' ? techniquesFor(value) : [];
-  const choices: readonly string[] = kind === 'dynamic' ? dynamicsFor(value) : techniques.map(t => t.name);
+  // The direction popover's (issue #496) the Directions likewise.
+  const named = NAMED[kind];
+  const hasList = kind === 'dynamic' || !!named;
+  const listed = named ? named.list(value) : [];
+  const choices: readonly string[] = kind === 'dynamic' ? dynamicsFor(value) : listed.map(t => t.name);
   const activeRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     activeRef.current?.scrollIntoView?.({ block: 'nearest' });
@@ -169,7 +189,7 @@ export function WordField({ kind, initial, x, y, up = false, size = null, onResi
       return true;
     }
     // With nothing typed the technique list is all there is: Esc closes the popover with it.
-    if (e.key === 'Escape' && kind === 'technique' && value.trim() === '') return false;
+    if (e.key === 'Escape' && named && value.trim() === '') return false;
     // Esc closes the list first, as a browser's own lists do; the next Esc leaves the field.
     if (e.key === 'Escape') {
       setListOpen(false);
@@ -216,8 +236,8 @@ export function WordField({ kind, initial, x, y, up = false, size = null, onResi
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     e.stopPropagation();
     if (onListKey(e) || onChordKey(e) || onTextKey(e)) return;
-    // Enter in the technique popover adds what its list would light first (Esc closed the list); nothing typed closes it.
-    if (kind === 'technique' && e.key === 'Enter') {
+    // Enter in the technique or direction popover adds what its list would light first (Esc closed the list); nothing typed closes it.
+    if (named && e.key === 'Enter') {
       e.preventDefault();
       if (value.trim() === '') finish(null, true);
       else if (choices[0]) finish(choices[0], true);
@@ -245,14 +265,14 @@ export function WordField({ kind, initial, x, y, up = false, size = null, onResi
     ref: inputRef, 'aria-label': CAPTIONS[kind], placeholder: PLACEHOLDERS[kind], value, maxLength: digits ?? WORD_LENGTH(kind),
     // Leaving a field with what can't be set leaves things as they were.
     onFocus: (e: { target: HTMLInputElement | HTMLTextAreaElement }) => e.target.select(), onKeyDown,
-    // Leaving the technique popover adds nothing: it adds only on Enter or a press in its list.
-    onBlur: () => finish(kind !== 'technique' && settable(kind, value) ? value : null, false),
+    // Leaving the technique or direction popover adds nothing: it adds only on Enter or a press in its list.
+    onBlur: () => finish(!named && settable(kind, value) ? value : null, false),
   };
   const showList = hasList && listOpen;
-  const problem = kind === 'technique' ? NOT_A_TECHNIQUE : NOT_A_DYNAMIC;
+  const problem = named ? named.problem : NOT_A_DYNAMIC;
   return (
     <span
-      className={`tab-word card${digits ? ' tab-word-fit' : ''}${isText ? ' tab-word-free' : ''}${up ? ' tab-word-up' : ''}${kind === 'technique' ? ' tab-word-technique' : ''}`}
+      className={`tab-word card${digits ? ' tab-word-fit' : ''}${isText ? ' tab-word-free' : ''}${up ? ' tab-word-up' : ''}${named ? ' tab-word-technique' : ''}`}
       // A text annotation's field keeps its left edge where it opened, so dragging its corner wider grows it to the right.
       style={{ left: isText ? x - TEXT_FIELD_WIDTH / 2 : x, top: y }} role="dialog" aria-label={CAPTIONS[kind]}>
       <span className="tab-time-caption">{CAPTIONS[kind]}</span>
@@ -271,7 +291,7 @@ export function WordField({ kind, initial, x, y, up = false, size = null, onResi
               setRefused(false);
               setActive(0);
               // The technique list shows as soon as anything is typed, as Dorico's Shift+P popover lists its matches.
-              if (kind === 'technique') openList(e.target);
+              if (named) openList(e.target);
             }}
             aria-invalid={refused || undefined}
             {...(hasList && {
@@ -285,19 +305,19 @@ export function WordField({ kind, initial, x, y, up = false, size = null, onResi
       {showList && (
         // A press in the list keeps the field focused (its blur would set what is typed), and picks the option pressed.
         <div
-          id={listId} role="listbox" aria-label={kind === 'technique' ? 'Techniques' : 'Dynamics'} tabIndex={-1} className={`tab-word-list${listUp ? ' tab-word-list-up' : ''}`}
+          id={listId} role="listbox" aria-label={named ? named.label : 'Dynamics'} tabIndex={-1} className={`tab-word-list${listUp ? ' tab-word-list-up' : ''}`}
           onMouseDown={e => e.preventDefault()}
           onKeyDown={e => { e.stopPropagation(); if (e.key === 'Escape') setListOpen(false); }}
           onClick={e => {
             const option = (e.target as HTMLElement).closest<HTMLElement>('[role="option"]');
-            const picked = option?.dataset.dynamic ?? option?.dataset.technique;
+            const picked = option?.dataset.dynamic ?? option?.dataset.name;
             if (picked) finish(picked, true);
           }}
         >
           {choices.map((d, i) => (
             <div
               key={d} id={`${listId}-${i}`} ref={i === active ? activeRef : undefined} role="option" aria-selected={i === active}
-              tabIndex={-1} {...(kind === 'dynamic' ? { 'data-dynamic': d } : { 'data-technique': d })} className="tab-word-option"
+              tabIndex={-1} {...(kind === 'dynamic' ? { 'data-dynamic': d } : { 'data-name': d })} className="tab-word-option"
               onMouseMove={() => { if (i !== active) setActive(i); }}
             >
               {kind === 'dynamic' ? (
@@ -308,12 +328,12 @@ export function WordField({ kind, initial, x, y, up = false, size = null, onResi
               ) : (
                 <>
                   <span>{d}</span>
-                  <span className="tab-word-option-group">{techniques[i].group}</span>
+                  <span className="tab-word-option-group">{listed[i].group}</span>
                 </>
               )}
             </div>
           ))}
-          {choices.length === 0 && <div className="tab-word-none">No {kind === 'technique' ? 'technique' : 'dynamic'} starts with “{value.trim()}”</div>}
+          {choices.length === 0 && <div className="tab-word-none">No {named ? named.noun : 'dynamic'} starts with “{value.trim()}”</div>}
         </div>
       )}
     </span>

@@ -10,7 +10,9 @@ import { partOf } from '@/features/tab/clip';
 import { layoutClip, stringY } from '@/features/tab/layout';
 import { textBox } from '@/features/tab/layoutText';
 import type { DirectionName } from '@/features/tab/directions';
-import { setUpPage, openWith, editor, alphaTex, undo, isLit, settle } from './helpers';
+import { setUpPage, openWith, editor, alphaTex, undo, isLit, settle, keys } from './helpers';
+import { TAB_SHORTCUTS } from '@/features/tab/shortcuts';
+import { NOT_A_DIRECTION } from '@/features/tab/WordField';
 import { tool } from '../tool';
 
 setUpPage();
@@ -112,5 +114,75 @@ describe('Directions on the Tab page (issue #496)', { timeout: 20000 }, () => {
     press(FORM, 0, 'segno');
     fireEvent.doubleClick(svg(), spotOf(FORM, 0, 'segno'));
     expect(panel()).toHaveAccessibleName('Directions in bar 1');
+  });
+
+  describe('the direction popover (Shift+R)', () => {
+    const field = () => screen.getByRole('combobox', { name: 'Direction' }) as HTMLInputElement;
+    const closed = () => screen.queryByRole('combobox', { name: 'Direction' }) === null;
+    const typeIn = (text: string) => fireEvent.change(field(), { target: { value: text } });
+    const options = () => {
+      const list = screen.queryByRole('listbox', { name: 'Directions' });
+      return list ? within(list).queryAllByRole('option').map(o => o.textContent) : [];
+    };
+    const open = () => {
+      act(() => editor().focus());
+      keys({ key: 'R', shiftKey: true });
+    };
+
+    it('adds what is typed to the cursor\'s bar on Enter, as one undo step, and closes', async () => {
+      await openWith(TWO);
+      keys({ key: 'ArrowRight' });
+      open();
+      expect(field()).toHaveAttribute('placeholder', 'segno, ds al coda, fine…');
+      typeIn('D.S. al Coda');
+      fireEvent.keyDown(field(), { key: 'Enter' });
+      expect(closed()).toBe(true);
+      expect(editor()).toHaveFocus();
+      expect(alphaTex()).toBe('0.6.1 |\n\\jump dalsegnoalcoda 2.6.1 |');
+      undo();
+      expect(alphaTex()).toBe(TWO);
+    });
+
+    it('lists the matches as you type, the one named exactly first, with where in the bar each goes', async () => {
+      await openWith(TWO);
+      open();
+      typeIn('ds');
+      expect(options().slice(0, 4)).toEqual(['D.S.Bar end', 'D.S. al CodaBar end', 'D.S. al FineBar end', 'D.S. al Double CodaBar end']);
+      typeIn('to coda');
+      expect(options()[0]).toBe('To CodaBar end');
+      typeIn('sign');
+      expect(options()[0]).toBe('SegnoBar start');
+      // A press in the list adds that one.
+      fireEvent.click(within(screen.getByRole('listbox', { name: 'Directions' })).getAllByRole('option')[0]);
+      expect(alphaTex()).toBe('\\jump segno 0.6.1 |\n2.6.1 |');
+    });
+
+    it('only adds: one the bar has stays, and a word naming none shows the ⚠ and keeps it open', async () => {
+      await openWith(FORM);
+      open();
+      typeIn('segno');
+      fireEvent.keyDown(field(), { key: 'Enter' });
+      expect(alphaTex()).toBe(FORM);
+      open();
+      typeIn('bridge');
+      expect(options()).toEqual([]);
+      fireEvent.keyDown(field(), { key: 'Enter' });
+      expect(screen.getByRole('img', { name: NOT_A_DIRECTION })).toBeInTheDocument();
+      // Esc closes the list, then the popover.
+      fireEvent.keyDown(field(), { key: 'Escape' });
+      fireEvent.keyDown(field(), { key: 'Escape' });
+      expect(closed()).toBe(true);
+      expect(alphaTex()).toBe(FORM);
+    });
+
+    it('opens on an empty bar too, and is in the ? list', async () => {
+      await openWith('r.1 |');
+      open();
+      typeIn('fine');
+      fireEvent.keyDown(field(), { key: 'Enter' });
+      expect(alphaTex()).toBe('\\jump fine r.1 |');
+      const listed = TAB_SHORTCUTS.flatMap(g => g.shortcuts.flatMap(s => s.keys));
+      expect(listed).toContain('Shift+R');
+    });
   });
 });

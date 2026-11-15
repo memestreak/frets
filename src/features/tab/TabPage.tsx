@@ -767,7 +767,7 @@ export default function TabPage() {
   /** The editor as the keys (and the Rest and Grace tools) find it. */
   const editorKeys = (): EditorKeys => ({
     clip, cursor, selection, target, columnOnly, picked, staffPitch: staffCursor, staffShown: parts !== 'tab', tabShown: parts !== 'staff', lastDigit: lastDigitRef, accidental: accidentalRef, lines: drawnLines, noteInputMode, setNoteInputMode: enterNoteInput, insertMode, setInsertMode, inputLength, setInputLength, gridStep, fixedGrid, cursorAt, setCursorAt, stepElement, moveSpanEnd: picking.moveSpanEnd,
-    tupletEntry, graceEntry, tupletFrom, setTupletFrom, openTuplets, openTechniques: () => head.openWord('technique'), voiceKey, everyVoice,
+    tupletEntry, graceEntry, tupletFrom, setTupletFrom, openTuplets, openTechniques: () => head.openWord('technique'), openDirectionPopover: () => head.openWord('direction'), voiceKey, everyVoice,
     commit, toPitch, setColumnOnly, setStaffPitch, startRegion, setPicked, deletePicked, editPicked, addBar, onTool, hearNote, onNotice: setNotice,
     dropLine, leave: () => editorRef.current?.blur(),
   });

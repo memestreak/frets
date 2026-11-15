@@ -77,6 +77,7 @@ const NORMAL: ShortcutGroup = {
     { keys: [';'], does: 'Tuplet over the note, or the selection squeezed into one' },
     { keys: ['/'], does: 'Grace note before the note' },
     { keys: ['Shift+P'], does: 'Technique popover: add let ring, palm mute, a bend… by name' },
+    { keys: ['Shift+R'], does: 'Direction popover: add a Segno, To Coda, D.S. al Coda… to the bar by name' },
     { keys: [','], does: 'Make rests of the notes, as Delete' },
     { keys: ['Alt+1–4'], does: 'Move to voice 1–4 (nothing picked: make it active)' },
   ],
@@ -166,6 +167,15 @@ const TECHNIQUE_FIELD: ShortcutGroup = {
   ],
 };
 
+const DIRECTION_FIELD: ShortcutGroup = {
+  title: 'In the Direction popover (Shift+R)',
+  shortcuts: [
+    { keys: ['Up', 'Down'], does: 'Light the direction above or below in the list (Down alone shows them all)' },
+    { keys: ['Enter'], does: 'Add the lit direction to the bar and close' },
+    { keys: ['Esc'], does: 'Close the list, then the popover, adding nothing' },
+  ],
+};
+
 const CHAT_POPOVER: ShortcutGroup = {
   title: 'In the Chat popover (Mod+I)',
   shortcuts: [
@@ -222,4 +232,4 @@ export function paletteShortcuts(): ShortcutGroup {
   return { title: 'Palette', shortcuts: [...duration.map(t => ({ keys: [t.key], does: t.label })), ...shortcuts] };
 }
 
-export const TAB_SHORTCUTS: readonly ShortcutGroup[] = [PAGE, MOVING, INPUT, NORMAL, PICKED, STAFF, paletteShortcuts(), CHORD_FIELD, LYRICS, TEXT_FIELD, TECHNIQUE_FIELD, CHAT_POPOVER, LINE, HEAD, CHORDS, CHOOSER];
+export const TAB_SHORTCUTS: readonly ShortcutGroup[] = [PAGE, MOVING, INPUT, NORMAL, PICKED, STAFF, paletteShortcuts(), CHORD_FIELD, LYRICS, TEXT_FIELD, TECHNIQUE_FIELD, DIRECTION_FIELD, CHAT_POPOVER, LINE, HEAD, CHORDS, CHOOSER];

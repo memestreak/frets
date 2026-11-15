@@ -12,6 +12,7 @@ import { DIRECTION_NAMES, type DirectionName, type Part } from './clip';
 import { GLYPHS } from './smufl';
 import { boldTextWidth } from './sectionText';
 import { stackWords, type StackedWord } from './stackWords';
+import { namedFor } from './named';
 
 export { DIRECTION_NAMES, type DirectionName };
 
@@ -56,6 +57,45 @@ export const DIRECTION_LOOKS: Record<DirectionName, DirectionLook> = {
 export const OFFERED_DIRECTIONS: readonly DirectionName[] = [
   'segno', 'coda', 'fine', 'dacoda', 'dalsegno', 'dalsegnoalcoda', 'dalsegnoalfine', 'dacapo', 'dacapoalcoda', 'dacapoalfine',
 ];
+
+/**
+ * What the direction popover (Shift+R) takes for each, besides its name (dots, case and spaces don't count):
+ * Dorico's Shift+R words ("ds al coda", "to coda") and their run-together forms.
+ */
+const DIRECTION_WORDS: Record<DirectionName, readonly string[]> = {
+  segno: ['sign'],
+  segnosegno: ['segno segno', 'double sign'],
+  coda: [],
+  doublecoda: ['coda coda'],
+  fine: [],
+  dacapo: ['dc', 'da capo'],
+  dacapoalcoda: ['dc al coda', 'dcalcoda', 'da capo al coda'],
+  dacapoaldoublecoda: ['dc al double coda', 'da capo al double coda'],
+  dacapoalfine: ['dc al fine', 'dcalfine', 'da capo al fine'],
+  dalsegno: ['ds', 'dal segno'],
+  dalsegnoalcoda: ['ds al coda', 'dsalcoda', 'dal segno al coda'],
+  dalsegnoaldoublecoda: ['ds al double coda', 'dal segno al double coda'],
+  dalsegnoalfine: ['ds al fine', 'dsalfine', 'dal segno al fine'],
+  dalsegnosegno: ['dss', 'dal segno segno'],
+  dalsegnosegnoalcoda: ['dss al coda'],
+  dalsegnosegnoaldoublecoda: ['dss al double coda'],
+  dalsegnosegnoalfine: ['dss al fine'],
+  dacoda: ['tocoda', 'to coda'],
+  dadoublecoda: ['to double coda'],
+};
+
+/** The popover's list: those the panel offers, in its order, then the rest alphaTex has. */
+const LISTED: readonly DirectionName[] = [...OFFERED_DIRECTIONS, ...DIRECTION_NAMES.filter(n => !OFFERED_DIRECTIONS.includes(n))];
+
+/** The directions the direction popover lists for what is typed ("ds" finds D.S. first, then D.S. al Coda…). */
+export function directionsFor(typed: string): readonly DirectionName[] {
+  return namedFor(LISTED, name => [directionName(name), ...DIRECTION_WORDS[name]], typed);
+}
+
+/** The direction a name in the popover's list stands for. */
+export function directionNamed(text: string): DirectionName | null {
+  return DIRECTION_NAMES.find(name => directionName(name) === text) ?? null;
+}
 
 /** A direction's name in words, for the panel, the menu and screen readers. */
 export function directionName(name: DirectionName): string {

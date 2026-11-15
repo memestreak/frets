@@ -1,4 +1,4 @@
-\title "Directions are added from a bar's panel, picked and deleted"
+\title "Directions are added from a bar's panel or Shift+R, picked and deleted"
 \ts (4 4)
 0.6.4{txt "**1.** Select Tab view\nTab, at the top left of the clip"} 3.6.4
   5.6.4 3.6.4 |
@@ -17,4 +17,6 @@
   5.6.4 3.6.4 |
 0.5.4{txt "**8.** From the bar menu\nRight-click beside the notes, Directions…: bar 8's panel"}
   2.5.4 0.5.2 |
+0.6.4{txt "**9.** Type a direction\nPress this 0, then Shift+R; type ds al coda, Enter key"}
+  3.6.4 5.6.4 3.6.4 |
 

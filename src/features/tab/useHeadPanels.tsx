@@ -4,7 +4,7 @@ import { columnAt, indexOf, withRestsInEmptyBars, type Cursor } from './editing'
 import { setBarKey, setBarTime, setBeatGroups, setPickup, setBeatText, setChordName, setDynamic, setEnding, setRepeatTimes, setSection } from './barEdits';
 import { BarKeyPanel } from './BarKeyPanel';
 import { DirectionPanel } from './DirectionPanel';
-import { toggleDirection } from './directions';
+import { directionNamed, setDirection, toggleDirection } from './directions';
 import { BarFixPanel } from './BarFixPanel';
 import { BarTimePanel } from './BarTimePanel';
 import { CreditsPanel, type HeadField } from './CreditsPanel';
@@ -154,6 +154,14 @@ export function useHeadPanels(editor: EditorState, { layout, width, zoom, shown,
     if (byKey) editorRef.current?.focus({ preventScroll: true });
     if (!w || value === null) return;
     if (w.kind === 'technique') onTechnique(value);
+    // The direction popover (Shift+R, issue #496) adds the Direction named to its bar; one already there stays.
+    if (w.kind === 'direction') {
+      const name = directionNamed(value);
+      if (name) {
+        const next = setDirection(clip, w.bar, name, true);
+        if (next !== clip) commit(next);
+      }
+    }
     if (w.kind === 'section') commit(setSection(clip, w.bar, value));
     // The field lets only a dynamic or nothing through; nothing takes it away.
     if (w.kind === 'dynamic') {
