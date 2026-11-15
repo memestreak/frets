@@ -42,7 +42,7 @@ import { TabClip, type DoubleClickPlace } from './TabClip';
 import { MetronomeDialog } from './MetronomeDialog';
 import { ImportDialog } from './TabDialogs';
 import { TabPalette } from './TabPalette';
-import { TabRail, usePalettes } from './TabRail';
+import { TabRail, sideRoom, sideState, usePalettes } from './TabRail';
 import { ChatPanel } from './chat/ChatPanel';
 import { useChatSession } from './chat/useChatSession';
 import type { PageSpot } from './chat/arrangementTools';
@@ -931,7 +931,10 @@ export default function TabPage() {
   );
 
   return (
-    <div className="tab-page flex flex-col gap-4">
+    <div
+      className="tab-page flex flex-col gap-4" data-right={sideState(palettes.layout, 'right')}
+      style={{ '--rail-right': `${sideRoom(palettes.layout, 'right')}px` } as CSSProperties}
+    >
       {/* The title, credits and tuning are drawn as the score's head, over the drawing (ScoreHead). */}
       <header className="flex flex-wrap items-center justify-end gap-x-6 gap-y-3">
         <div className="flex flex-wrap items-center gap-2">
