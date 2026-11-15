@@ -145,12 +145,14 @@ const CHORD_FIELD: ShortcutGroup = {
 };
 
 const TEXT_FIELD: ShortcutGroup = {
-  title: 'In the Text field',
+  title: 'In the Text annotation field (Shift+X)',
   shortcuts: [
+    { keys: ['Tab'], does: 'Set the text annotation and go to the next column' },
+    { keys: ['Shift+Tab'], does: 'Set it and go back a column' },
     { keys: ['Mod+B'], does: 'Bold: **words** (again: plain)' },
     { keys: ['Shift+Enter'], does: 'New line' },
-    { keys: ['Enter'], does: 'Set the Text' },
-    { keys: ['Esc'], does: 'Leave it as it was' },
+    { keys: ['Enter'], does: 'Set it and close' },
+    { keys: ['Esc'], does: 'Close, leaving the column’s text annotation as it was' },
   ],
 };
 

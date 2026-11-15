@@ -1,6 +1,6 @@
 # Tab: a long Text over a column wraps (issue #323)
 
-Text over a column (the Text group's "Text over this column", alphaTex
+Text over a column (the Text group's "Text annotation over this column", alphaTex
 `txt "..."`) was drawn on one line, running right from its column. It
 made no room for itself, so a long text ran into the next column's text,
 or past the line's end, and the two overprinted. The test arrangements of

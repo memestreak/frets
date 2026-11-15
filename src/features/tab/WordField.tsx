@@ -5,7 +5,7 @@ import { toggleBold, type TypedText } from './textMarks';
 import type { WordKind } from './tools';
 import { DYNAMICS, dynamicOf, type Dynamic } from './clip';
 import { DYNAMIC_REACH, dynamicWord } from './dynamics';
-import type { ChordMove } from './chordPopover';
+import type { PopoverMove } from './popoverStep';
 
 /**
  * What a field sets: a palette word, a picked ending bracket's number, or how many times a picked repeat
@@ -15,13 +15,13 @@ export type FieldKind = Exclude<WordKind, 'tempo'> | 'ending' | 'repeat';
 
 const CAPTIONS: Record<FieldKind, string> = {
   chord: 'Chord name',
-  text: 'Text over the column',
+  text: 'Text annotation',
   section: 'Section',
   ending: 'Ending number',
   repeat: 'Times played, 2 to 9',
   dynamic: 'Dynamic',
 };
-const PLACEHOLDERS: Record<FieldKind, string> = { chord: 'Am7', text: 'let ring', section: 'Chorus', ending: '2', repeat: '3', dynamic: 'mf, or ↓ for the list' };
+const PLACEHOLDERS: Record<FieldKind, string> = { chord: 'Am7', text: 'Start fog machines', section: 'Chorus', ending: '2', repeat: '3', dynamic: 'mf, or ↓ for the list' };
 /** The words that are numbers: only digits can be typed, and only as many as the largest takes. */
 const NUMBER_LENGTH: Partial<Record<FieldKind, number>> = { ending: 1, repeat: 1 };
 /** The longest a word can be typed: free text may run to a few lines, as it wraps over its column (issue #323). */
@@ -33,6 +33,9 @@ export const NOT_A_DYNAMIC = 'Not a dynamic: press the Down arrow key for the li
 function settable(kind: FieldKind, value: string): boolean {
   return kind !== 'dynamic' || value.trim() === '' || dynamicOf(value) !== null;
 }
+
+/** The Text annotation field's width as it opens (`.tab-word`); its corner drags it wider. */
+const TEXT_FIELD_WIDTH = 180;
 
 /** The most rows the Text field grows to as new lines are typed; past them it scrolls. */
 const TEXT_ROWS = 6;
@@ -48,14 +51,26 @@ interface WordFieldProps {
   kind: FieldKind;
   /** What the field starts with. */
   initial: string;
-  /** Where the field's middle and top go, in the tab's own units. */
+  /** Where the field's middle and top go (its bottom with `up`), in the tab's own units. */
   x: number;
   y: number;
+  /** The field hangs up from `y`, so a text annotation's new lines grow away from the line it is over. */
+  up?: boolean;
+  /** A text annotation's field: the size its corner was dragged to, kept as the popover moves on, and where a drag reports it. */
+  size?: TextSize | null;
+  onResize?: (size: TextSize) => void;
   /**
    * What was typed, or null for Esc; `byKey` when a key finished it, not leaving the field. A chord name's
-   * field (the chord popover, issue #342) also gives where Space, Shift+Space, Tab or Shift+Tab moves it.
+   * field (the chord popover, issue #342) also gives where Space, Shift+Space, Tab or Shift+Tab moves it, and
+   * a text annotation's field (the text annotation popover) where Tab or Shift+Tab does.
    */
-  onDone: (value: string | null, byKey: boolean, move?: ChordMove) => void;
+  onDone: (value: string | null, byKey: boolean, move?: PopoverMove) => void;
+}
+
+/** The size a text annotation's field was dragged to, as CSS lengths ('' for one never dragged). */
+export interface TextSize {
+  width: string;
+  height: string;
 }
 
 /** Every dynamic in alphabetical order, so a word comes before the longer ones it starts: p, pf, pp, ppp… */
@@ -70,7 +85,7 @@ export function dynamicsFor(typed: string): readonly Dynamic[] {
   return ALPHABETICAL.filter(d => d.startsWith(start));
 }
 
-export function WordField({ kind, initial, x, y, onDone }: WordFieldProps) {
+export function WordField({ kind, initial, x, y, up = false, size = null, onResize, onDone }: WordFieldProps) {
   const [value, setValue] = useState(initial);
   const digits = NUMBER_LENGTH[kind];
   const inputRef = useRef<HTMLInputElement & HTMLTextAreaElement>(null);
@@ -78,11 +93,23 @@ export function WordField({ kind, initial, x, y, onDone }: WordFieldProps) {
   useEffect(() => inputRef.current?.focus({ preventScroll: true }), []);
   // Enter and then the blur it causes would both finish; only the first counts.
   const done = useRef(false);
-  const finish = (result: string | null, byKey: boolean, move?: ChordMove) => {
+  const finish = (result: string | null, byKey: boolean, move?: PopoverMove) => {
     if (done.current) return;
     done.current = true;
     onDone(result, byKey, move);
   };
+  // A drag of a text annotation field's corner sets its own size, kept for the next column (issue #342). The
+  // pointer can end the drag off the field, so its size is watched rather than a pointerup on it.
+  useEffect(() => {
+    const field = inputRef.current;
+    if (kind !== 'text' || !field || !onResize || typeof ResizeObserver === 'undefined') return;
+    const watch = new ResizeObserver(() => {
+      const { width, height } = field.style;
+      if (width || height) onResize({ width, height });
+    });
+    watch.observe(field);
+    return () => watch.disconnect();
+  }, [kind, onResize]);
   // Where the selection goes once a Cmd+B change is drawn.
   const selectAfter = useRef<TypedText | null>(null);
   useLayoutEffect(() => {
@@ -152,15 +179,26 @@ export function WordField({ kind, initial, x, y, onDone }: WordFieldProps) {
       return true;
     }
     if (e.altKey) return false;
-    const move: ChordMove | null = e.key === ' ' ? (e.shiftKey ? 'back' : 'next') : e.key === 'Tab' ? (e.shiftKey ? 'backBar' : 'nextBar') : null;
+    const move: PopoverMove | null = e.key === ' ' ? (e.shiftKey ? 'back' : 'next') : e.key === 'Tab' ? (e.shiftKey ? 'backBar' : 'nextBar') : null;
     if (!move) return false;
     e.preventDefault();
     finish(value, true, move);
     return true;
   };
+  /**
+   * The text annotation popover's own keys (issue #342): Tab sets the text annotation and moves to the next column,
+   * Shift+Tab to the one before, so a series of text annotations is typed in one go. Space types a space in a text
+   * annotation, so Tab takes the job Space has in the chord popover.
+   */
+  const onTextKey = (e: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>): boolean => {
+    if (kind !== 'text' || e.key !== 'Tab' || e.ctrlKey || e.metaKey || e.altKey) return false;
+    e.preventDefault();
+    finish(value, true, e.shiftKey ? 'back' : 'next');
+    return true;
+  };
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     e.stopPropagation();
-    if (onListKey(e) || onChordKey(e)) return;
+    if (onListKey(e) || onChordKey(e) || onTextKey(e)) return;
     // Shift+Enter is a new line in a Text: the textarea's own.
     if (e.key === 'Enter' && !(isText && e.shiftKey)) {
       e.preventDefault();
@@ -186,11 +224,15 @@ export function WordField({ kind, initial, x, y, onDone }: WordFieldProps) {
   };
   const showList = kind === 'dynamic' && listOpen;
   return (
-    <span className={`tab-word card${digits ? ' tab-word-fit' : ''}`} style={{ left: x, top: y }} role="dialog" aria-label={CAPTIONS[kind]}>
+    <span
+      className={`tab-word card${digits ? ' tab-word-fit' : ''}${isText ? ' tab-word-free' : ''}${up ? ' tab-word-up' : ''}`}
+      // A text annotation's field keeps its left edge where it opened, so dragging its corner wider grows it to the right.
+      style={{ left: isText ? x - TEXT_FIELD_WIDTH / 2 : x, top: y }} role="dialog" aria-label={CAPTIONS[kind]}>
       <span className="tab-time-caption">{CAPTIONS[kind]}</span>
       {isText ? (
         <textarea
           {...shared} className="input tab-word-input tab-word-text" rows={Math.min(TEXT_ROWS, value.split('\n').length)}
+          style={size ? { width: size.width || undefined, height: size.height || undefined } : undefined}
           onChange={e => setValue(e.target.value)}
         />
       ) : (

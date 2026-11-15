@@ -164,18 +164,18 @@ describe('TabPage editing', () => {
 
   it('writes free text over a column from the palette, and edits it from a press on it', async () => {
     await openWith('5.1.1 |');
-    fireEvent.click(tool('Text over this column'));
-    const field = screen.getByRole('textbox', { name: 'Text over the column' });
+    fireEvent.click(tool('Text annotation over this column'));
+    const field = screen.getByRole('textbox', { name: 'Text annotation' });
     // Long enough for a few wrapped lines (issue #323); a chord name's field stops at 40.
     expect(field).toHaveAttribute('maxLength', '200');
     fireEvent.change(field, { target: { value: 'let "it" ring' } });
     fireEvent.keyDown(field, { key: 'Enter' });
     expect(screen.getByTestId('beat-text')).toHaveTextContent('let "it" ring');
-    expect(tool('Text over this column')).toHaveAttribute('aria-pressed', 'true');
+    expect(tool('Text annotation over this column')).toHaveAttribute('aria-pressed', 'true');
     expect(alphaTex()).toBe('5.1.1{txt "let \\"it\\" ring"} |');
     // Empty clears it.
-    fireEvent.click(tool('Text over this column'));
-    const again = screen.getByRole('textbox', { name: 'Text over the column' });
+    fireEvent.click(tool('Text annotation over this column'));
+    const again = screen.getByRole('textbox', { name: 'Text annotation' });
     expect(again).toHaveValue('let "it" ring');
     fireEvent.change(again, { target: { value: '' } });
     fireEvent.keyDown(again, { key: 'Enter' });
@@ -184,13 +184,13 @@ describe('TabPage editing', () => {
 
   it('takes new lines with Shift+Enter and bold with Ctrl/⌘+B in the Text field, and draws them (issues #445, #446)', async () => {
     await openWith('5.1.1 |');
-    fireEvent.click(tool('Text over this column'));
-    const field = screen.getByRole('textbox', { name: 'Text over the column' }) as HTMLTextAreaElement;
+    fireEvent.click(tool('Text annotation over this column'));
+    const field = screen.getByRole('textbox', { name: 'Text annotation' }) as HTMLTextAreaElement;
     expect(field.tagName).toBe('TEXTAREA');
     fireEvent.change(field, { target: { value: 'press Esc' } });
     // Shift+Enter is the field's own new line: it doesn't set the Text.
     fireEvent.keyDown(field, { key: 'Enter', shiftKey: true });
-    expect(screen.getByRole('textbox', { name: 'Text over the column' })).toBe(field);
+    expect(screen.getByRole('textbox', { name: 'Text annotation' })).toBe(field);
     fireEvent.change(field, { target: { value: 'press Esc\nthen Delete' } });
     expect(field.rows).toBe(2);
     field.setSelectionRange(6, 9);
