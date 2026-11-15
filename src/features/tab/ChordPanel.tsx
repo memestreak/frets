@@ -321,10 +321,15 @@ export function ChordPanel({ clip, track, cursor, tabFocused, at, follow, onChan
       setMenu({ ...menuSpot(trigger, x, y), name: n });
     }),
   });
-  const thumb = (n: string, def: ChordEntry['def']) => {
+  /** A chord's diagram, if its shape can be drawn. */
+  const drawable = (n: string, def: ChordEntry['def']) => {
     const s = def?.frets ? toShape(def.frets) : null;
     const c = s && chordToDraw(clip, n, s);
-    return c && s ? <ChordDiagram chord={c} shape={s} look={PLAIN_LOOK} tuning={tuning} /> : null;
+    return c && s ? { c, s } : null;
+  };
+  const thumb = (n: string, def: ChordEntry['def']) => {
+    const d = drawable(n, def);
+    return d ? <ChordDiagram chord={d.c} shape={d.s} look={PLAIN_LOOK} tuning={tuning} /> : null;
   };
   const usesText = (entry: ChordEntry) => (entry.uses === 0 ? 'Not used' : `Used ${entry.uses} ${entry.uses === 1 ? 'time' : 'times'}`);
   const whatSeg = (
@@ -360,20 +365,27 @@ export function ChordPanel({ clip, track, cursor, tabFocused, at, follow, onChan
   const shownPage = Math.min(page, pages - 1);
   const chords = (
     <>
-      <div className="chord-panel-tiles" role="group" aria-label="Chords" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
-        {set.slice(shownPage * perPage, (shownPage + 1) * perPage).map(entry => (
-          <button
-            key={entry.name} type="button" className="chord-panel-tile" aria-pressed={entry.name === name}
-            aria-label={`${entry.name}, ${usesText(entry)}`} title={usesText(entry)}
-            {...chordProps(entry.name)}
-          >
-            <span className="chord-panel-tile-name">{entry.name}</span>
-            <span className="chord-panel-thumb" aria-hidden="true">
-              {thumb(entry.name, entry.def)}
-              {countBadge(entry.uses) && <span className="chord-panel-count">{countBadge(entry.uses)}</span>}
-            </span>
-          </button>
-        ))}
+      <div
+        className="chord-panel-tiles" role="group" aria-label="Chords"
+        data-diagrams={set.some(e => drawable(e.name, e.def)) || undefined}
+        style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+      >
+        {set.slice(shownPage * perPage, (shownPage + 1) * perPage).map(entry => {
+          const diagram = thumb(entry.name, entry.def);
+          const count = countBadge(entry.uses);
+          const dot = count && <span className="chord-panel-count" aria-hidden="true">{count}</span>;
+          return (
+            <button
+              key={entry.name} type="button" className="chord-panel-tile" aria-pressed={entry.name === name}
+              aria-label={`${entry.name}, ${usesText(entry)}`} title={usesText(entry)}
+              {...chordProps(entry.name)}
+            >
+              <span className="chord-panel-tile-name">{entry.name}</span>
+              {/* With a shape, the dot sits on the diagram's corner; without one, right under the name. */}
+              {diagram ? <span className="chord-panel-thumb" aria-hidden="true">{diagram}{dot}</span> : dot}
+            </button>
+          );
+        })}
         {/* A short last page keeps a full page's room, so the carets and Insert don't move. */}
         {pages > 1 && Array.from({ length: (pages * perPage - set.length) * Number(shownPage === pages - 1) }, (_, i) => (
           <span key={`empty${i}`} className="chord-panel-tile-empty" aria-hidden="true" />
