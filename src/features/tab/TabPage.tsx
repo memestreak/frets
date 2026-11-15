@@ -135,6 +135,8 @@ const TOGGLE_LOOK = {
     { value: 'b', label: 'b Blue glyph' },
     { value: 'c', label: 'c Blue glyph + bar' },
     { value: 'd', label: 'd Faint fill' },
+    { value: 'e', label: 'e Fill, grey edge' },
+    { value: 'f', label: 'f Faint fill, ink glyph' },
   ],
 } as const;
 

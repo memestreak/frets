@@ -942,3 +942,9 @@ body:has(.tab-stack-panel[data-dragging]) { cursor: grabbing; user-select: none;
   border-radius: 1px; background: var(--select);
 }
 .tab-page[data-toggle-look='d'] .btn-toggle[aria-pressed='true'] { background: color-mix(in srgb, var(--select-soft) 55%, transparent); }
+/* e: today's fill, with the off button's grey edge instead of the denim one. f: d's faint fill, ink glyph. */
+.tab-page:is([data-toggle-look='e'], [data-toggle-look='f']) .btn-toggle[aria-pressed='true'] {
+  color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--line-strong);
+}
+.tab-page[data-toggle-look='e'] .btn-toggle[aria-pressed='true'] { background: var(--select-soft); }
+.tab-page[data-toggle-look='f'] .btn-toggle[aria-pressed='true'] { background: color-mix(in srgb, var(--select-soft) 55%, transparent); }
