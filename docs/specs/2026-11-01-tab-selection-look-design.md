@@ -13,6 +13,15 @@ with the app's other tokens, light and dark.
 The blue is a denim (#2a64a8; dark #7fb0e6; soft fills #d6e3f3 / #1c3150), picked by Jeremy from three
 mocks (Fretwood's slate `--info` and a brighter MuseScore-like blue were the others; 2026-11-01).
 
+## A lit toggle isn't a selection
+
+A toggle that is on (a palette's tool, Note input mode, Insert mode, a Voice, Loop, Hear notes, the
+Metronome, the Chords panel's Hear) keeps the grey edge it has when off and gets a `--select-soft` fill
+behind its ink glyph. Its edge was `--select` too, which made it read as selected or focused (Jeremy,
+2026-11-15, from six mocks: a blue glyph, a blue glyph with a bar, a faint fill, a faint fill with an ink
+glyph and today's look were the others). Picked things (a chord tile, a shape, a name chip) are
+selections and keep the denim edge.
+
 ## A box round a selected run
 
 A run of selected columns (a bar pressed in normal mode, Shift+arrows, Shift+drag, Ctrl/⌘+Shift+←→)

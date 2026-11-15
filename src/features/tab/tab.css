@@ -258,9 +258,6 @@
 }
 /* Nothing shrinks; the row scrolls instead. */
 .tab-playback > * { flex: none; }
-/* Loop, Playback sound and the Metronome, when on, are in the selection's denim like every other lit
-   control on the page (Jeremy, 2026-11-14), not the primary red. */
-.tab-playback .btn-toggle[aria-pressed='true'] { background: var(--select-soft); box-shadow: inset 0 0 0 1.5px var(--select); }
 .tab-slot { display: flex; align-items: center; height: var(--tab-slot); }
 .tab-playback > .btn { margin-block: 4px; }
 /* A control over its name, centred under it. */
@@ -445,8 +442,6 @@
 .tab-tool-caption { display: inline-grid; font-size: 12px; font-weight: 600; white-space: nowrap; text-align: left; }
 .tab-tool-caption > span { grid-area: 1 / 1; }
 .tab-tool-caption-room { visibility: hidden; }
-/* A lit tool is in the selection's denim, as what it applies to is (issue #276), not the primary red. */
-.tab-tool.btn-toggle[aria-pressed='true'] { background: var(--select-soft); box-shadow: inset 0 0 0 1.5px var(--select); }
 /* A palette button with a panel under it (Bend): the panel opens over the tab, left edges lined up, fixed
    where it opened (its place is set from the button), so a palette that scrolls doesn't cut it off. */
 .tab-tool-box { position: relative; display: inline-flex; }
@@ -732,7 +727,7 @@ body:has(.tab-stack-panel[data-dragging]) { cursor: grabbing; user-select: none;
   color: var(--ink-muted); background: none; border: 1px solid transparent; border-radius: var(--radius-sm); cursor: pointer;
 }
 .chord-panel-hear:hover { color: var(--ink); background: var(--surface-sunken); }
-.chord-panel-hear[aria-pressed="true"] { color: var(--ink); background: var(--select-soft); border-color: var(--select); }
+.chord-panel-hear[aria-pressed="true"] { color: var(--ink); background: var(--select-soft); border-color: var(--line-strong); }
 .chord-panel-hear:focus-visible { outline: none; }
 .chord-panel-hear svg { width: 18px; height: 18px; }
 
@@ -920,22 +915,9 @@ body:has(.tab-stack-panel[data-dragging]) { cursor: grabbing; user-select: none;
   background: var(--surface-raised); color: var(--ink); outline: none;
 }
 
-/* MOCK (toggle on look): every lit toggle on the page keeps the off button's grey edge; blue goes on
-   the glyph (b), plus a short bar under it (c), or a faint fill (d). Removed once one is picked. */
-.tab-page:is([data-toggle-look='b'], [data-toggle-look='c'], [data-toggle-look='d']) .btn-toggle[aria-pressed='true'] {
-  background: transparent; color: var(--select); box-shadow: inset 0 0 0 1.5px var(--line-strong);
+/* Every lit toggle on the page (the palettes' tools, Loop, Hear notes, the Metronome): a denim fill, an
+   ink glyph and the off button's grey edge, so it doesn't look selected or focused, as a denim edge did
+   (Jeremy, 2026-11-15; docs/specs/2026-11-01-tab-selection-look-design.md). Not the primary red. */
+.tab-page .btn-toggle[aria-pressed='true'] {
+  background: var(--select-soft); color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--line-strong);
 }
-.tab-page[data-toggle-look='b'] .btn-toggle[aria-pressed='true']:hover,
-.tab-page[data-toggle-look='c'] .btn-toggle[aria-pressed='true']:hover { background: var(--primary-soft); }
-.tab-page[data-toggle-look='c'] .btn-toggle[aria-pressed='true'] { position: relative; }
-.tab-page[data-toggle-look='c'] .btn-toggle[aria-pressed='true']::after {
-  content: ""; position: absolute; left: 50%; bottom: 3px; width: 12px; height: 2px; margin-left: -6px;
-  border-radius: 1px; background: var(--select);
-}
-.tab-page[data-toggle-look='d'] .btn-toggle[aria-pressed='true'] { background: color-mix(in srgb, var(--select-soft) 55%, transparent); }
-/* e: today's fill, with the off button's grey edge instead of the denim one. f: d's faint fill, ink glyph. */
-.tab-page:is([data-toggle-look='e'], [data-toggle-look='f']) .btn-toggle[aria-pressed='true'] {
-  color: var(--ink); box-shadow: inset 0 0 0 1.5px var(--line-strong);
-}
-.tab-page[data-toggle-look='e'] .btn-toggle[aria-pressed='true'] { background: var(--select-soft); }
-.tab-page[data-toggle-look='f'] .btn-toggle[aria-pressed='true'] { background: color-mix(in srgb, var(--select-soft) 55%, transparent); }
