@@ -113,17 +113,7 @@ function heat(drive: number): number {
  * one with harmonics added; rising evenly in dB to all of it at `crunch`, as before.
  */
 export function ampColour(drive: number): number {
-  if (!colourFades()) return 1;
   return Math.min(1, Math.max(0, (driveDB(drive) - DRIVE_DB.min) / (DRIVE_DB.crunch - DRIVE_DB.min)));
-}
-
-/**
- * Mock b (issue #506, until Jeremy picks): the amp's colour at full from the lowest Drive, as it
- * was. Mock a, and no mock, fade it in.
- */
-function colourFades(): boolean {
-  if (typeof location === 'undefined') return true;
-  return new URLSearchParams(location.search).get('mock') !== 'b';
 }
 
 /**
@@ -155,8 +145,7 @@ export function secondStage(drive: number): { gain: number; back: number } {
 export function driveMakeup(drive: number): number {
   const squashed = 0.19 / (1 + 1.2 * heat(drive));
   const below = Math.max(0, DRIVE_DB.crunch - driveDB(drive));
-  // Mock b keeps the cabinet's bumps, which make up the rest.
-  if (below === 0 || !colourFades()) return squashed * 10 ** (below / 20);
+  if (below === 0) return squashed;
   const straight = 1 / (driveGain(drive) * CURVE_SLOPE);
   const light = below / (DRIVE_DB.crunch - DRIVE_DB.min);
   return (squashed * 10 ** (below / 20)) ** (1 - light) * straight ** light;

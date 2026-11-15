@@ -31,7 +31,7 @@ the step from Drive 0 to 1% was a jump from clean to crunch.
 
   The curve's lean makes the second harmonic lead, which is the warm edge of
   a valve amp starting to break up.
-- **The amp's colour fades in with Drive** (mock a): every filter around the
+- **The amp's colour fades in with Drive:** every filter around the
   shapers, the Tone low-pass and the cabinet are flat at the lowest Drive
   (high-passes at 20 Hz, low-passes at 20 kHz, boosts and dips at 0 dB) and
   move evenly in pitch and dB to their full settings at 31%. So Drive 1% is
@@ -48,12 +48,10 @@ the step from Drive 0 to 1% was a jump from clean to crunch.
   samples' Drive values moved the same way (0.87 → 0.91, 0.5 → 0.66), so
   they sound as they did.
 
-## Mocks (until Jeremy picks)
+## Picked
 
-- **a** (also with no mock): the amp's colour fades in with Drive, as above.
-- **b** (`?mock=b`): the amp's colour is at full from the lowest Drive, as
-  before; only the drive into the shaper reaches lower. Its make-up stays the
-  old one stretched down, as the cabinet's bumps make up the rest.
+Jeremy, 2026-11-15, picked mock a: the amp's colour fades in with Drive.
+Mock b, the colour at full from the lowest Drive, was dropped.
 
 The sample `samples/light-drive.atex` (`/tab#example=light-drive`) has a
 clean electric riff at Drive 5% with numbered steps to try.
