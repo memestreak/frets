@@ -103,6 +103,11 @@ export function usePlayRange(editor: EditorState, { whole, wholeWith, sound, set
    * anchor, else the cursor) to there are selected, with no string picked (Jeremy, 2026-10-27).
    */
   const pickColumn = (gap: number, extend: boolean) => {
+    // A press there doesn't take the focus (`keepFocus` in `TabClip.tsx`), so a field off the tab that had it,
+    // the Chat palette's message box above all, lets it go: the keys are the page's again, and Space plays
+    // (issue #507).
+    const focused = document.activeElement;
+    if ((focused instanceof HTMLElement || focused instanceof SVGElement) && !editorRef.current?.contains(focused)) focused.blur();
     if (extend) {
       // From the line, the columns between it and the gap pressed (Jeremy, 2026-10-28: one column, not two);
       // from a selection or the cursor, grown to the column beside the gap (issue #366): the one before it when the gap is after.
