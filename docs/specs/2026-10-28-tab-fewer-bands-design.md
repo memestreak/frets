@@ -43,7 +43,9 @@ still be able to create regions with shift arrow."
   "I selected a fret, then I placed the play cursor, and the fret remained
   selected"): a press above or below the staff takes the keys from the tab,
   as a press beside the bars does, so the string's box goes and the arrow
-  keys move the line. Leaving fills the cursor's bar as usual (not while
+  keys move the line. The cursor moves with the line, to the Column after
+  it, so the keys and a paste act there when the tab takes them again
+  (`2026-11-15-tab-playback-line-moves-cursor-design.md`). Leaving fills the cursor's bar as usual (not while
   playing, as an edit stops playback), and a line past that bar moves on by
   the rests added, so it stays before the same note. Shift+press still
   selects from the cursor.

@@ -655,7 +655,7 @@ function useReleaseFocusOnPressOutside(row: RefObject<HTMLElement | null>) {
  * Play will start when that was set by a press above or below the staff (`mark`); and under loop
  * points, a bracket.
  */
-export function Playhead({ clip, layout, width, playback, mark, markOnly = false, layer }: {
+export function Playhead({ clip, layout, width, playback, mark, markOnly = false, layer, insert = false }: {
   /** The clip as drawn, and its layout at `width` (the page works it out once for everything over the tab). */
   clip: Part; layout: Layout; width: number; playback: Playback; mark: number | null;
   /** Only the line between columns: the playback controls are hidden, so no playhead or loop bracket. */
@@ -665,6 +665,11 @@ export function Playhead({ clip, layout, width, playback, mark, markOnly = false
    * hides them (Jeremy, 2026-10-28).
    */
   layer: 'under' | 'over';
+  /**
+   * Insert mode is on and the line stands for the cursor (the tab has let go): the line has the cursor's
+   * ▼ ▲ notches (`docs/specs/2026-11-14-tab-insert-mode-design.md`, Jeremy 2026-11-15).
+   */
+  insert?: boolean;
 }) {
   const under = layer === 'under';
   const heard = useHeardPosition(playback, !markOnly && playback.view.state === 'playing');
@@ -699,6 +704,16 @@ export function Playhead({ clip, layout, width, playback, mark, markOnly = false
           stroke="var(--playhead)" strokeWidth={2}
         />,
       );
+      if (insert) {
+        const top = y + rows.bandTop - 4;
+        const bottom = y + rows.bandBottom + 4;
+        out.push(
+          <g key={`mark-insert-${si}`} fill="var(--select)" data-testid="line-insert-notches">
+            <path d={`M${x - 5} ${top - 6}h10l-5 6z`} />
+            <path d={`M${x - 5} ${bottom + 6}h10l-5 -6z`} />
+          </g>,
+        );
+      }
     }
     const at = cols.findIndex(c => c.index === column);
     const head = at < 0 ? undefined : cols[at];
@@ -717,8 +732,9 @@ export function Playhead({ clip, layout, width, playback, mark, markOnly = false
       }
     }
   });
+  // Visible overflow: Insert mode's ▲ under the last system's band reaches past the drawing's foot.
   return (
-    <svg className="pointer-events-none absolute left-0 top-0" width={width} height={layout.height} aria-hidden="true">
+    <svg className="pointer-events-none absolute left-0 top-0" style={{ overflow: 'visible' }} width={width} height={layout.height} aria-hidden="true">
       {out}
     </svg>
   );

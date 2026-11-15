@@ -38,6 +38,7 @@ PR, or removes the file and its row when the behaviour is gone.
 | `grace-before.atex` | `/` adds a grace note before the picked note, and a second makes them sixteenths | `docs/specs/2026-11-04-tab-tuplets-grace-rest-design.md` |
 | `insert-mode.atex` | Insert mode (I): a note typed in note input mode pushes the music after it on, over the bar line; Delete pulls it back; I again turns it off | `docs/specs/2026-11-14-tab-insert-mode-design.md`, #482 |
 | `insert-pushes.atex` | Insert pushes the music on over the bar line, and Ctrl/⌘+Delete pulls it back | `docs/specs/2026-11-04-tab-bars-always-full-design.md` |
+| `line-is-the-cursor.atex` | The playback line takes the cursor with it: in Insert mode it has the ▼ ▲ notches, and a paste goes in at it, sliding the music on | `docs/specs/2026-11-15-tab-playback-line-moves-cursor-design.md` |
 | `longer-note-writes-over.atex` | A longer note, or a run made longer, writes over what follows, split and tied at the bar line | `docs/specs/2026-11-01-tab-rest-lengths-design.md`, #294, `docs/specs/2026-11-04-tab-bars-always-full-design.md` |
 | `move-by-the-grid.atex` | Alt+← → move a picked chord, or a note picked by itself, a grid step earlier or later; a sideways drag does the same | `docs/specs/2026-11-13-tab-move-in-time-design.md`, #473 |
 | `lyrics-typing.atex` | Shift+L types Lyrics note by note (the minus key joins syllables, Space moves on, Down a second Lyric line); a press picks a syllable, Delete takes it away, a double-click edits it | `docs/specs/2026-11-09-tab-lyrics-design.md` |

@@ -677,7 +677,8 @@ function unlabelled(bar: Bar): Bar {
 function pastesWholeBars(clip: Part, cursor: Cursor, given: Part, stated: Stated): boolean {
   // A paste that doesn't say its meter is in the meter where it lands.
   const pasted = stated.time ? given : { ...given, time: timeAt(clip, cursor.bar), bars: given.bars.map(bar => without(without(bar, 'time'), 'beatGroups')) };
-  const atBarLine = cursor.bar < clip.bars.length && (clip.bars[cursor.bar].columns.length === 0 || cursorTime(clip, cursor) === timeOf(clip, cursor.bar, 0));
+  // Past the last bar (the playback line after the clip's end) is a bar line too.
+  const atBarLine = cursor.bar >= clip.bars.length || clip.bars[cursor.bar].columns.length === 0 || cursorTime(clip, cursor) === timeOf(clip, cursor.bar, 0);
   if (!atBarLine || hasPickup(pasted) || (cursor.bar === 0 && hasPickup(clip))) return false;
   return pasted.bars.every((bar, b) => bar.columns.length > 0 && !isUneven(pasted, b));
 }
@@ -723,7 +724,7 @@ export function insertPaste(clip: Part, cursor: Cursor, pasted: Part, stated: St
     return writePasted(fresh, { ...cursor, bar: 0, column: 0 }, pasted);
   }
   const { columns, length, last } = pastedColumns({ ...pasted, bars: incoming });
-  const at = clip.bars[cursor.bar].columns.length === 0 ? timeOf(clip, cursor.bar, 0) : cursorTime(clip, cursor);
+  const at = clip.bars[cursor.bar]?.columns.length === 0 ? timeOf(clip, cursor.bar, 0) : cursorTime(clip, cursor);
   const pushed = pushTime(clip, at, length);
   const written = pushed && writeOver(pushed, at, columns);
   if (!written) return { clip, cursor };
@@ -796,7 +797,7 @@ function insertBars(clip: Part, p0: number, pasted: Part, stated: Stated, cursor
 function writePasted(clip: Part, cursor: Cursor, pasted: Part): { clip: Part; cursor: Cursor } {
   const incoming = pasted.bars.filter(b => b.columns.length > 0);
   const { columns, length, last } = pastedColumns({ ...pasted, bars: incoming });
-  const at = clip.bars[cursor.bar].columns.length === 0 ? timeOf(clip, cursor.bar, 0) : cursorTime(clip, cursor);
+  const at = clip.bars[cursor.bar]?.columns.length === 0 ? timeOf(clip, cursor.bar, 0) : cursorTime(clip, cursor);
   const written = writeOver(clip, at, columns);
   if (!written) return { clip, cursor };
   const next = normalize(written);

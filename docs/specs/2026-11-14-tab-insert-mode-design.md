@@ -37,6 +37,9 @@ Principles: P1 (bars always full) stays. P2 and A11 in
   and one below, as Dorico's caret does, in both note input mode and
   normal mode, on the tab and on the staff. Over a staff they go round the
   notes that reach past its lines, so a high or low note never hides them.
+  While the playback line shows and the tab doesn't have the keys, the
+  line has the notches instead, since the cursor moves with it and a paste
+  goes in there (`2026-11-15-tab-playback-line-moves-cursor-design.md`).
   The editor's label for screen
   readers ends "Insert mode: entries push the music after them on, Delete
   pulls it back; I to turn it off".

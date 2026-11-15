@@ -66,7 +66,8 @@ and in its spec.
   cross Voices: a press on another Voice's note, Alt+1–4, Move to voice,
   Select only voice, an edit of every Voice a selection covers, Ctrl/⌘+Alt+← →.
 - `usePlayRange.ts` — playback (`usePlayback`), the playback line, where
-  Play starts and stops, Loop, and a press above or below the staff.
+  Play starts and stops, Loop, and a press above or below the staff. The
+  line takes the cursor with it (`setLine`).
 - `usePageKeys.ts` — the keys that work anywhere on the page (the grid keys,
   Esc and N, L, Space, the playback line's keys), paste, copy, cut, undo
   and redo, and the tab taking and letting go of the keys.
@@ -513,6 +514,9 @@ or saved. Standard tuning only.
 The principles every editing spec since step 1 follows, with Dorico,
 MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
 
+- `docs/specs/2026-11-15-tab-playback-line-moves-cursor-design.md`: the
+  playback line takes the cursor with it, a paste goes in at the line, and
+  in Insert mode the line has the cursor's notches
 - `docs/specs/2026-11-15-tab-paste-keeps-key-meter-tempo-design.md`: a copy
   says the key, meter and tempo it was in; a paste of whole bars at a bar
   line keeps them, the music after keeps its own, a mark only where they

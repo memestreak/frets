@@ -755,6 +755,8 @@ export function lineKeyDown(e: KeyboardEvent, { clip, count, line, selection, se
     return;
   }
   if (e.key === 'Escape') {
+    // An open panel, menu or dialog takes Esc first, and nothing else goes with it.
+    if (popupTakesEscape(e)) return;
     if (line === null && !selection) return;
     // A selection goes first, leaving the line after its last column (Jeremy, 2026-10-28); then the line goes.
     if (selection) {

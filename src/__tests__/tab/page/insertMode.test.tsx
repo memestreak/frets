@@ -4,6 +4,10 @@
  */
 import { act, cleanup, fireEvent, screen, within } from '@testing-library/react';
 import { TAB_SHORTCUTS } from '@/features/tab/shortcuts';
+import * as alphaTab from '@coderline/alphatab';
+import { readAlphaTexWith } from '@/features/tab/alphatexRead';
+import { layoutClip } from '@/features/tab/layout';
+import { partOf } from '@/features/tab/clip';
 import { setUpPage, renderAt, SLOW, undo, editor, keys, alphaTex, alphaTexText, paste } from './helpers';
 
 setUpPage();
@@ -302,5 +306,73 @@ describe('TabPage: lengths, paste, Delete and cut in Insert mode', () => {
     await open('5.1.4 7.1.4 5.1.4 r.4 |');
     keys('ArrowRight', 'Delete');
     expect(alphaTex()).toBe('5.1.4 r.4 5.1.4 r.4 |');
+  });
+});
+
+/** A press just above Column `index` of `text` in 4/4 (jsdom draws the tab 800 wide at 0, 0): the playback line goes there. */
+function pressAbove(text: string, index: number) {
+  const read = readAlphaTexWith(alphaTab, `\\ts (4 4)\n${text}`);
+  if (!read.ok) throw new Error(read.errors.join('\n'));
+  const placed = layoutClip(partOf(read.clip), 800, 'tab').systems.flatMap(s => s.bars.flatMap(b => b.columns)).find(c => c.index === index)!;
+  fireEvent.pointerDown(screen.getByTestId('column-reach'), { clientX: placed.x, clientY: -10 });
+}
+
+describe('TabPage: the playback line acts as the cursor (2026-11-15)', () => {
+  const BAR = '5.1.4 7.1.4 5.1.4 7.1.4 |';
+
+  it('a press above the staff puts the cursor on the line: the keys act there when the tab takes them again', async () => {
+    await open(BAR);
+    pressAbove(BAR, 2);
+    expect(screen.getByTestId('play-mark')).toBeInTheDocument();
+    expect(editor()).not.toHaveFocus();
+    act(() => editor().focus());
+    keys('n', '9');
+    expect(alphaTex()).toBe('5.1.4 7.1.4 9.1.4 7.1.4 |');
+  });
+
+  it('→ moves the line and the cursor with it', async () => {
+    await open(BAR);
+    pressAbove(BAR, 1);
+    fireEvent.keyDown(document.body, { key: 'ArrowRight' });
+    act(() => editor().focus());
+    keys('n', '9');
+    expect(alphaTex()).toBe('5.1.4 7.1.4 9.1.4 7.1.4 |');
+  });
+
+  it('a paste goes over the music at the line', async () => {
+    await open(BAR);
+    pressAbove(BAR, 2);
+    await paste('9.1.4');
+    expect(alphaTex()).toBe('5.1.4 7.1.4 9.1.4 7.1.4 |');
+  });
+
+  it('in Insert mode, a paste at the line slides the music after it on', async () => {
+    await open(BAR);
+    keys('i');
+    pressAbove(BAR, 2);
+    await paste('9.1.4');
+    expect(alphaTex()).toBe('5.1.4 7.1.4 9.1.4 5.1.4 |\n7.1.4 r.4 r.2 |');
+  });
+
+  it('a paste at the line after the last column goes on the end', async () => {
+    await open(BAR);
+    keys('i');
+    pressAbove(BAR, 3);
+    fireEvent.keyDown(document.body, { key: 'ArrowRight' });
+    await paste('9.1.1 |');
+    expect(alphaTex()).toBe('5.1.4 7.1.4 5.1.4 7.1.4 |\n9.1.1 |');
+  });
+
+  it('in Insert mode the line has the cursor\'s notches; out of it, it has none', async () => {
+    await open(BAR);
+    pressAbove(BAR, 2);
+    expect(screen.queryByTestId('line-insert-notches')).toBeNull();
+    keys('i');
+    expect(screen.getByTestId('line-insert-notches')).toBeInTheDocument();
+    expect(screen.getByTestId('line-insert-notches').querySelectorAll('path')).toHaveLength(2);
+    // On the tab again, the cursor has them and the line goes.
+    act(() => editor().focus());
+    expect(screen.queryByTestId('line-insert-notches')).toBeNull();
+    expect(screen.getByTestId('insert-notches')).toBeInTheDocument();
   });
 });

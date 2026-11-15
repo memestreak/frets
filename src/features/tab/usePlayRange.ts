@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { Clip, Part } from './clip';
 import { DEFAULT_FX } from './effects';
-import { columnAt, columnCount, growSelection, indexOf, selectedRange, type Cursor, type Selection } from './editing';
+import { columnAt, columnCount, growSelection, indexOf, placeOf, selectedRange, type Cursor, type Selection } from './editing';
 import { patternOf, rollsOf, usePlayback, type MidiRoute } from './PlaybackFooter';
 import type { Sound } from './playback';
 import type { TabPrefs } from './tabSettings';
@@ -10,7 +10,8 @@ import type { EditorState } from './useEditorState';
 /**
  * Playback of the shown track, and where it plays: the playback line, the columns Play starts at and stops
  * after, and Loop. The line is put on a column by a press above or below the staff (Jeremy, 2026-10-26); it
- * holds until the clip, the cursor or the selection changes. Play starts there, else at the selection's
+ * takes the cursor with it, so the keys and a paste act there (Jeremy, 2026-11-15), and holds until the clip,
+ * the cursor or the selection changes. Play starts there, else at the selection's
  * first column, else the cursor's, else the first; Loop takes the selection.
  */
 export function usePlayRange(editor: EditorState, { whole, wholeWith, sound, settings, metronome, midi, replace }: {
@@ -28,8 +29,20 @@ export function usePlayRange(editor: EditorState, { whole, wholeWith, sound, set
   /** Puts an edited whole clip in, as one undo step. */
   replace: (next: Clip) => void;
 }) {
-  const { clip, cursor, cursorAsSet, selection, selectionAsSet, setSelection, tabFocused, editorRef, startRegion, setNotice } = editor;
+  const { clip, cursor, cursorAsSet, setCursor, setCursorAt, selection, selectionAsSet, setSelection, tabFocused, editorRef, startRegion, setNotice } = editor;
   const [playMark, setPlayMark] = useState<{ index: number; clip: Clip; cursor: Cursor; selection: Selection | null } | null>(null);
+  /**
+   * The playback line at gap `index` of `part` (`whole` the clip it is in), and the cursor on the line's
+   * Column (the last one when the line is past the end), on the string it was on: the line acts as the
+   * cursor, so the keys, a paste and Insert mode's arrows are there (Jeremy, 2026-11-15).
+   */
+  const setLine = (index: number, at: Clip = whole, part: Part = clip) => {
+    const count = columnCount(part);
+    const next: Cursor = count > 0 ? { ...cursor, ...placeOf(part, Math.min(index, count - 1)) } : cursor;
+    setCursor(next);
+    setCursorAt(next, 0);
+    setPlayMark({ index, clip: at, cursor: next, selection: null });
+  };
   // By value: the same settings as a new object make the clip's MIDI again for nothing.
   const { sound: clickSound, subdivide, clickOn, beatOneVolume, beatsVolume, subdivisionsVolume } = metronome;
   const pattern = useMemo(
@@ -53,7 +66,7 @@ export function usePlayRange(editor: EditorState, { whole, wholeWith, sound, set
     onStopAt: column => {
       if (!settings.stopAtPlayhead) return;
       setSelection(null);
-      setPlayMark({ index: column, clip: whole, cursor: cursorAsSet, selection: null });
+      setLine(column);
     },
   });
 
@@ -111,10 +124,10 @@ export function usePlayRange(editor: EditorState, { whole, wholeWith, sound, set
     // ...and the tab's cursor: the tab lets the keys go, as after a press beside the bars (Jeremy, 2026-10-28).
     if (tabFocused) editorRef.current?.blur();
     if (playback.seek(index)) return;
-    setPlayMark({ index, clip: whole, cursor: cursorAsSet, selection: null });
+    setLine(index);
   };
   /** Puts the playback line at a gap, or takes it away; it holds until the clip, the cursor or the selection changes. */
-  const placeLine = (index: number | null) => setPlayMark(index === null ? null : { index, clip: whole, cursor: cursorAsSet, selection: null });
+  const placeLine = (index: number | null) => (index === null ? setPlayMark(null) : setLine(index));
   /** Takes the playback line away. */
   const dropLine = () => setPlayMark(null);
   /** An edit made off the tab, from the playback line: one undo step, the line held at a gap of the new clip. */
@@ -123,7 +136,7 @@ export function usePlayRange(editor: EditorState, { whole, wholeWith, sound, set
     if (edited !== whole) replace(edited);
     setSelection(null);
     setNotice(null);
-    setPlayMark({ index, clip: edited, cursor: cursorAsSet, selection: null });
+    setLine(index, edited, next);
   };
 
   return { playback, selectedColumns, markAt, playFrom, playUntil, toggleLoop, pickColumn, placeLine, dropLine, editAtLine };
