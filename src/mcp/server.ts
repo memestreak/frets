@@ -5,14 +5,15 @@
  * `/mcp` (`functions/mcp.ts`) and in `npm run mcp:preview`.
  */
 import { McpServer } from '@modelcontextprotocol/server';
+import { SERVER_INSTRUCTIONS } from './instructions';
 import { MCP_PAGES } from './tools';
 import type { AppsHtml } from './types';
 
 export const SERVER_INFO = { name: 'frets', version: '1.0.0' };
 
-/** A server with every page's tools, serving `apps`, the built apps' HTML by name. */
+/** A server with every page's tools and the server's instructions (`instructions.ts`), serving `apps`, the built apps' HTML by name. */
 export function createFretsServer(apps: AppsHtml): McpServer {
-  const server = new McpServer(SERVER_INFO);
+  const server = new McpServer(SERVER_INFO, { instructions: SERVER_INSTRUCTIONS });
   for (const register of MCP_PAGES) register(server, apps);
   return server;
 }
