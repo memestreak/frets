@@ -32,7 +32,13 @@ between its two side bars by dragging or "Move to Secondary Side Bar", each with
   nothing. Alt+↑ ↓ move it within its side, as before.
 - **Each side collapses on its own**, from its own button at the top of its column on the clip's side (top
   right on the left, top left on the right), "Collapse left palettes" / "Collapse right palettes", to its own
-  40px strip on its own edge. Chat's reply dot shows on the strip of the side Chat is on.
+  40px strip on its own edge. Under Expand, the strip lists that side's palettes by their icons, in order,
+  divided by lines as their headers are, each with its name as its tip. Jeremy, 2026-11-15: "When the palette
+  widths are minimized I'd like the icons to remain … Clicking on any icon should unminimize them the same way
+  that the expand-collapse toggle above them does." A press on an icon expands the side as Expand does, and
+  opens that palette if it was folded, scrolling the column to it; the others stay as they were. Chat's icon
+  there shows a running reply's dots, or a dot for one ended unseen, with "Chat: Replying…" or "Chat: New
+  reply" as its tip. Under 900px the strip's icons run in a row after Expand.
 - **Each side has its own width**, 224 to 560px, 272 at first, set by the line between it and the clip
   ("Left palette width", "Right palette width"); on the right, leftwards widens. The clip keeps at least
   400px.
@@ -62,8 +68,11 @@ between its two side bars by dragging or "Move to Secondary Side Bar", each with
 - Right collapsed, Bars dragged across: its strip has `data-drop`; dropped, the right side is expanded with
   Chat, Bars.
 - Collapse left leaves the right column; collapse right leaves the left; each strip is on its own side.
-- A Chat reply ended unseen, right collapsed: "Expand right palettes" has `data-status` `unread`; "Expand left
-  palettes" has none.
+- Left collapsed: the strip lists Show Notes, Show Articulations, Show Bars, Show Chords, tips the names, each
+  with its icon. Show Bars expands the left with Notes and Bars open; collapsed again, Show Notes expands it
+  with nothing else changed; the right collapsed, Show Chat expands it with Chat open.
+- A Chat reply ended unseen, right collapsed: "Show Chat" has `data-status` `unread` and the tip "Chat: New
+  reply"; "Expand right palettes" has none.
 - The right width: ← makes 288; a drag 80px left from there makes 368; kept `{ left: 272, right: 368 }`; the
   left handle still says 272.
 - After Alt+→ on Chords and collapsing the left, the next visit shows Chat, Chords on the right.

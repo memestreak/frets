@@ -239,12 +239,11 @@ describe('the Chat conversation outside the panel', () => {
     await waitFor(() => expect(chatIcon()).toHaveAttribute('data-status', 'unread'));
     expect(chatIcon()).toHaveAttribute('data-tip', 'Chat: New reply');
     expect(alphaTex()).toBe('12.6.1 |\n5.6.4 6.6.4 7.6.4 8.6.4 |');
-    // Its side collapsed, the strip of the side Chat is on says so, and only that one (issue #490).
+    // Its side collapsed, Chat's icon in the strip says so (issue #490).
     fireEvent.click(screen.getByRole('button', { name: 'Collapse right palettes' }));
-    expect(screen.getByRole('button', { name: 'Expand right palettes' })).toHaveAttribute('data-status', 'unread');
-    fireEvent.click(screen.getByRole('button', { name: 'Collapse left palettes' }));
-    expect(screen.getByRole('button', { name: 'Expand left palettes' })).not.toHaveAttribute('data-status');
-    fireEvent.click(screen.getByRole('button', { name: 'Expand left palettes' }));
+    expect(screen.getByRole('button', { name: 'Show Chat' })).toHaveAttribute('data-status', 'unread');
+    expect(screen.getByRole('button', { name: 'Show Chat' })).toHaveAttribute('data-tip', 'Chat: New reply');
+    expect(screen.getByRole('button', { name: 'Expand right palettes' })).not.toHaveAttribute('data-status');
     fireEvent.click(screen.getByRole('button', { name: 'Expand right palettes' }));
     // Chat again: the ask, its notes and the reply are there, and the mark is gone.
     fireEvent.click(chatButton());

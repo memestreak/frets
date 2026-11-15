@@ -66,8 +66,11 @@ describe('the palettes’ column (issue #454)', () => {
     expect(listed('right')).toEqual(['Chat-']);
     expect(screen.queryByRole('button', { name: 'Note input mode' })).toBeNull();
     expect(expandButton()).toHaveAttribute('aria-expanded', 'false');
-    // Nothing else in the strip: no palette icons.
-    expect(expandButton().parentElement!.children).toHaveLength(1);
+    // Under Expand, the side's palettes by their icons, in order, each named for its tip (issue #490).
+    const strip = [...expandButton().parentElement!.querySelectorAll('.tab-stack-strip-icon')];
+    expect(strip.map(b => b.getAttribute('aria-label'))).toEqual(['Show Notes', 'Show Articulations', 'Show Bars', 'Show Chords']);
+    expect(strip.map(b => b.getAttribute('data-tip'))).toEqual(['Notes', 'Articulations', 'Bars', 'Chords']);
+    expect(strip.every(b => b.querySelector('svg'))).toBe(true);
     fireEvent.click(expandButton());
     expect(listed()).toEqual(['Notes+', 'Articulations-', 'Bars-', 'Chords+']);
     expect(collapseButton()).toHaveAttribute('aria-expanded', 'true');
@@ -78,6 +81,22 @@ describe('the palettes’ column (issue #454)', () => {
     expect(listed()).toEqual(['Notes+', 'Articulations-', 'Bars-', 'Chords+']);
     fireEvent.click(expandButton('right'));
     expect(listed('right')).toEqual(['Chat-']);
+  });
+
+  it('a palette’s icon in a collapsed strip expands that side with it open, the others as they were (issue #490)', () => {
+    renderAt();
+    fireEvent.click(collapseButton());
+    fireEvent.click(screen.getByRole('button', { name: 'Show Bars' }));
+    expect(listed()).toEqual(['Notes+', 'Articulations-', 'Bars+', 'Chords-']);
+    expect(kept().collapsed).toEqual({ left: false, right: false });
+    // An icon of a palette already open just expands the side.
+    fireEvent.click(collapseButton());
+    fireEvent.click(screen.getByRole('button', { name: 'Show Notes' }));
+    expect(listed()).toEqual(['Notes+', 'Articulations-', 'Bars+', 'Chords-']);
+    // The right side's strip lists Chat.
+    fireEvent.click(collapseButton('right'));
+    fireEvent.click(screen.getByRole('button', { name: 'Show Chat' }));
+    expect(listed('right')).toEqual(['Chat+']);
   });
 
   it('keeps the open palettes, their order, sides and heights, each side collapsed or not, and widths across visits', () => {

@@ -643,7 +643,17 @@ body:has(.tab-rail-divider[data-dragging]) { cursor: ew-resize; user-select: non
    that a dragged palette would land on is outlined in blue. */
 .tab-stack-top { display: flex; justify-content: flex-end; padding: 0 8px; border-bottom: 1px solid var(--line); }
 .tab-rail-column[data-side='right'] .tab-stack-top { justify-content: flex-start; }
-.tab-stack-strip { position: sticky; top: 16px; display: flex; justify-content: center; border-radius: var(--radius-sm); }
+.tab-stack-strip { position: sticky; top: 16px; display: flex; flex-direction: column; align-items: center; border-radius: var(--radius-sm); }
+/* Collapsed, each of the side's palettes by its icon, divided by lines as their headers are; a press expands the
+   side with that palette open (issue #490). */
+.tab-stack-strip .tab-stack-collapse { margin-bottom: 4px; }
+.tab-stack-strip-icon {
+  position: relative; display: grid; place-items: center; width: 100%; height: 44px; padding: 0; border: 0;
+  border-top: 1px solid var(--line); background: none; color: var(--ink); cursor: pointer;
+}
+.tab-stack-strip-icon:last-child { border-bottom: 1px solid var(--line); }
+.tab-stack-strip-icon:hover { background: var(--surface-sunken); }
+.tab-stack-strip-icon:focus-visible { outline: none; background: var(--surface-sunken); }
 .tab-stack-strip[data-drop] { box-shadow: inset 0 0 0 1.5px var(--select); }
 .tab-stack-collapse {
   position: relative; display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: var(--radius-sm);
@@ -651,13 +661,12 @@ body:has(.tab-rail-divider[data-dragging]) { cursor: ew-resize; user-select: non
 }
 .tab-stack-collapse:hover { color: var(--ink); background: var(--surface-sunken); }
 .tab-stack-collapse:focus-visible { outline: none; }
-/* Collapsed, a Chat reply running (a pulsing dot) or ended unseen (a solid one) shows on the strip's button. */
-.tab-stack-collapse[data-status]::after {
-  content: ''; position: absolute; top: 3px; right: 3px; width: 7px; height: 7px; border-radius: 50%;
+/* Collapsed, a Chat reply running (a pulsing dot) or ended unseen (a solid one) shows on Chat's icon in the strip. */
+.tab-stack-strip-icon[data-status]::after {
+  content: ''; position: absolute; top: 9px; right: 7px; width: 7px; height: 7px; border-radius: 50%;
   background: var(--primary); box-shadow: 0 0 0 2px var(--surface);
 }
-.tab-stack-collapse[data-status='working']::after { background: var(--ink-muted); animation: tab-rail-typing 1.2s ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) { .tab-stack-collapse[data-status='working']::after { animation: none; } }
+.tab-stack-strip-icon[data-status='working']::after { display: none; }
 /* The palettes, top to bottom; the column scrolls when the open ones outgrow it. */
 .tab-stack { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-bottom: 16px; }
 .tab-stack-panel { position: relative; display: flex; flex-direction: column; flex: none; border-bottom: 1px solid var(--line); }
@@ -716,7 +725,9 @@ body:has(.tab-stack-panel[data-dragging]) { cursor: grabbing; user-select: none;
   .tab-page[data-right] > header { margin-right: 0; }
   .tab-rail-column { align-self: start; }
   .tab-rail-panel { position: static; height: auto; max-height: none; border: 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-  .tab-stack-strip { position: static; justify-content: flex-start; }
+  .tab-stack-strip { position: static; flex-direction: row; justify-content: flex-start; }
+  .tab-stack-strip .tab-stack-collapse { margin-bottom: 0; }
+  .tab-stack-strip-icon, .tab-stack-strip-icon:last-child { width: 44px; height: 40px; border: 0; }
   .tab-stack { overflow: visible; }
   .tab-stack-head, .tab-stack-body { padding-left: 0; padding-right: 0; }
   .tab-rail-tools { flex-direction: row; flex-wrap: wrap; gap: 8px 18px; }

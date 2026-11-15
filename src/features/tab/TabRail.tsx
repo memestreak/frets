@@ -563,7 +563,7 @@ interface TabRailProps {
 
 /** The clip's card with a column of palettes, or its collapsed strip, on each side that has any. */
 export function TabRail({ palette, palettes, chords, chordsHead, chat, chatStatus = 'idle', children }: TabRailProps) {
-  const { layout, change, ask } = palettes;
+  const { layout, change, ask, show } = palettes;
   const frame = useRef<HTMLDivElement>(null);
   const place = ({ id, side, to }: DragAt) => {
     // A palette dropped on a collapsed side expands it, so it can be seen where it went.
@@ -626,23 +626,36 @@ export function TabRail({ palette, palettes, chords, chordsHead, chat, chatStatu
   const targeted = (side: Side) => !!drag && drag.side === side && sideOf(layout, drag.id) !== side;
   const column = (side: Side) => {
     const collapsed = layout.collapsed[side];
-    const chatHere = sideOf(layout, 'chat') === side;
     const label = `${collapsed ? 'Expand' : 'Collapse'} ${side} palettes`;
     const collapseButton = (
       <button
         type="button" className="tab-stack-collapse" aria-label={label} aria-expanded={!collapsed} data-tip={label}
-        // Collapsed, the strip still says a Chat reply is running or new.
-        data-status={collapsed && chatHere && chatStatus !== 'idle' ? chatStatus : undefined}
         onMouseDown={e => e.preventDefault()} onClick={() => change({ collapsed: { ...layout.collapsed, [side]: !collapsed } })}
       >
         <CollapseIcon side={side} collapsed={collapsed} />
       </button>
     );
+    // Collapsed, the strip lists the side's palettes by their icons; a press expands the side with that one open.
+    const stripIcons = lists[side].map(id => {
+      const p = PALETTES.find(x => x.id === id)!;
+      const status = id === 'chat' && chatStatus !== 'idle' ? chatStatus : undefined;
+      const tip = status ? `${p.name}: ${CHAT_STATUS[status]}` : p.name;
+      return (
+        <button
+          key={id} type="button" className="tab-stack-strip-icon" aria-label={`Show ${p.name}`} data-tip={tip}
+          data-status={status} onMouseDown={e => e.preventDefault()} onClick={() => show(id)}
+        >
+          <svg width={20} height={20} viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth={1.5}>
+            {id === 'chat' && status === 'working' ? CHAT_WORKING_ICON : p.icon}
+          </svg>
+        </button>
+      );
+    });
     return (
       <div className="tab-rail-column" data-side={side}>
         <HoverTips className="tab-rail-tips">
           {collapsed ? (
-            <div className="tab-stack-strip" data-drop={targeted(side) ? '' : undefined}>{collapseButton}</div>
+            <div className="tab-stack-strip" data-drop={targeted(side) ? '' : undefined}>{collapseButton}{stripIcons}</div>
           ) : (
             <aside className="tab-rail-panel tab-stack-frame" aria-label={`${side === 'left' ? 'Left' : 'Right'} palettes`}>
               <div className="tab-stack-top">{collapseButton}</div>

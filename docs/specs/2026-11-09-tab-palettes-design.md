@@ -49,12 +49,13 @@ be dragged into another order; Guitar Pro 8's Edition palette is a fixed column 
   and letting go moves it there. The click that ends a drag doesn't fold or open it. Near the column's top or
   bottom edge the column scrolls while the pointer rests there. A right-button press does nothing.
   On a focused header, **Alt+↑ ↓** moves it up or down one, and not past either end.
-- **One button at the column's top, on the clip's side, collapses** the whole column to a 40px strip holding only that
-  button, now Expand; pressing it brings the column back with the same palettes open. The clip widens into
-  the room. No palette icons in the strip (one way to open a palette).
+- **One button at the column's top, on the clip's side, collapses** the whole column to a 40px strip holding
+  that button, now Expand, and under it the column's palettes by their icons (Jeremy, 2026-11-15, issue #490;
+  until then the strip held Expand alone); pressing Expand brings the column back with the same palettes open,
+  and pressing an icon brings it back with that palette open too. The clip widens into the room.
 - **Chat's status**: while a reply runs, Chat's icon shows its three pulsing dots, and a reply that ended
-  unseen puts a dot on it, until Chat is open and the column expanded (issue #442). Collapsed, the strip's
-  button shows the same dot (pulsing while a reply runs). A screen reader hears "Chat: Replying…" or
+  unseen puts a dot on it, until Chat is open and the column expanded (issue #442). Collapsed, Chat's icon in
+  the strip shows the same (issue #490). A screen reader hears "Chat: Replying…" or
   "Chat: New reply" while Chat can't be seen.
 - **A chord's Edit** (a chord name's, or the Chord chart's) expands the column if collapsed, opens Chords
   without folding anything else, and scrolls the column, not the page, to Chords. Folding Chords, or
