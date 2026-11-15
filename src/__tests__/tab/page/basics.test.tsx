@@ -358,13 +358,13 @@ describe('TabPage', () => {
     const light = () => screen.getByRole('switch', { name: 'All effects' });
     fireEvent.click(light());
     expect(light()).toHaveAttribute('aria-checked', 'true');
-    expect(firstLine()).toBe('// frets:fx on; distortion on drive=0.5 tone=0.5; reverb on amount=0.3 decay=1.5');
+    expect(firstLine()).toBe('// frets:fx on; distortion on drive=0.66 tone=0.5; reverb on amount=0.3 decay=1.5');
     fireEvent.click(screen.getByRole('button', { name: 'FX' }));
     const dialog = screen.getByRole('dialog', { name: 'Effects' });
     fireEvent.click(within(dialog).getByRole('switch', { name: 'Reverb' }));
     fireEvent.click(within(dialog).getByRole('button', { name: 'Longer decay' }));
     fireEvent.keyDown(dialog, { key: 'Escape' });
-    expect(firstLine()).toBe('// frets:fx on; distortion on drive=0.5 tone=0.5; reverb off amount=0.3 decay=1.6');
+    expect(firstLine()).toBe('// frets:fx on; distortion on drive=0.66 tone=0.5; reverb off amount=0.3 decay=1.6');
     // Saved with the arrangement, not with the viewer's playback settings.
     expect(pageClip()).toMatchObject({ tracks: [{ fx: { on: true, reverbOn: false, decay: 1.6 } }] });
     expect(localStorage.getItem(PLAYBACK_KEY) ?? '').not.toContain('reverb');

@@ -35,23 +35,31 @@ after it, made once with the AudioContext (`EffectsChain` in `effects.ts`):
   (oversampled 4x) → a high-pass at 100 Hz → the second stage's push → a
   second shaper → its level out → the Tone low-pass → a speaker cabinet made of filters (no
   deep lows, a bump at 110 Hz, a dip at 400 Hz, presence at 2.2 kHz, little
-  past 6.5 kHz) → a make-up gain.
+  past 6.5 kHz) → a make-up gain. These filters are the amp's colour, which
+  fades in with Drive at its low end
+  (`docs/specs/2026-11-15-tab-light-drive-design.md`).
 - **The curve** is a soft clip (tanh) that leans a little to one side, as a
   valve does, which adds even harmonics.
 - **Drive** 0 to 1. At 0 the distortion is off and the clean sound passes.
-  Above 0, it drives the first shaper from 6 dB to 46 dB, evenly in dB.
+  Above 0, it drives the first shaper from -12 dB to 46 dB, evenly in dB.
+  Below 6 dB (about 31% on the knob) is light drive, a clean sound with a
+  few added harmonics (`docs/specs/2026-11-15-tab-light-drive-design.md`);
+  from 6 dB up is the distorted range, which was the whole knob until
+  2026-11-15.
 - **The second stage** (Jeremy, 2026-10-28: "more distortion effect at
   100%"), as a high-gain amp's next valve:
-  - Below halfway, the sound goes into the second shaper so quietly (-20 dB)
-    that it stays a straight line, and its level out undoes the push.
-  - From halfway up, the push rises to +12 dB at full.
+  - Below halfway up the distorted range (26 dB, about 66% on the knob), the
+    sound goes into the second shaper so quietly (-20 dB) that it stays a
+    straight line, and its level out undoes the push.
+  - From there, the push rises to +12 dB at full.
   - Measured on a decaying chord, the ring 2.5–3.5 s after the strike is
     0.2 dB under the strike at full Drive, where one stage left it 5.9 dB
-    under. What one stage gave at full, two give at about 80%.
+    under. What one stage gave at full, two give at about 80% of the
+    distorted range.
 - **Loudness:** the make-up gain keeps a distorted sound about as loud as the
   clean one. Measured in Chromium on the clean electric riff, the RMS level
-  is 0.093 clean, and 0.103, 0.104, 0.083 and 0.085 at Drive 30%, 60%, 80%
-  and 100%.
+  is 0.093 clean, and 0.103, 0.104, 0.083 and 0.085 at 30%, 60%, 80% and
+  100% of the distorted range. Light drive's level is in its own spec.
 - **Tone** 0 to 1 sets the low-pass from 1.2 kHz to 6 kHz, evenly in pitch.
 - **No recorded cabinet impulse response is used**, so there is nothing to
   license.
@@ -100,7 +108,7 @@ Effects panel, Amp presets).
 - **Switching an effect on while the light switch is off** turns the light
   switch on too, so the change is heard.
 - **At first** the light switch is off. Both effects are switched on and
-  ready, with Drive 50%, Tone 50%, Amount 30% and Decay 1.5 s, so the first
+  ready, with Drive 66% (the old 50%, before light drive), Tone 50%, Amount 30% and Decay 1.5 s, so the first
   press of the light switch is heard.
 - **Earlier reading, replaced:** the Reverb knob of mocks a and c also set
   the decay, short at low settings. With a Decay field of its own, Amount

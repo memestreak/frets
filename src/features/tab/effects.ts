@@ -37,7 +37,7 @@ export interface FxSettings extends EffectSettings {
 
 /** The FX at first: all off by the FX button, each effect ready at a middling setting. */
 export const DEFAULT_FX: FxSettings = {
-  on: false, distortionOn: true, drive: 0.5, tone: 0.5, reverbOn: true, reverb: 0.3, decay: DECAY_SECONDS.start,
+  on: false, distortionOn: true, drive: 0.66, tone: 0.5, reverbOn: true, reverb: 0.3, decay: DECAY_SECONDS.start,
 };
 
 /** A saved number in a range, else its default. */
@@ -74,34 +74,72 @@ export function heardEffects(fx: FxSettings): EffectSettings {
 /** The plate's tone, 0 (darkest) to 100: fmlab's default. */
 const PLATE_TONE = 70;
 
+/** Where a colouring filter goes with no colour: a high-pass to the bottom of hearing, a low-pass to its top. */
+const FLAT_HZ = { low: 20, high: 20000 };
+
 /** How quickly a knob's change is heard, in seconds (to about two thirds): quick, without a click. */
 const GLIDE_SECONDS = 0.02;
 
-/** The gain into the first shaper at the lowest Drive above 0 and at full Drive, in dB. */
-const DRIVE_DB = { min: 6, max: 46 };
+/**
+ * The gain into the first shaper at the lowest Drive above 0 and at full Drive, in dB. From -12 dB
+ * the sound stays nearly in the curve's straight middle: clean with a trace of added harmonics
+ * (Jeremy, 2026-11-15, issue #506: "add harmonics to a basically clean sound"). `crunch` is where
+ * Drive started before that, the lowest setting that already sounds distorted; the knob's travel
+ * above it is the sound it had.
+ */
+const DRIVE_DB = { min: -12, crunch: 6, max: 46 };
+
+/** A Drive's gain into the first shaper, in dB: evenly from the lowest to full. */
+function driveDB(drive: number): number {
+  return DRIVE_DB.min + drive * (DRIVE_DB.max - DRIVE_DB.min);
+}
 
 /**
- * The gain into the distortion's first shaper for a Drive: 6 dB at the lowest, rising evenly in dB
- * to 46 dB at full, so each turn of the knob sounds like the same step.
+ * The gain into the distortion's first shaper for a Drive: -12 dB at the lowest, rising evenly in
+ * dB to 46 dB at full, so each turn of the knob sounds like the same step.
  */
 export function driveGain(drive: number): number {
-  return 10 ** ((DRIVE_DB.min + drive * (DRIVE_DB.max - DRIVE_DB.min)) / 20);
+  return 10 ** (driveDB(drive) / 20);
+}
+
+/** How far a Drive is into the distorted range, 0 at `crunch` or below, 1 at full. */
+function heat(drive: number): number {
+  return Math.max(0, (driveDB(drive) - DRIVE_DB.crunch) / (DRIVE_DB.max - DRIVE_DB.crunch));
+}
+
+/**
+ * How much of the amp's colour a Drive has, 0 to 1: the lows thinned and mids pushed around the
+ * shapers, the Tone's top end and the cabinet. None at the lowest Drive, so its sound is the clean
+ * one with harmonics added; rising evenly in dB to all of it at `crunch`, as before.
+ */
+export function ampColour(drive: number): number {
+  if (!colourFades()) return 1;
+  return Math.min(1, Math.max(0, (driveDB(drive) - DRIVE_DB.min) / (DRIVE_DB.crunch - DRIVE_DB.min)));
+}
+
+/**
+ * Mock b (issue #506, until Jeremy picks): the amp's colour at full from the lowest Drive, as it
+ * was. Mock a, and no mock, fade it in.
+ */
+function colourFades(): boolean {
+  if (typeof location === 'undefined') return true;
+  return new URLSearchParams(location.search).get('mock') !== 'b';
 }
 
 /**
  * The second stage's drive, in dB: so quiet below halfway that its shaper barely bends the sound,
- * then rising to a hard push at full.
+ * then rising to a hard push at full. Halfway is of the distorted range, above `crunch`.
  */
 const SECOND_STAGE = { from: 0.5, quietDB: -20, fullDB: 12 };
 
 /**
  * The second stage, as a high-gain amp's next valve (Jeremy, 2026-10-28: "more distortion effect
- * at 100%"): the first shaper's sound goes on into a second one. Below halfway up the knob it goes
- * in so quietly the shaper leaves it alone; from there its drive rises to full. `gain` is the push
- * in, `back` the level out that undoes it while the shaper is still gentle.
+ * at 100%"): the first shaper's sound goes on into a second one. Below halfway up the distorted
+ * range it goes in so quietly the shaper leaves it alone; from there its drive rises to full.
+ * `gain` is the push in, `back` the level out that undoes it while the shaper is still gentle.
  */
 export function secondStage(drive: number): { gain: number; back: number } {
-  const t = Math.min(1, Math.max(0, (drive - SECOND_STAGE.from) / (1 - SECOND_STAGE.from)));
+  const t = Math.min(1, Math.max(0, (heat(drive) - SECOND_STAGE.from) / (1 - SECOND_STAGE.from)));
   const gain = 10 ** ((SECOND_STAGE.quietDB + t * (SECOND_STAGE.fullDB - SECOND_STAGE.quietDB)) / 20);
   // While the push is gentle the shaper is nearly a straight line of slope CURVE_SLOPE; undo it.
   const push = gain * CURVE_SLOPE;
@@ -109,11 +147,19 @@ export function secondStage(drive: number): { gain: number; back: number } {
 }
 
 /**
- * The level after the distortion, so a distorted sound is about as loud as a clean one: a driven
- * signal is squashed towards full scale, louder the harder it is driven.
+ * The level after the distortion, so a distorted sound is about as loud as a clean one. In the
+ * distorted range a driven signal is squashed towards full scale, louder the harder it is driven.
+ * At the lowest Drive the shaper is nearly a straight line of slope CURVE_SLOPE, so the level simply
+ * undoes the drive; between, the two meet evenly in dB.
  */
 export function driveMakeup(drive: number): number {
-  return 0.19 / (1 + 1.2 * drive);
+  const squashed = 0.19 / (1 + 1.2 * heat(drive));
+  const below = Math.max(0, DRIVE_DB.crunch - driveDB(drive));
+  // Mock b keeps the cabinet's bumps, which make up the rest.
+  if (below === 0 || !colourFades()) return squashed * 10 ** (below / 20);
+  const straight = 1 / (driveGain(drive) * CURVE_SLOPE);
+  const light = below / (DRIVE_DB.crunch - DRIVE_DB.min);
+  return (squashed * 10 ** (below / 20)) ** (1 - light) * straight ** light;
 }
 
 /** The distortion's darkest and brightest top end, in Hz. */
@@ -207,6 +253,8 @@ export class EffectsChain {
   private readonly tone: BiquadFilterNode;
   private readonly wet: GainNode;
   private readonly ring: ConvolverNode;
+  /** The amp's colouring filters, each with its frequency and boost at full colour. */
+  private readonly colour: { node: BiquadFilterNode; frequency: number; dB: number }[] = [];
   /** The decay the ring was made for, or null before any reverb was wanted. */
   private ringSeconds: number | null = null;
 
@@ -247,29 +295,35 @@ export class EffectsChain {
 
     // Distortion: lows thinned before the shaper so chords don't turn to mud, and a push in the
     // mids, as an overdrive pedal has; after it, the tone and a speaker cabinet's shape (no deep
-    // lows, a bump at 110 Hz, a dip at 400 Hz, presence at 2.2 kHz, little past 6.5 kHz).
+    // lows, a bump at 110 Hz, a dip at 400 Hz, presence at 2.2 kHz, little past 6.5 kHz). Each
+    // filter's setting here is at full colour; `set` flattens them at light Drive (`ampColour`).
     const shaper = () => {
       const node = context.createWaveShaper();
       node.curve = distortionCurve();
       node.oversample = '4x';
       return node;
     };
+    const coloured = (type: BiquadFilterType, frequency: number, q = 0.707, dB = 0) => {
+      const node = filter(type, frequency, q, dB);
+      this.colour.push({ node, frequency, dB });
+      return node;
+    };
     const distorted = chain([
       this.drive,
-      filter('highpass', 140),
-      filter('peaking', 900, 0.8, 5),
+      coloured('highpass', 140),
+      coloured('peaking', 900, 0.8, 5),
       shaper(),
       // The second stage, the lows thinned a little again between the two, as amps do.
-      filter('highpass', 100),
+      coloured('highpass', 100),
       this.secondDrive,
       shaper(),
       this.secondBack,
       this.tone,
-      filter('highpass', 80),
-      filter('peaking', 110, 1, 3),
-      filter('peaking', 400, 1, -4),
-      filter('peaking', 2200, 1, 4),
-      filter('lowpass', 6500),
+      coloured('highpass', 80),
+      coloured('peaking', 110, 1, 3),
+      coloured('peaking', 400, 1, -4),
+      coloured('peaking', 2200, 1, 4),
+      coloured('lowpass', 6500),
       this.makeup,
     ]);
     const afterDistortion = gain(1);
@@ -294,7 +348,15 @@ export class EffectsChain {
     const second = secondStage(settings.drive);
     glide(this.secondDrive.gain, second.gain);
     glide(this.secondBack.gain, second.back);
-    glide(this.tone.frequency, toneFrequency(settings.tone));
+    // The amp's colour: with none, every high-pass sits at the bottom of hearing, every low-pass
+    // (the Tone's too) at the top, and every boost or dip is flat; between, each moves evenly in pitch.
+    const colour = ampColour(settings.drive);
+    const towards = (flat: number, frequency: number) => flat ** (1 - colour) * frequency ** colour;
+    for (const { node, frequency, dB } of this.colour) {
+      if (node.type === 'peaking') glide(node.gain, dB * colour);
+      else glide(node.frequency, towards(node.type === 'highpass' ? FLAT_HZ.low : FLAT_HZ.high, frequency));
+    }
+    glide(this.tone.frequency, towards(FLAT_HZ.high, toneFrequency(settings.tone)));
     if (settings.reverb > 0 && settings.decay !== this.ringSeconds) {
       // The ring is made only once a reverb is wanted, and again when its decay changes.
       const [left, right] = plateImpulse(this.context.sampleRate, settings.decay);
