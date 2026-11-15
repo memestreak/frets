@@ -53,8 +53,9 @@ the step from Drive 0 to 1% was a jump from clean to crunch.
 Jeremy, 2026-11-15, picked mock a: the amp's colour fades in with Drive.
 Mock b, the colour at full from the lowest Drive, was dropped.
 
-The sample `samples/light-drive.atex` (`/tab#example=light-drive`) has a
-clean electric riff at Drive 5% with numbered steps to try.
+The sample `samples/light-drive.atex`, a clean electric riff at Drive 5% with
+numbered steps to try, was removed once the drive was picked (Jeremy,
+2026-11-15).
 
 ## Tests
 

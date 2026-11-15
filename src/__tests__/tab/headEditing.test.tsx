@@ -6,7 +6,7 @@ import { vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import TabPage from '@/features/tab/TabPage';
 import { BUILTIN_URL } from '@/features/tab/builtins';
-import { readBuiltinFiles } from '@/features/tab/builtinFiles';
+import { readBuiltinFiles } from '@/__tests__/tab/testArrangements';
 import { emptyPart } from '@/features/tab/clip';
 import { parseTabExportStyle, tabSvg } from '@/features/tab/exportTab';
 import { DEFAULT_VIEW } from '@/features/tab/viewOptions';

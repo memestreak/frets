@@ -8,7 +8,7 @@
 
 /** A file as the route sends it. */
 export interface BuiltinFile {
-  /** The folder's directory name, `song_structure`. */
+  /** The folder's directory name, `editing_tests`. */
   folder: string;
   file: string;
   text: string;
@@ -28,7 +28,7 @@ export const BUILTIN_URL = '/tab/builtin.json';
 /** The folder of samples for trying things out: not tests, and they may read with warnings. */
 export const SAMPLES_FOLDER = 'samples';
 
-/** A folder's name as the dialog shows it: `song_structure` is "Song structure". */
+/** A folder's name as the dialog shows it: `editing_tests` is "Editing tests". */
 export function folderTitle(folder: string): string {
   const words = folder.replace(/[_-]+/g, ' ').trim();
   return words.charAt(0).toUpperCase() + words.slice(1);

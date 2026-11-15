@@ -93,7 +93,7 @@ Settled while building (my calls, open to change):
 - `clip.ts`: `Track.chords`, `Part.chords`, `TRACK_FIELDS`, and
   `parseClip` checks each stored definition.
 - `src/lib/theory/chordSearch.ts`: `readChordName`.
-- Built-in arrangement `song_structure/chord-shapes.atex`: every property,
+- Test arrangement `src/__tests__/tab/fixtures/song_structure/chord-shapes.atex`: every property,
   an unused chord, and a name with no shape.
 - `public/tab-alphatex.txt` (Chord shapes) and
   `public/skills/frets-tab/SKILL.md` tell agents to write `\chord` with the

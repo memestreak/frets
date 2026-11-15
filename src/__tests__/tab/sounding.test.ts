@@ -6,7 +6,7 @@ import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { isRest, partOf, WHOLE, type Column, type Part, type TimeSignature } from '@/features/tab/clip';
 import { builtinsFrom } from '@/features/tab/builtins';
-import { readBuiltinFiles } from '@/features/tab/builtinFiles';
+import { readBuiltinFiles } from '@/__tests__/tab/testArrangements';
 import { beatGroups, emptyBarRests, meterOf, readVoice, spell, writeVoice } from '@/features/tab/sounding';
 
 const W = WHOLE;

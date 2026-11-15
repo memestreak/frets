@@ -94,6 +94,6 @@ longer parse (no users yet, so no migration).
 
 `src/__tests__/tab/tracks.test.ts` (reading, writing, parts, `withPart`,
 storage, the "i" text, the agent guide's snippet), the page's tests in
-`tab/page/tracks.test.tsx`, and the built-in `song_structure/two-guitars.atex`, which must read
+`tab/page/tracks.test.tsx`, and the test arrangement `src/__tests__/tab/fixtures/song_structure/two-guitars.atex`, which must read
 with no warnings and write back exactly. The agent guide's examples gain a
 two-track one.

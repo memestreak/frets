@@ -62,7 +62,8 @@ Jeremy, 2026-10-27: "Is there an electric guitar (not-distorted)?". Clean Electr
 
 Issue #504. Jeremy, 2026-11-15: "I don't like the sound of our clean electric guitar ... I like the
 sound of the clean guitar in MuseScore." Tried as mocks on the Tab page (`?guitar=`), each on the
-`samples/clean-electric` arrangement (chords, a single-note line, eighth-note strums):
+`samples/clean-electric` arrangement (chords, a single-note line, eighth-note strums; removed
+once **e** was picked, Jeremy, 2026-11-15):
 
 | | Source | Size | Verdict |
 |---|---|---|---|

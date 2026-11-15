@@ -108,7 +108,7 @@ glossary yet; the PR says so.
 7. `sounding.ts` keeps them on a note's first piece when its bar is
    written again by the meter.
 8. `musicxml.ts`, `ascii.ts`.
-9. The guide, the skill, a built-in (`song_structure/lyrics.atex`) and a
+9. The guide, the skill, a test arrangement (`src/__tests__/tab/fixtures/song_structure/lyrics.atex`) and a
    test arrangement (`editing_tests/lyrics-typing.atex`).
 
 ## Not yet
