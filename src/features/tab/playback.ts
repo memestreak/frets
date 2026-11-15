@@ -72,31 +72,12 @@ export const OWN_FONTS: readonly { program: number; url: string; level: number }
   { program: 0, url: '/soundfont/piano-salamander.sf3', level: 1.65 },
   // An acoustic guitar from the University of Iowa's instrument samples: a note per semitone, 1.5 MB.
   { program: 25, url: '/soundfont/guitar-iowa.sf3', level: 0.74 },
-  // A clean electric guitar from Karoryfer Samples: a note every minor third or so, 0.55 MB.
-  { program: 27, url: '/soundfont/guitar-electric-karoryfer.sf3', level: 0.79 },
+  // The black guitar of Karoryfer Samples' Black And Green Guitars: a note per semitone, 1.1 MB (issue #504).
+  { program: 27, url: '/soundfont/guitar-electric-karoryfer-black.sf3', level: 0.76 },
 ];
 
-/**
- * MOCK (issue #504): clean electric guitars to try, picked by `?guitar=` on the Tab page. `a` is
- * today's. Each `level` brings it to Karoryfer's loudness, measured by rendering the
- * `clean-electric` sample with each. Goes once one is picked.
- */
-export const CLEAN_ELECTRIC_TRIALS: Readonly<Record<string, { url: string; level: number }>> = {
-  a: { url: '/soundfont/guitar-electric-karoryfer.sf3', level: 0.79 },
-  d: { url: '/soundfont/trial-karoryfer-green.sf3', level: 1.03 },
-  e: { url: '/soundfont/trial-karoryfer-black.sf3', level: 0.76 },
-  f: { url: '/soundfont/trial-freepats-fsbs.sf3', level: 0.52 },
-};
-let cleanElectricTrial = 'a';
-
-/** MOCK: plays Clean Electric Guitar from this trial's soundfont. */
-export function tryCleanElectric(option: string) {
-  if (option in CLEAN_ELECTRIC_TRIALS) cleanElectricTrial = option;
-}
-
 /** A sound's own soundfont, if it has one. */
-function ownFont(program: number): { program: number; url: string; level: number } | undefined {
-  if (program === 27) return { program, ...CLEAN_ELECTRIC_TRIALS[cleanElectricTrial] };
+function ownFont(program: number) {
   return OWN_FONTS.find(f => f.program === program);
 }
 

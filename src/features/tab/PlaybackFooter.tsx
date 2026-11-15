@@ -21,7 +21,7 @@ import {
 } from './metronomeClicks';
 import { VolumeKnob } from '@/components/VolumeKnob';
 import { DEFAULT_ROLLS, type Rolls } from './rolls';
-import { MAX_COUNT_IN_BARS, SOUND_FAMILIES, TabPlayer, tryCleanElectric, speedRange, type HeardPosition, type PlayerView, type Sound } from './playback';
+import { MAX_COUNT_IN_BARS, SOUND_FAMILIES, TabPlayer, speedRange, type HeardPosition, type PlayerView, type Sound } from './playback';
 import { heardEffects, type FxSettings } from './effects';
 import { sameMusic } from './clipState';
 import { FxButton } from './FxButton';
@@ -31,19 +31,6 @@ import type { MidiPort } from './midiOut';
  * the transposition, Hear notes and Play's right-click options. The sound is the clip's.
  */
 export const PLAYBACK_KEY = 'frets.tab.playback';
-import { useMock, type Mock } from '@/components/mocks/useMock';
-
-/** MOCK (issue #504): the clean electric guitars to try, as `?guitar=d`. */
-const CLEAN_ELECTRIC_MOCK: Mock = {
-  param: 'guitar',
-  label: 'Clean electric',
-  options: [
-    { value: 'a', label: 'a Today (Karoryfer)' },
-    { value: 'd', label: 'd Karoryfer Green' },
-    { value: 'e', label: 'e Karoryfer Black' },
-    { value: 'f', label: 'f FreePats Fender' },
-  ],
-};
 
 export interface PlaybackSettings extends PlaybackOptionValues {
   /** Whether the controls show, from the small round button under the tab; shown until it is pressed. */
@@ -261,14 +248,6 @@ export function usePlayback(clip: Part, sound: Sound, volume: number, { loopPaus
   const speeds = speedRange(clip);
   const speed = Math.min(speeds.max, Math.max(speeds.min, chosenSpeed));
   const player = useRef<TabPlayer | null>(null);
-  // MOCK (issue #504): which clean electric guitar plays. A pick after the sound has loaded
-  // reloads the page, since the soundfont loaded first would still win.
-  const trial = useMock(CLEAN_ELECTRIC_MOCK);
-  tryCleanElectric(trial);
-  const firstTrial = useRef(trial);
-  useEffect(() => {
-    if (trial !== firstTrial.current && player.current) window.location.reload();
-  }, [trial]);
   // The player reports the column about ten times a second; the page draws again only when it changes.
   const update = (change: Partial<PlayerView>) =>
     setView(v => (Object.entries(change).every(([k, value]) => v[k as keyof PlayerView] === value) ? v : { ...v, ...change }));

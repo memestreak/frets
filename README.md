@@ -70,13 +70,12 @@ check on every pull request and every push to `main`.
   [Apache 2.0](https://www.apache.org/licenses/LICENSE-2.0).
 - The piano from the [Salamander Grand Piano](https://github.com/sfzinstruments/SalamanderGrandPiano),
   Alexander Holm, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
-- The steel guitar from the University of Iowa Electronic Music Studios and the clean electric
-  guitar from [Karoryfer Samples](https://www.karoryfer.com/karoryfer-samples), both via
+- The steel guitar from the University of Iowa Electronic Music Studios, via
   [tonejs-instruments](https://github.com/nbrosowsky/tonejs-instruments),
   [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/).
-- Clean electric guitar trials: [Black And Green Guitars](https://github.com/sfzinstruments/karoryfer.black-and-green-guitars)
-  by Karoryfer Samples and [Electric Guitar FSBS](https://github.com/freepats/electric-guitar-FSBS-clean)
-  from FreePats, both [CC0](https://creativecommons.org/publicdomain/zero/1.0/).
+- The clean electric guitar from [Black And Green Guitars](https://github.com/sfzinstruments/karoryfer.black-and-green-guitars)
+  by [Karoryfer Samples](https://www.karoryfer.com/karoryfer-samples),
+  [CC0](https://creativecommons.org/publicdomain/zero/1.0/).
 - Notation symbols from the [Bravura](https://github.com/steinbergmedia/bravura)
   font, Steinberg Media Technologies GmbH,
   [SIL OFL 1.1](https://openfontlicense.org), as packaged in
