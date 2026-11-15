@@ -2,7 +2,8 @@
 
 Issue #488 ("FR: Tab: chat prompt popover over the score"); the Chat
 palette's half, issue #498 ("Tab: typing in the Chat palette drops the
-selection"). Asked
+selection"); Space after Chat, issue #507 ("Tab: Space stops playing and
+stopping the arrangement after using Chat"). Asked
 2026-11-15 (Jeremy): "Please open a feature request that tracks a popover
 for a chat based prompt." The options were mocked (`?mock=a|b|c`) and his
 calls (Q1 to Q7) are on the questions page,
@@ -48,6 +49,16 @@ Notion AI: a field at the cursor whose answer shows in place.
   palette, used without touching the tab or after a press away, says
   Whole arrangement and sends the message as typed. The keys going on
   from the palette to another control, or a press away, let them go.
+- **Space types while Chat has the keys, then plays again (issue #507).**
+  Jeremy, 2026-11-15: "Space should work when I'm typing in the chat text
+  box, but if I've selected the arrangement space should start and stop
+  the arrangement." In the palette's message box and the popover's field
+  Space types a space, after Send too. A press back on the arrangement
+  gives the keys back to the page wherever it lands: on a note or a staff
+  line the tab takes them; on blank space above, below or between the
+  staves (the presses that place the playback line and don't take the
+  focus) the message box lets them go. Esc from the popover gives them to
+  the tab. Then Space plays and stops, and nothing scrolls.
 - **The reply stays in the popover (Q1).** After Enter the field empties
   and the popover stays open: the tool notes as they come ("Changed bars 3
   to 4…"), then the reply's markdown and its model and cost line, then
@@ -94,6 +105,14 @@ Notion AI: a field at the cursor whose answer shows in place.
   picked and is named ("About the time signature in bar 1:"); used
   without touching the tab, it says Whole arrangement and sends the
   message as typed; the keys going on to another control let the note go.
+- Space after Chat (issue #507): Space types (the page leaves the key)
+  in the palette's message box, after Send, in a new empty arrangement and
+  in the popover's field; then Space plays after a press above the staff,
+  far below the drawing and on a string or staff line in Tab, Both and
+  Staff, after a press on a note (the tab has the keys), after Send and a
+  press above the staff, in a new empty arrangement after a press in its
+  bar, after Esc from the popover, and after Send in the popover and a
+  press above the staff.
 - `aboutBars`, `aboutThing` and `scopedPrompt` for one bar, several
   bars, a mark, a note, a dead note and none.
 - `pickedWords` for a word, a bar line and a mark.
@@ -113,6 +132,9 @@ Notion AI: a field at the cursor whose answer shows in place.
    `TAB_KEEPS` keeps the selection on a press in the Chat palette.
 7. `TabPage.tsx` `chatAbout` and `ChatPanel.tsx`: the palette's chip, and
    `send(undefined, about)` in `useChatSession` (issue #498).
+8. `usePlayRange.ts` `pickColumn`: a press on blank space (which
+   `TabClip`'s `keepFocus` keeps from taking the focus) lets go of a
+   field off the tab, the Chat palette's message box above all (issue #507).
 
 ## Not yet
 

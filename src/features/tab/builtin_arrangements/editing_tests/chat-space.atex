@@ -1,0 +1,15 @@
+\title "Space types in Chat, then plays again"
+\ts (4 4)
+5.3.4{txt "**1.** Select Tab view\nTab, at the top left of the clip"}
+  7.3.4{txt "**2.** Open Chat\nChat on the right, then press in its message box"}
+  5.2.4{txt "**3.** Type\nType two words: Space types a space"} 7.2.4 |
+5.2.4{txt "**4.** Press away\nPress the blank space just under this bar"}
+  7.2.4{txt "**5.** Play\nPress Space: it plays; Space again stops"} 5.1.4
+  8.1.4 |
+5.1.4{txt "**6.** Back to Chat\nPress in the message box, type, then press this 5"}
+  8.1.4{txt "**7.** Play\nPress Space: it plays; Space again stops"} 5.2.4
+  7.2.4 |
+5.3.4{txt "**8.** Popover\nPress this 5, then Control/⌘+I and type two words"}
+  7.3.4{txt "**9.** Esc\nPress Escape, then Space: it plays; Space stops"} 5.4.4
+  7.4.4 |
+
