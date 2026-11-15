@@ -12,6 +12,9 @@
   --surface: #f6f0e4;
   --surface-raised: #fffaf2;
   --surface-sunken: #ebe2d1;
+  /* A hovered button's fill: a faint wash of the ink, so it darkens in light and lightens in dark,
+     never rust (Jeremy, 2026-11-15). Set once here; it follows --ink into dark. */
+  --surface-hover: color-mix(in srgb, var(--ink) 7%, transparent);
   --line: #dccfb9;
   --line-strong: #8f7e66;
   --ink: #2e2620;
@@ -201,7 +204,7 @@ a { color: var(--primary); text-underline-offset: 3px; }
   font: 600 13px/16px var(--font-sans); letter-spacing: 0.01em;
   color: var(--ink); text-decoration: none; cursor: pointer;
   background: transparent; border: 0; border-radius: var(--radius-md);
-  transition: background-color 150ms ease-out, color 150ms ease-out;
+  /* No fade: a button's fill and colour change at once, on press and on hover (Jeremy, 2026-11-15). */
 }
 .btn svg { display: block; }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
@@ -209,9 +212,9 @@ a { color: var(--primary); text-underline-offset: 3px; }
 .btn-primary:hover { background: var(--primary-hover); }
 /* Outline: transparent, 1.5px line-strong border drawn inside. */
 .btn-secondary { box-shadow: inset 0 0 0 1.5px var(--line-strong); }
-.btn-secondary:hover { background: var(--primary-soft); }
+.btn-secondary:hover { background: var(--surface-hover); }
 .btn-ghost { color: var(--primary); padding-inline: var(--space-2); }
-.btn-ghost:hover { background: var(--primary-soft); }
+.btn-ghost:hover { background: var(--surface-hover); }
 .btn-icon { width: var(--control-height); padding: 0; }
 
 /* — forms — */

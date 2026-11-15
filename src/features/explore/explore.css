@@ -103,7 +103,7 @@
   -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none;
 }
 .cof-wheel :focus, .cof-wheel :focus-visible { outline: none; }
-.cof-cell path { fill: var(--surface-raised); stroke: var(--line); stroke-width: 1; transition: fill 0.2s; }
+.cof-cell path { fill: var(--surface-raised); stroke: var(--line); stroke-width: 1; }
 .cof-dim path { fill: var(--surface); }
 .cof-cell text { fill: var(--ink); pointer-events: none; font-family: var(--font-sans); }
 .cof-cell .cof-numeral { fill: var(--ink-muted); font-weight: 600; }

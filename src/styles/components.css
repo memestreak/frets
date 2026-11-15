@@ -90,8 +90,8 @@
   border-radius: var(--radius-sm);
   cursor: pointer;
 }
-/* The same soft fill as a ghost button's hover; the sunken surface read as black in dark mode (Jeremy, 2026-10-27). */
-.shape-menu-item:hover, .shape-menu-item:focus { background: var(--primary-soft); outline: none; }
+/* The same fill as a button's hover; the sunken surface read as black in dark mode (Jeremy, 2026-10-27). */
+.shape-menu-item:hover, .shape-menu-item:focus { background: var(--surface-hover); outline: none; }
 .shape-menu-check { display: inline-block; width: 1.2em; }
 /* A submenu opens beside its item, level with it. */
 .shape-menu-sub { position: relative; display: grid; }
