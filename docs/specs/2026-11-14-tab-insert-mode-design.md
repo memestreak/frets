@@ -14,8 +14,8 @@ as the Insert key's does.
 Words used here, from `GLOSSARY.md`: Note input mode, Normal mode, Input
 length, Gap, Voice, Active voice, Track, Tie chain, Sounding note, Column
 Mark, Bar Mark. New: **Insert mode** (avoid "ripple mode", "insert
-method") and **Overwrite**, its opposite and the default. Neither is in
-the glossary yet (the PR says so).
+method") and **Overwrite**, its opposite and the default, both now in
+the glossary.
 
 Principles: P1 (bars always full) stays. P2 and A11 in
 `docs/tab-editing-principles.md` are rewritten to cover Insert mode.
