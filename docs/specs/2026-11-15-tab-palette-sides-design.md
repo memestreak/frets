@@ -89,9 +89,9 @@ between its two side bars by dragging or "Move to Secondary Side Bar", each with
 
 ## How
 
-1. `TabRail.tsx`: `PaletteLayout` gains `right`, `collapsed` and `width` per side; `sideOf`, `paletteList`,
-   `sideState`, `sideRoom`; `placeOn` replaces `moveTo`; `useReorder` aims at a side by the clip's middle;
-   `TabRail` draws a column per side with its own Collapse button and `WidthHandle`, and the drop band.
+1. `paletteLayout.ts` (in `TabRail.tsx` until issue #512): `PaletteLayout` gains `right`, `collapsed` and
+   `width` per side; `sideOf`, `paletteList`, `sideState`, `sideRoom`; `placeOn` replaces `moveTo`.
+   `paletteDrag.tsx`: `useReorder` aims at a side by the clip's middle. `TabRail.tsx`: `TabRail` draws a column per side with its own Collapse button and `WidthHandle`, and the drop band.
 2. `TabPage.tsx`: `.tab-page` carried `data-right` and `--rail-right`, so the page's buttons ended over the clip
    (gone with the buttons' row, `2026-11-16-tab-toolbars-in-the-bar-design.md`).
 3. `tab.css`: three grid tracks, margins per side, the right column's mirrored button and handle, the drop band,

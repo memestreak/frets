@@ -105,9 +105,10 @@ be dragged into another order; Guitar Pro 8's Edition palette is a fixed column 
 
 ## How
 
-1. `TabRail.tsx`: `usePalettes` (held by `TabPage`) keeps the layout and `show(id)`; `parseLayout` reads it;
-   `TabRail` draws the column or the strip; `Palette` a header and body; `HeightHandle`, `WidthHandle`;
-   `useReorder` the header drag and its edge scrolling; `moveTo` the order change.
+1. `TabRail.tsx`: `TabRail` draws the column or the strip; `Palette` a header and body. Since the health
+   check split (issue #512): `paletteLayout.ts`: `usePalettes` (held by `TabPage`) keeps the layout and
+   `show(id)`; `parseLayout` reads it; `placeOn` (once `moveTo`) the order change. `paletteDrag.tsx`:
+   `HeightHandle`, `WidthHandle`; `useReorder` the header drag and its edge scrolling.
 2. `TabPage.tsx`: Chat's `open` is `palettes.shown('chat')`; a chord's Edit calls `palettes.show('chords')`;
    Chords not shown clears `chordsAt`; the strip keeps the tab's cursor and note input mode like the column.
 3. `TabPalette.tsx`: a tool's panel is fixed at its button and closes on a scroll.

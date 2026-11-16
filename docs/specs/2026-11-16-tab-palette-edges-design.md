@@ -50,8 +50,8 @@ do in Dorico, MuseScore 4 and VS Code.
 
 ## How
 
-1. `TabRail.tsx`: `PaletteLayout.reach`, read by `parseLayout`; `sideOut`; `WidthHandle` takes an `edge`, and
-   each open column draws both.
+1. `paletteLayout.ts` (in `TabRail.tsx` until issue #512): `PaletteLayout.reach`, read by `parseLayout`;
+   `sideOut`. `paletteDrag.tsx`: `WidthHandle` takes an `edge`. `TabRail.tsx`: each open column draws both.
 2. `tab.css`: the grid's margins use `--rail-*-out`; the outer handle's place, hidden under 1,280px.
 3. Tests in `src/__tests__/tab/page/palettes.test.tsx`.
 4. The palette-sides and width specs, `src/lib/README.md` (the key), the Tab README.
