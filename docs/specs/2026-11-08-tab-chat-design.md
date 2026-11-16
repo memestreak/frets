@@ -118,6 +118,8 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
   arrangement, how changes undo, and to mention problems that bear on the ask
   but fix them only when asked, then
   carries the agent guide, `public/tab-alphatex.txt`, fetched once a visit.
+  A fetch that fails sends the request without it and is tried again on the
+  next request.
 
 ## How
 

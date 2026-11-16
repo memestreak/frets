@@ -45,7 +45,8 @@ design questions, 2026-11-09, all as recommended
   `parseChatPrefs` reads both, an `instructions` equal to the default as
   `null`. Saved in `frets.tab.chat` with the key and model.
 - `chat/reply.ts`: `systemPrompt(guide, prompts)` puts the parts together.
-- `chat/guide.ts`: `loadGuide`, the guide fetched once a visit, shared by
+- `chat/guide.ts`: `loadGuide`, the guide fetched once a visit (a failed
+  fetch is tried again on the next request), shared by
   the panel and Settings (moved from `ChatPanel.tsx`).
 - `chat/promptFields.tsx`: the two fields and the guide's fold (a read-only box, so the keyboard can reach and scroll it).
 - `ChatPanel.tsx` builds the prompt from the saved prefs when it sends.
@@ -77,3 +78,5 @@ design questions, 2026-11-09, all as recommended
 - Enter in the Custom prompt box doesn't close Settings.
 - A custom prompt saved mid-conversation is in the next request's system
   prompt.
+- `loadGuide`: a failed fetch (an error, or a status that isn't ok) gives
+  `''` and is fetched again next time; a good one is fetched once.
