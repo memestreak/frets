@@ -29,13 +29,21 @@ press outside, scrolling or resizing closes it. Play's tip says
   plays (`midiUntil` in `playback.ts`), since alphaTab silences every note at
   once at a playback range's end.
 - **Pause between loops** (a checkbox, off by default) with a seconds field
-  beside it (0.5–10 s, steps of 0.5, default 1; the same number field as
-  Speed: type, ↑ ↓, the arrows, or press and drag). On, when the loop reaches
+  beside it (0.5–10 s, steps of 0.5, default 1; the compact number field, a
+  text line tall with no step buttons: type, ↑ ↓, or press and drag; greyed
+  out while the checkbox is off, Jeremy, 2026-11-16). On, when the loop reaches
   its end the playhead waits at the loop's start for that long, counted from the
   loop's end, then plays again. The button stays Stop during the rest; Stop or
   a seek ends it.
 
 Both are saved with the other playback settings in `frets.tab.playback`.
+
+Each option shows a tick box, empty while off, as Settings' check boxes, so
+it reads as something to tick (Jeremy, 2026-11-16: a blank space before an
+option didn't say so). The menu itself takes the
+focus as it opens, not its first option, and an option is lit only under
+the pointer or when Tab moves to it, not because a click left the focus
+there (Jeremy, 2026-11-16: the top option stayed grey).
 
 ## How
 

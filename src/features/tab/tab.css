@@ -4,7 +4,12 @@
 /* The playback options (a right-click on Play): a tick before each option, the pause's seconds beside it. */
 .tab-options { min-width: 0; }
 .tab-options-item { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
-.tab-options-check { display: inline-flex; width: 12px; height: 12px; flex: none; color: var(--ink); }
+.tab-options-check {
+  display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; flex: none;
+  color: var(--ink); border: 1.5px solid var(--line-strong); border-radius: 4px;
+}
+/* Lit under the pointer or when Tab moves to it, not because a click left the focus on it (Jeremy, 2026-11-16). */
+.tab-options-item:focus:not(:focus-visible):not(:hover) { background: none; }
 .tab-options-row { display: flex; align-items: center; gap: 6px; padding-right: 6px; }
 .tab-options-row .tab-options-item { flex: 1; }
 /* The View options panel: each option's name 6px from its switch. */

@@ -43,6 +43,7 @@ describe('the sound for an instrument', () => {
   it('says what it stands in for', () => {
     expect(substituteNote(30)).toBe('This arrangement asks for Distortion Guitar; Frets plays Clean Electric Guitar.');
     expect(substituteNote(40)).toBe('This arrangement asks for Violin; Frets plays Steel Guitar.');
+    expect(substituteNote(4)).toBe('This arrangement asks for Electric Piano 1; Frets plays Grand Piano.');
     expect(substituteNote(27)).toBeNull();
     expect(substituteNote(undefined)).toBeNull();
     expect(instrumentName(127)).toBe('Gunshot');
@@ -69,7 +70,7 @@ describe('the instrument in a clip\'s alphaTex', () => {
 
   it('warns of a name alphaTab doesn\'t know, which it reads as the piano', () => {
     const result = readAlphaTexWith(alphaTab, `\\instrument banana\n${BARS}`);
-    expect(result.ok && result.warnings).toEqual(['Frets doesn\'t know the instrument banana; it plays as Acoustic Grand Piano.']);
+    expect(result.ok && result.warnings).toEqual(['Frets doesn\'t know the instrument banana; it plays as Grand Piano.']);
     const piano = readAlphaTexWith(alphaTab, `\\instrument acousticgrandpiano\n${BARS}`);
     expect(piano.ok && piano.warnings).toEqual([]);
   });

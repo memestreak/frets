@@ -11,6 +11,7 @@ import type * as AlphaTabModule from '@coderline/alphatab';
 import { writePart } from './alphatex';
 import { DEFAULT_BPM, MAX_BPM, MIN_BPM, STRING_COUNT, TREMOLO_VALUES, WHOLE, groupCountsAt, ticks, type Part } from './clip';
 import { indexOf, placeOf } from './editing';
+import { SOUND_NAMES } from './instrument';
 import { CLICK_BANK, CLICK_PROGRAM, clickKeys } from './click';
 import { DEFAULT_PATTERN, barClicks, clickVelocity, countOf, type ClickKind, type ClickPattern, type Count } from './metronomeClicks';
 import { DEFAULT_ROLLS, rollChords, type Rolls } from './rolls';
@@ -50,8 +51,8 @@ export function speedRange(clip: Part): { min: number; max: number } {
  * alphaTex's default.
  */
 export const SOUND_FAMILIES: readonly (readonly [string, readonly (readonly [number, string])[]])[] = [
-  ['Piano', [[0, 'Acoustic Grand Piano']]],
-  ['Guitar', [[25, 'Steel Guitar'], [27, 'Clean Electric Guitar']]],
+  ['Piano', [[0, SOUND_NAMES[0]]]],
+  ['Guitar', [[25, SOUND_NAMES[25]], [27, SOUND_NAMES[27]]]],
 ];
 /**
  * Sounds played from a soundfont of their own instead of SONiVOX's (issue #124; built by

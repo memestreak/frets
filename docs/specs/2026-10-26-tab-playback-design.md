@@ -81,9 +81,10 @@ The controls sit under that line:
   playback settings, starting at 100%.
 - **Sound.** A dropdown at the end of the row (Jeremy, 2026-10-26) with
   only the sounds that have a soundfont of their own, grouped by family:
-  Acoustic Grand Piano, Steel Guitar and Clean Electric Guitar (Jeremy,
+  Grand Piano, Steel Guitar and Clean Electric Guitar (Jeremy,
   2026-10-28: "remove the non-custom instruments"; it had offered SONiVOX's
-  104 pitched General MIDI sounds). A saved sound no longer offered goes
+  104 pitched General MIDI sounds). The piano is General MIDI's Acoustic
+  Grand Piano, called Grand Piano (Jeremy, 2026-11-16). A saved sound no longer offered goes
   back to the default. Steel Guitar
   is the default, as in alphaTex. A change while the clip plays takes over
   at once, from where it is. The sound is a playback setting, saved with

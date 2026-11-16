@@ -484,7 +484,7 @@ export function readAlphaTexWith(at: AlphaTab, text: string): ReadResult {
       // alphaTab reads a name it doesn't know as program 0, the piano, without a word.
       const value = instrumentTag?.replace(/^\\instrument\s*/i, '').replace(/["']/g, '').trim().toLowerCase();
       if (value !== undefined && track.instrument.program === 0 && value !== '0' && value !== 'acousticgrandpiano') {
-        warn(`Frets doesn't know the instrument ${value}; it plays as Acoustic Grand Piano.`);
+        warn(`Frets doesn't know the instrument ${value}; it plays as Grand Piano.`);
       }
     }
     if (hasTag(nodeOf(t, 0), 'capo') && staff.capo > 0) {
