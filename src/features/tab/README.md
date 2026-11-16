@@ -355,8 +355,9 @@ and in its spec.
 - `ChordGrid.tsx` — one chord diagram in plain ink, upright or lying, for the page and the image.
 - `ChordChart.tsx` — the Chord chart under the score head, on the page and in the image; on the page each chord is picked by a press and opens Edit chord on a double-click, Enter or right-click Edit.
 - `ScoreHead.tsx` — the score's head: title, artist and credits, tuning and capo;
-  `HeadPick`, `FoldedTitle` — `2026-10-28-tab-score-head-design.md`,
+  `HeadPick`, `FoldedTitle` (at the head's top right) — `2026-10-28-tab-score-head-design.md`,
   `2026-11-01-tab-arrangement-header-design.md`,
+  `2026-11-16-tab-toolbars-in-the-bar-design.md`,
   `2026-11-01-tab-tuning-collapse-design.md`.
 
 The Sweet Child and book-marks specs (`2026-10-28-tab-sweet-child-*`,
@@ -522,6 +523,10 @@ or saved. Standard tuning only.
 The principles every editing spec since step 1 follows, with Dorico,
 MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.
 
+- `docs/specs/2026-11-16-tab-toolbars-in-the-bar-design.md`: the page's
+  buttons (New … Shortcuts) in the site's bar beside the theme switch; the
+  view switch on the row with Staff | Tab | Both; the folded title at the
+  score head's top right
 - `docs/specs/2026-11-15-tab-playback-line-moves-cursor-design.md`: the
   playback line takes the cursor with it, a paste goes in at the line, and
   in Insert mode the line has the cursor's notches

@@ -44,7 +44,8 @@ between its two side bars by dragging or "Move to Secondary Side Bar", each with
   400px.
 - **Where the room comes from.** A column grows into the page's margin on its side, up to 16px from the
   window's edge, so the clip keeps both edges, and its width, while the margins hold the columns; past that the
-  clip gives up width. The page's buttons (New … ?) end over the clip card's right edge, moving in with it.
+  clip gives up width. (The page's buttons (New … ?) used to end over the clip card's right edge; they are in the
+  site's bar now, `2026-11-16-tab-toolbars-in-the-bar-design.md`.)
 - **Under 900px** both sides sit over the clip in one stack, the left side's column first, each with its own
   Collapse button, no width handles.
 - **Kept across visits** in `frets.tab.layout`, with the rest of the layout and not in Settings (it is how the
@@ -89,7 +90,8 @@ between its two side bars by dragging or "Move to Secondary Side Bar", each with
 1. `TabRail.tsx`: `PaletteLayout` gains `right`, `collapsed` and `width` per side; `sideOf`, `paletteList`,
    `sideState`, `sideRoom`; `placeOn` replaces `moveTo`; `useReorder` aims at a side by the clip's middle;
    `TabRail` draws a column per side with its own Collapse button and `WidthHandle`, and the drop band.
-2. `TabPage.tsx`: `.tab-page` carries `data-right` and `--rail-right`, so the page's buttons end over the clip.
+2. `TabPage.tsx`: `.tab-page` carried `data-right` and `--rail-right`, so the page's buttons ended over the clip
+   (gone with the buttons' row, `2026-11-16-tab-toolbars-in-the-bar-design.md`).
 3. `tab.css`: three grid tracks, margins per side, the right column's mirrored button and handle, the drop band,
    the header's margin, the narrow stack.
 4. Tests: `src/__tests__/tab/page/palettes.test.tsx`; `column(side)` in `src/__tests__/tab/tool.ts`; Chat's and

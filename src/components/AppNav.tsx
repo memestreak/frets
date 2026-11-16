@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { BrandMark } from './BrandMark';
 import { ChevronDownIcon } from './icons';
+import { PAGE_ACTIONS_ID } from './PageActions';
 import { locate, GROUPS } from './sections';
 import { ThemeSwitch } from './ThemeSwitch';
 
@@ -62,7 +63,7 @@ export function AppNav() {
     <nav
       ref={barRef}
       aria-label="Site"
-      className="relative flex items-center gap-3 border-b border-(--line) px-4 py-3 sm:px-5"
+      className="relative flex flex-wrap items-center gap-3 border-b border-(--line) px-4 py-3 sm:px-5"
     >
       <Link
         href="/"
@@ -98,7 +99,13 @@ export function AppNav() {
           <span className="shrink-0 text-(--ink-muted)"><ChevronDownIcon /></span>
         </button>
       )}
-      <div className="ml-auto shrink-0">
+      {/* A page's own buttons (PageActions), then the theme switch. Too narrow for them beside the
+          breadcrumbs, the page's buttons take a line of their own under them. */}
+      <div
+        id={PAGE_ACTIONS_ID}
+        className="order-last flex basis-full flex-wrap items-center justify-end gap-2 empty:hidden lg:order-none lg:empty:flex lg:ml-auto lg:basis-auto"
+      />
+      <div className="ml-auto shrink-0 lg:ml-0">
         <ThemeSwitch />
       </div>
       <div

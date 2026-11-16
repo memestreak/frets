@@ -166,10 +166,15 @@
 .score-pick-tool:focus { outline: none; }
 .score-pick-tool:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
 .tab-head-folded-pick { padding: 0 6px; }
+/* The folded title sits at the head's top right, on the tuning's line (Jeremy, 2026-11-16), its Edit and
+   Expand to its left so they stay over the drawing. */
+/* Its 20px line centred on the tuning heading's 18px one: the head's 4px padding and the tuning's 12px margin, less 1px. */
+.score-folded-title { position: absolute; z-index: 2; top: 15px; right: 0; }
+.score-folded-title .score-pick-tools { left: auto; right: 100%; margin-left: 0; margin-right: 6px; }
 /* The tuning, picked as the header is (issue #296): left-aligned, its outline drawn round it without moving it. */
 .score-tuning-pick { justify-items: start; width: fit-content; margin: -2px -8px; }
 .score-picked .score-tuning-button:hover .score-tuning-heading, .score-picked .score-tuning-button:hover { text-decoration: none; }
-/* The arrangement header folded: the title in small text after Size, a press unfolds it. */
+/* The arrangement header folded: the title in small text at the head's top right; a press picks it. */
 .tab-head-folded {
   max-width: 24ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0; margin: 0;
   font: 400 13px/20px var(--font-sans); color: var(--ink-muted); background: none; border: 0; cursor: pointer;
@@ -612,10 +617,6 @@
 main:has(> .tab-page) { display: flex; flex-direction: column; }
 .tab-page { flex: 1; }
 .tab-page > .tab-rail-layout { flex: 1; }
-/* The page's buttons end over the clip card's right edge, which a column on the right moves in (issue #490):
-   by the clip's padding while the page's margin holds the column, and further once the clip gives up width. */
-.tab-page[data-right='open'] > header { margin-right: max(16px, var(--rail-right) + 12px - max(0px, (100vw - 1240px) / 2)); }
-.tab-page[data-right='strip'] > header { margin-right: max(8px, var(--rail-right) + 4px - max(0px, (100vw - 1240px) / 2)); }
 /* A column sits in a grid cell as tall as the clip's row, so it stays in view (sticky) while a long clip
    scrolls by. */
 .tab-rail-column { align-self: stretch; }
@@ -729,7 +730,6 @@ body:has(.tab-stack-panel[data-dragging]) { cursor: grabbing; user-select: none;
   .tab-rail-column[data-side='right'] { order: -1; }
   .tab-rail-column[data-side='right'] .tab-stack-top { justify-content: flex-end; }
   .tab-rail-drop { display: none; }
-  .tab-page[data-right] > header { margin-right: 0; }
   .tab-rail-column { align-self: start; }
   .tab-rail-panel { position: static; height: auto; max-height: none; border: 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
   .tab-stack-strip { position: static; flex-direction: row; justify-content: flex-start; }
