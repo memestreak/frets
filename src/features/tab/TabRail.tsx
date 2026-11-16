@@ -134,11 +134,11 @@ const paletteList = (layout: Pick<PaletteLayout, 'order' | 'right'>, side: Side)
   layout.order.filter(id => sideOf(layout, id) === side);
 
 /** What `side` shows: an open column, its strip, or nothing when it has no palettes. */
-export const sideState = (layout: PaletteLayout, side: Side): 'open' | 'strip' | undefined =>
+const sideState = (layout: PaletteLayout, side: Side): 'open' | 'strip' | undefined =>
   (!paletteList(layout, side).length ? undefined : layout.collapsed[side] ? 'strip' : 'open');
 
 /** How wide `side`'s column is, in px: its width, its strip, or 0 when it has no palettes. */
-export const sideRoom = (layout: PaletteLayout, side: Side) =>
+const sideRoom = (layout: PaletteLayout, side: Side) =>
   ({ open: layout.width[side], strip: STRIP_WIDTH, none: 0 })[sideState(layout, side) ?? 'none'];
 
 /**
