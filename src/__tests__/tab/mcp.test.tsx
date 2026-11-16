@@ -280,8 +280,8 @@ describe('the server', () => {
 
 /* The app in a stand-in host, joined by an in-memory pipe in place of postMessage. */
 
-vi.mock('@/features/tab/playback', async importOriginal => {
-  const real = await importOriginal<typeof import('@/features/tab/playback')>();
+vi.mock('@/features/tab/tabPlayer', async importOriginal => {
+  const real = await importOriginal<typeof import('@/features/tab/tabPlayer')>();
   /** A player that plays nothing (every method does nothing), counting how often it is let go and where each Play starts. */
   const FakePlayer = {
     destroyed: 0,
@@ -498,7 +498,7 @@ describe('the app', () => {
   });
 
   it('lets the player go when the host takes it away', async () => {
-    const { TabPlayer } = await import('@/features/tab/playback');
+    const { TabPlayer } = await import('@/features/tab/tabPlayer');
     const fake = TabPlayer as unknown as { destroyed: number };
     const { bridge } = await mountApp();
     await act(() => bridge.sendToolInput({ arguments: LINE }));
@@ -632,7 +632,7 @@ describe('selecting in the app, to loop', () => {
   });
 
   it('Play starts at the selection, else at the loop points’ start, else at the line’s', async () => {
-    const { TabPlayer } = await import('@/features/tab/playback');
+    const { TabPlayer } = await import('@/features/tab/tabPlayer');
     const fake = TabPlayer as unknown as { from: number[] };
     await open();
     /** Presses Play (and Stop, if it plays) and gives the column the player was asked to start from. */

@@ -99,7 +99,7 @@ instrument to a MIDI port instead of its VST sound. MuseScore 4 has no MIDI outp
    and sends.
 2. `audioOutput.ts`: count samples handed over and played, and say when a sample is heard
    (`soundsAt`, in `performance.now()` time).
-3. `playback.ts`: `TabPlayer` takes a MIDI output (`setMidi`): mutes the note channels when it
+3. `tabPlayer.ts`: `TabPlayer` takes a MIDI output (`setMidi`): mutes the note channels when it
    should, turns the tap on for Play (not for a note heard alone), and releases notes on Stop, a
    seek and an edit.
 4. `useMidiOutput.ts`: Web MIDI access and the port found by name, for the footer and Settings.
