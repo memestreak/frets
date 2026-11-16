@@ -44,11 +44,12 @@ The title (the arrangement's name) needs at least one character that isn't a spa
 ## Folding
 
 - **Collapse header** hides the title and credits. The tuning and
-  tempo stay over the drawing (Jeremy, 2026-11-01, Q2). The title moves to the card's bar, right after Size, in small muted
+  tempo stay over the drawing (Jeremy, 2026-11-01, Q2). The title moves to the head's top right, on the
+  tuning's line (it was after Size until `2026-11-16-tab-toolbars-in-the-bar-design.md`), in small muted
   text (13px, `--ink-muted`, truncated with … past 24 characters); a hidden h1 keeps the page's
   heading for screen readers.
 - The small title is picked the same way (Jeremy, 2026-11-01): a press outlines it, with **Edit
-  title and credits** and **Expand header** (two chevrons parting) to its right; Expand brings the
+  title and credits** and **Expand header** (two chevrons parting) to its left, over the drawing; Expand brings the
   head back at full size. A double-click or Enter opens the panel, as on the full head; Esc or a
   press elsewhere lets it go.
 - It is a view option, not part of the clip: **Arrangement header** in View options' Notation

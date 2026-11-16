@@ -1,6 +1,7 @@
 import type { ComponentProps } from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { AppNav } from '@/components/AppNav';
+import { PageActions } from '@/components/PageActions';
 
 vi.mock('next/link', () => ({
   default: ({ children, ...rest }: ComponentProps<'a'>) => (
@@ -136,5 +137,27 @@ describe('AppNav', () => {
     nav.pathname = '/explore/scales';
     rerender(<AppNav />);
     expect(menu()).not.toBeVisible();
+  });
+
+  it('draws a page\'s actions in the bar before the theme switch, and nothing there for other pages', () => {
+    const { unmount } = renderAt('/chords');
+    const spot = document.getElementById('page-actions')!;
+    expect(spot).toBeEmptyDOMElement();
+    unmount();
+    nav.pathname = '/tab';
+    render(<><AppNav /><PageActions><button type="button">New</button></PageActions></>);
+    const bar = screen.getByRole('navigation', { name: 'Site' });
+    const actions = document.getElementById('page-actions')!;
+    expect(actions).toContainElement(screen.getByRole('button', { name: 'New' }));
+    // Before the theme switch, which stays last.
+    const theme = within(bar).getAllByRole('button').at(-1)!;
+    expect(actions.compareDocumentPosition(theme) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(actions).not.toContainElement(theme);
+  });
+
+  it('draws a page\'s actions in place when there is no bar', () => {
+    render(<PageActions><button type="button">New</button></PageActions>);
+    expect(screen.getByRole('button', { name: 'New' })).toBeInTheDocument();
+    expect(document.getElementById('page-actions')).toBeNull();
   });
 });

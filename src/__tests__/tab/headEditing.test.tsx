@@ -307,7 +307,7 @@ describe('the arrangement header (issue #281)', () => {
     expect(screen.queryByTestId('head-tools')).toBeNull();
   });
 
-  it('collapses to the small title after Size, keeping the tuning and tempo', () => {
+  it('collapses to the small title at the head\'s top right, keeping the tuning and tempo', () => {
     renderRiff();
     collapse();
     expect(within(head()).queryByRole('heading')).toBeNull();
@@ -315,9 +315,9 @@ describe('the arrangement header (issue #281)', () => {
     expect(within(head()).getByRole('group', { name: 'Tuning' })).toBeInTheDocument();
     // The page keeps its heading for screen readers.
     expect(screen.getByRole('heading', { level: 1, name: 'Riff' })).toHaveClass('sr-only');
-    // Right after Size, in the card's bar.
-    const size = screen.getByRole('group', { name: 'Size' });
-    expect(size.nextElementSibling).toContainElement(folded());
+    // In the head, on the tuning's line (Jeremy, 2026-11-16), not in the card's bar.
+    expect(head().querySelector('.score-folded-title')).toContainElement(folded());
+    expect(document.querySelector('.tab-card-bar')).not.toContainElement(folded());
     expect(JSON.parse(localStorage.getItem('frets.tab.notation')!).header).toBe(false);
   });
 

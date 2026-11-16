@@ -7,7 +7,7 @@
  * A press on the title or the credits picks the two together (issue #281): one outline round both,
  * with Edit and Collapse beside it. Edit or Enter opens the one Title and credits panel, on the title;
  * a double-click opens it on the line pressed (issue #227). Collapse folds the head to the title in
- * small text over the clip, after Size (`FoldedTitle`, the View options' Arrangement header), which is
+ * small text at the head's top right, on the tuning's line (`FoldedTitle`, the View options' Arrangement header), which is
  * picked and edited the same way, with Expand in Collapse's place. Esc, or the focus going elsewhere,
  * lets either go. The tuning is picked the same way (issue #296): Edit (or Enter, or a double-click)
  * opens its panel (issues #202, #203, `docs/specs/2026-10-29-tab-credits-tuning-design.md`), and a
@@ -38,9 +38,9 @@ function openAt(open: OpenAt | undefined) {
   };
 }
 
-export function ScoreHead({ clip, folded = false, tuningFolded = false, onEditCredits, onCollapse, onFoldTuning, onEditTuning, onEditTempo }: {
+export function ScoreHead({ clip, folded = false, tuningFolded = false, onEditCredits, onCollapse, onExpand, onFoldTuning, onEditTuning, onEditTempo }: {
   clip: Part;
-  /** The title and credits folded away (shown small over the clip instead): the tuning and tempo stay. */
+  /** The title and credits folded away to the small title at the head's top right: the tuning and tempo stay. */
   folded?: boolean;
   /** The tuning's strings hidden, its name kept (issue #296). */
   tuningFolded?: boolean;
@@ -48,8 +48,10 @@ export function ScoreHead({ clip, folded = false, tuningFolded = false, onEditCr
   onFoldTuning?: (fold: boolean) => void;
   /** Opens the Title and credits panel with `field`'s field focused. */
   onEditCredits?: (x: number, y: number, field: HeadField) => void;
-  /** Folds the head away to the small title over the clip. */
+  /** Folds the head away to the small title at its top right. */
   onCollapse?: () => void;
+  /** Brings the folded head back at full size. */
+  onExpand?: () => void;
   onEditTuning?: OpenAt;
   onEditTempo?: OpenAt;
 }) {
@@ -73,6 +75,12 @@ export function ScoreHead({ clip, folded = false, tuningFolded = false, onEditCr
       className="score-head" data-testid="score-head"
       style={{ ['--title-size' as string]: `${HEAD.titleSize}px`, ['--artist-size' as string]: `${HEAD.artistSize}px`, ['--credit-size' as string]: `${HEAD.creditSize}px` }}
     >
+      {/* Folded, the title in small text at the head's top right, on the tuning's line (Jeremy, 2026-11-16). */}
+      {folded && onEditCredits && onExpand && (
+        <div className="score-folded-title">
+          <FoldedTitle clip={clip} onEditCredits={onEditCredits} onExpand={onExpand} />
+        </div>
+      )}
       {!folded && (
         <HeadPick<HeadField>
           onEdit={onEditCredits && ((field, el) => editUnder(el, field, onEditCredits))} editLabel="Edit title and credits" editField="title"
@@ -222,10 +230,10 @@ function HeadPick<F extends string>({ onEdit: open, editLabel, editField, tool, 
 }
 
 /**
- * The arrangement header folded (issue #281): the title in small text over the clip, after Size.
+ * The arrangement header folded (issue #281): the title in small text at the head's top right.
  * Picked and edited as the full head is, with Expand in Collapse's place.
  */
-export function FoldedTitle({ clip, onEditCredits, onExpand }: {
+function FoldedTitle({ clip, onEditCredits, onExpand }: {
   clip: Part;
   onEditCredits: (x: number, y: number, field: HeadField) => void;
   onExpand: () => void;

@@ -36,13 +36,14 @@ import { markBox, markTool, type MarkHit } from './marks';
 import { addedSpan } from './spans';
 import { litTiedNotes, tieOnInput } from './ties';
 import { withoutAddedRests } from './timeline';
+import { PageActions } from '@/components/PageActions';
 import { useClipActions } from './ClipActions';
 import { SizeField } from './ViewOptions';
 import { TabClip, type DoubleClickPlace } from './TabClip';
 import { MetronomeDialog } from './MetronomeDialog';
 import { ImportDialog } from './TabDialogs';
 import { TabPalette } from './TabPalette';
-import { TabRail, sideRoom, sideState, usePalettes } from './TabRail';
+import { TabRail, usePalettes } from './TabRail';
 import { ChatPanel } from './chat/ChatPanel';
 import { useChatSession } from './chat/useChatSession';
 import type { PageSpot } from './chat/arrangementTools';
@@ -56,7 +57,7 @@ import { readTab } from './readTab';
 import { TECHNIQUES, techniqueOn } from './techniques';
 import { applyTool, isLengthTool, isOn, noteKinds, toolValue, WORD_TOOL, WORD_TOOLS, type ToolId } from './tools';
 import { cycleLengthDots, lengthIsOn, lengthOf, startLength } from './inputLength';
-import { FoldedTitle, ScoreHead } from './ScoreHead';
+import { ScoreHead } from './ScoreHead';
 import { ChordChart } from './ChordChart';
 import { chartChords, type ChartChord } from './chordDiagrams';
 
@@ -1005,48 +1006,43 @@ export default function TabPage() {
   );
 
   return (
-    <div
-      className="tab-page flex flex-col gap-4" data-right={sideState(palettes.layout, 'right')}
-      style={{ '--rail-right': `${sideRoom(palettes.layout, 'right')}px` } as CSSProperties}
-    >
+    <div className="tab-page flex flex-col gap-4">
       {/* The title, credits and tuning are drawn as the score's head, over the drawing (ScoreHead). */}
-      <header className="flex flex-wrap items-center justify-end gap-x-6 gap-y-3">
-        <div className="flex flex-wrap items-center gap-2">
-          {/* The file buttons (issue #259); a dot on Save while there are unsaved changes. */}
-          <button type="button" className="btn btn-secondary" onClick={file.openNew}>New</button>
-          <button type="button" className="btn btn-secondary" title={`Arrangements… (${MOD}O)`} onClick={file.openChooser}>Arrangements…</button>
-          <button
-            type="button" className="btn btn-secondary tab-save" title={`Save (${MOD}S)`}
-            aria-label={arrangements.unsaved ? 'Save, unsaved changes' : 'Save'} onClick={file.save}
+      {/* The file buttons (issue #259), up in the site's bar beside the theme switch (Jeremy, 2026-11-16); a dot on Save while there are unsaved changes. */}
+      <PageActions>
+        <button type="button" className="btn btn-secondary" onClick={file.openNew}>New</button>
+        <button type="button" className="btn btn-secondary" title={`Arrangements… (${MOD}O)`} onClick={file.openChooser}>Arrangements…</button>
+        <button
+          type="button" className="btn btn-secondary tab-save" title={`Save (${MOD}S)`}
+          aria-label={arrangements.unsaved ? 'Save, unsaved changes' : 'Save'} onClick={file.save}
+        >
+          Save
+          {arrangements.unsaved && <span className="tab-unsaved-dot" data-testid="unsaved" aria-hidden="true" />}
+        </button>
+        <button type="button" className="btn btn-secondary" title={`Save as (${MOD}⇧S)`} onClick={file.saveAs}>Save as…</button>
+        <button type="button" className="btn btn-secondary" onClick={() => file.confirmLeave(() => setImporting(true))}>Import…</button>
+        <button type="button" className="btn btn-secondary" onClick={() => setExporting(true)}>Export</button>
+        {/* The last of the page's actions (Jeremy, 2026-10-29); the ⚠ after it while settings can't be saved (G5). */}
+        <button
+          type="button" className="btn btn-secondary btn-icon" aria-label="Settings" title="Settings"
+          onClick={() => openSettings()}
+        >
+          <GearIcon />
+        </button>
+        {saveProblem && (
+          <span
+            className="settings-save-problem" role="img" aria-label={`Settings couldn't be saved: ${saveProblem}`}
+            title={`Settings couldn't be saved: ${saveProblem}`}
           >
-            Save
-            {arrangements.unsaved && <span className="tab-unsaved-dot" data-testid="unsaved" aria-hidden="true" />}
-          </button>
-          <button type="button" className="btn btn-secondary" title={`Save as (${MOD}⇧S)`} onClick={file.saveAs}>Save as…</button>
-          <button type="button" className="btn btn-secondary" onClick={() => file.confirmLeave(() => setImporting(true))}>Import…</button>
-          <button type="button" className="btn btn-secondary" onClick={() => setExporting(true)}>Export</button>
-          {/* The last of the page's actions (Jeremy, 2026-10-29); the ⚠ after it while settings can't be saved (G5). */}
-          <button
-            type="button" className="btn btn-secondary btn-icon" aria-label="Settings" title="Settings"
-            onClick={() => openSettings()}
-          >
-            <GearIcon />
-          </button>
-          {saveProblem && (
-            <span
-              className="settings-save-problem" role="img" aria-label={`Settings couldn't be saved: ${saveProblem}`}
-              title={`Settings couldn't be saved: ${saveProblem}`}
-            >
-              {/* As text, not the coloured emoji. */}
-              ⚠{'︎'}
-            </span>
-          )}
-          {/* Right of the settings (Jeremy, 2026-10-31): the keyboard shortcuts, as the ? key shows them. */}
-          <button type="button" className="btn btn-secondary btn-icon" aria-label="Shortcuts" title="Shortcuts (?)" onClick={showShortcuts}>
-            <span aria-hidden="true" className="shortcuts-button-mark">?</span>
-          </button>
-        </div>
-      </header>
+            {/* As text, not the coloured emoji. */}
+            ⚠{'︎'}
+          </span>
+        )}
+        {/* Right of the settings (Jeremy, 2026-10-31): the keyboard shortcuts, as the ? key shows them. */}
+        <button type="button" className="btn btn-secondary btn-icon" aria-label="Shortcuts" title="Shortcuts (?)" onClick={showShortcuts}>
+          <span aria-hidden="true" className="shortcuts-button-mark">?</span>
+        </button>
+      </PageActions>
 
       {/* The tools, in palettes in a column on the clip's left (issue #454). */}
       <TabRail
@@ -1073,7 +1069,7 @@ export default function TabPage() {
         chordsHead={<HearChordsToggle hear={playbackSettings.hearChords} onHearChange={hearChords => setPlaybackSettings(s => ({ ...s, hearChords }))} />}
       >
       <section className="card tab-card" aria-label="Clip">
-        {/* Over the clip: Staff | Tab | Both and Size at the top left (Notation only, issue #277); the view switch, then copy and save, at the top right (Jeremy, 2026-10-27). */}
+        {/* Over the clip, one row: Staff | Tab | Both and Size at the left (Notation only, issue #277); the view switch, then copy and save, at the right (Jeremy, 2026-10-27, 2026-11-16). */}
         <div className="tab-card-bar">
           <div className="tab-card-start">
             {view === 'tab' && (
@@ -1087,12 +1083,6 @@ export default function TabPage() {
               </div>
             )}
             {view === 'tab' && <SizeField size={shown.size} onChange={size => setShown({ ...shown, size })} />}
-            {/* The arrangement header folded (issue #281): its title, small, after Size; picked, it expands or edits. */}
-            {view === 'tab' && !shown.header && (
-              <HoverTips>
-                <FoldedTitle clip={clip} onExpand={() => setShown({ ...shown, header: true })} onEditCredits={head.openCredits} />
-              </HoverTips>
-            )}
             {/* With several tracks, the one shown (issue #243); the AlphaTex view has them all. */}
             {whole.tracks.length > 1 && view !== 'alphatex' && (
               <select className="input tab-track-pick" aria-label="Track" value={track} onChange={e => chooseTrack(Number(e.target.value))}>
@@ -1125,6 +1115,7 @@ export default function TabPage() {
                 onCollapse={() => setShown({ ...shown, header: false })}
                 onFoldTuning={fold => setShown({ ...shown, tuningDetails: !fold })}
                 onEditCredits={head.openCredits} onEditTuning={head.openTuning} onEditTempo={head.openHeadTempo}
+                onExpand={() => setShown({ ...shown, header: true })}
               />
               </HoverTips>
               <ChordChart chords={chart} width={clipWidth} onEdit={editChartChord} onPick={chord => { if (chord.owner === 0) setChordFollow({ name: chord.name }); }} />

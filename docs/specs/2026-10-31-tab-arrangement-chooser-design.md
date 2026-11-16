@@ -46,7 +46,8 @@ picking, delete with Undo and dragging stay as that spec has them.
   browser's (a new window), so New has no key. Over another dialog they do
   nothing.
 - **The page's buttons**: New, Arrangements…, Save, Save as…, Import…, Export,
-  Settings. Back to my clip and Keep a copy are gone, with the page's "shown in
+  Settings, in the site's bar beside the theme switch
+  (`2026-11-16-tab-toolbars-in-the-bar-design.md`). Back to my clip and Keep a copy are gone, with the page's "shown in
   place" mode for built-ins.
 - The card's **Save as…** (a file download) is now **Download…** ("Download text
   file", "Download alphaTex file" in the text views), so "Save" always means My
