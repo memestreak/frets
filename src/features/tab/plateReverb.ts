@@ -121,22 +121,6 @@ function allpass(line: Delay, length: number, g: number, x: number): number {
 }
 
 /**
- * What the main thread tells the worklet about the reverb (engine.ts):
- * whether it is heard (on in the sandbox alone), its -60 dB time in
- * seconds, its mix and its tone, 0 to 100, and its pre-delay in seconds. The worklet turns them into
- * the plate's coefficients.
- */
-export interface ReverbMessage {
-  type: 'reverb';
-  on: boolean;
-  seconds: number;
-  mix: number;
-  tone: number;
-  /** In seconds. */
-  preDelay: number;
-}
-
-/**
  * What the reverb is asked for: its -60 dB time in seconds, its tone 0
  * to 100, its mix 0 to 100, and its pre-delay in seconds.
  */

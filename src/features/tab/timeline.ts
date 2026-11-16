@@ -632,11 +632,6 @@ export function withoutAddedRests(before: Part, after: Part): Part {
   return count === after.bars.length ? after : { ...after, bars: after.bars.slice(0, count) };
 }
 
-/** The Part's whole length, in ticks. */
-export function partLength(part: Part): number {
-  return part.bars.reduce((sum, _, b) => sum + writtenLength(part, b), 0);
-}
-
 /* — re-barring, when a time signature or the Pickup bar changes — */
 
 /**

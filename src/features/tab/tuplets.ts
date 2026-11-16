@@ -61,11 +61,6 @@ export function groupsOf(part: Part, b: number): TupletGroup[] {
   });
 }
 
-/** The length of one tuplet note's place in a group: its time over its count (a triplet over a quarter, a triplet eighth). */
-export function tupletUnit(group: Pick<TupletGroup, 'length' | 'duration'>): number {
-  return group.length / (group.duration.tuplet ?? 1);
-}
-
 /* — grace notes — */
 
 /** The Part with bar `b`'s grace notes written by their count. */
@@ -404,10 +399,5 @@ export function enterTupletNote(part: Part, cursor: Cursor, at: number, fret: nu
 /** The tuplet's span in ticks for `n` notes of `length`: what Tuplet entry starts. */
 export function tupletSpanTicks(n: number, length: Duration): number {
   return ticks({ value: length.value, dots: length.dots, tuplet: n }) * n;
-}
-
-/** Whether a Column is a rest inside a tuplet: note input mode's grid stops at each tuplet note in it (spec Q7). */
-export function isTupletRest(column: Column | undefined): boolean {
-  return !!column && !column.grace && !!column.duration.tuplet && !column.notes.some(Boolean);
 }
 
