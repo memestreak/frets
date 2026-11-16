@@ -138,7 +138,7 @@ https://claude.ai/artifact/KdPp237qyFzq9tJ1RopGVt.
 - `chat/ModelPicker.tsx`: the Model field and its list.
 - `chat/ChatPanel.tsx`: the panel. `TabRail` takes its contents as `chat`.
 - `clipState.ts`: a new action, `amend`, joins a change to the last undo
-  step (a step of its own when there is none). `TabPage.tsx` sends a reply's
+  step (a step of its own when there is none). `chat/useTabChat.ts` sends a reply's
   first change as `replace` and the rest as `amend` while the clip is still
   the one the reply last set.
 - `tabSettings.tsx`: the Chat section; a `textField`

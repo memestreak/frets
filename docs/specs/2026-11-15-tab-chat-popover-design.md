@@ -125,12 +125,13 @@ Notion AI: a field at the cursor whose answer shows in place.
 3. `chat/about.ts` and `PageSpot.picked`: what the prompt is about, and
    what is picked in words in every request's description of where the
    viewer is.
-4. `TabPage.tsx`: Ctrl/⌘+I, the menus' Chat…, where the popover opens.
+4. `TabPage.tsx`: Ctrl/⌘+I and the menus' Chat…; `chat/useTabChat.ts`:
+   where the popover opens.
 5. `shortcuts.ts`: Mod+I, and the popover's own keys.
 6. `usePageKeys.ts`: the popover and the Chat palette are places the tab
    keeps what is picked and lit for (`TAB_KEEPERS`); `TabPage`'s
    `TAB_KEEPS` keeps the selection on a press in the Chat palette.
-7. `TabPage.tsx` `chatAbout` and `ChatPanel.tsx`: the palette's chip, and
+7. `chat/useTabChat.ts` `chatAbout` and `ChatPanel.tsx`: the palette's chip, and
    `send(undefined, about)` in `useChatSession` (issue #498).
 8. `usePlayRange.ts` `pickColumn`: a press on blank space (which
    `TabClip`'s `keepFocus` keeps from taking the focus) lets go of a

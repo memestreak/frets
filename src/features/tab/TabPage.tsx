@@ -16,14 +16,13 @@ import { pastesVoices, pasteVoices, sliceVoices, spansVoices, voiceRange, voiceS
 import { clipAction, type ClipAction, type PartAction } from './clipState';
 import { useArrangements } from './useArrangements';
 import { chordFromNotes, NO_NOTES, pickedNotes, writeChordFromNotes } from './chordFromNotes';
-import { clampCursor, columnAt, indexOf, sliceClip, coversWholeBars, columnCount, deleteBars, deleteColumns, insertBar, insertPaste, isEmpty, statedIn, type Stated, noteAt, withRestsInEmptyBars, pasteOver, placeOf, selectedRange, START } from './editing';
+import { clampCursor, columnAt, indexOf, sliceClip, coversWholeBars, columnCount, deleteBars, deleteColumns, insertPaste, isEmpty, statedIn, type Stated, noteAt, withRestsInEmptyBars, pasteOver, placeOf, selectedBars, selectedRange, START } from './editing';
 import { isBarLine, type BarLineHit } from './barLines';
 import { beamLit, canBeamTarget, clearToRests, setBend, setOttava, setWhammy } from './noteEdits';
-import { applyTuplet, isProblem } from './tuplets';
 import { TupletPanel } from './TupletPanel';
 import { cursorSpot } from './fieldSpots';
 import { WHAMMY_SHAPES } from './whammy';
-import { editorKeyDown, graceKey, restKey, writeAtInput, type EditorKeys } from './editorKeys';
+import { editorKeyDown, writeAtInput, type EditorKeys } from './editorKeys';
 import { layoutClip, PARTS, type Parts } from './layout';
 import type { Lines } from './jumps';
 import { gridTicks, type GridValue } from './grid';
@@ -33,9 +32,8 @@ import { writtenStrings } from './notation';
 import { dropShowParam, readShowParam } from './shareLink';
 import type { Notice } from './notice';
 import { pitchAtStep, type TypedAccidental } from './staffEntry';
-import { markBox, markTool, type MarkHit } from './marks';
-import { addedSpan } from './spans';
-import { litTiedNotes, tieOnInput } from './ties';
+import { markBox, markTool } from './marks';
+import { litTiedNotes } from './ties';
 import { withoutAddedRests } from './timeline';
 import { PageActions } from '@/components/PageActions';
 import { useClipActions } from './ClipActions';
@@ -47,8 +45,6 @@ import { TabPalette } from './TabPalette';
 import { TabRail } from './TabRail';
 import { usePalettes } from './paletteLayout';
 import { ChatPanel } from './chat/ChatPanel';
-import { useChatSession } from './chat/useChatSession';
-import type { PageSpot } from './chat/arrangementTools';
 import { ChordPanel, HearChordsToggle } from './ChordPanel';
 import { TabExportDialog } from './TabExportDialog';
 import { writeAlphaTex, writePart } from './alphatex';
@@ -56,9 +52,8 @@ import { DEFAULT_FX } from './effects';
 import { instrumentTag, soundFor, substituteNote } from './instrument';
 import { AlphaTexEditor } from './AlphaTexEditor';
 import { readTab } from './readTab';
-import { TECHNIQUES, techniqueOn } from './techniques';
-import { applyTool, isLengthTool, isOn, noteKinds, toolValue, WORD_TOOL, WORD_TOOLS, type ToolId } from './tools';
-import { cycleLengthDots, lengthIsOn, lengthOf, startLength } from './inputLength';
+import { isOn, noteKinds, toolValue, WORD_TOOL, type ToolId } from './tools';
+import { lengthIsOn, startLength } from './inputLength';
 import { ScoreHead } from './ScoreHead';
 import { ChordChart } from './ChordChart';
 import { chartChords, type ChartChord } from './chordDiagrams';
@@ -76,13 +71,14 @@ import { useHeadPanels } from './useHeadPanels';
 import { usePageKeys } from './usePageKeys';
 import { usePlayRange } from './usePlayRange';
 import { useStableHandlers } from './useStableHandlers';
+import { useTabTools } from './useTabTools';
 import { useTabPicking } from './useTabPicking';
 import { useActiveVoice, useVoicePick } from './useVoicePick';
 import { useWidth } from './useWidth';
 import { showShortcuts } from '@/components/shortcuts/useShortcuts';
 import { isMac } from '@/lib/shortcuts';
 import { ChatPopover } from './chat/ChatPopover';
-import { WHOLE, aboutBars, aboutThing, noteWords, pickedWords, type About } from './chat/about';
+import { useTabChat } from './chat/useTabChat';
 
 /** What a press may land on and keep the selection and the playback line: controls, the drawing and the palette. */
 const TAB_KEEPS = `${KEEPS_SELECTION}, .tab-editor svg, .tab-palette, .tab-stack-strip, .tab-rail-panel, .tab-chat`;
@@ -113,8 +109,6 @@ function hasEdit(hit: Picked): boolean {
 function hasDelete(hit: Picked): boolean {
   return !((hit.kind === 'time' || hit.kind === 'key') && hit.bar === 0);
 }
-/** The tools that act on the Active voice alone, not every Voice of a selection (step 9, Q19): ties, tuplets, grace notes, Beam overrides. */
-const ACTIVE_VOICE_ONLY: ReadonlySet<ToolId> = new Set<ToolId>(['tie', 'tuplet', 'grace', 'beamBreak', 'beamJoin']);
 /** The palette tool that sets each picked-able bar line, lit while it is picked. */
 const BAR_LINE_TOOL: Record<BarLineHit['kind'], ToolId> = { repeatStart: 'repeatStart', repeatEnd: 'repeatEnd', repeatCount: 'repeatEnd', doubleBar: 'doubleBar' };
 
@@ -245,7 +239,7 @@ export default function TabPage() {
     cursor, setCursor, selection, selectionAsSet, setSelection, tabFocused, setTabFocused, columnOnly, setColumnOnly,
     staffPitch, setStaffPitch, picked, setPicked, noteInputMode, setNoteInputMode, insertMode, setInsertMode, inputLength, setInputLength,
     editorRef, lastDigitRef, commit, startRegion, toPitch, cursorAt, setCursorAt,
-    tupletEntry, setTupletEntry, graceEntry, setGraceEntry, tupletFrom, setTupletFrom,
+    tupletEntry, graceEntry, tupletFrom, setTupletFrom,
   } = editor;
   /** Where the Tuplet panel `;` opened is, in the tab's units; null while it is shut (step 6, Q16). */
   const [tupletPanel, setTupletPanel] = useState<{ x: number; y: number } | null>(null);
@@ -264,7 +258,6 @@ export default function TabPage() {
    * The staff cursor's pitch while it has the keys: never with the tab alone. With the staff alone it is
    * always there but in a selection; after one, on the middle line until a key or press moves it.
    */
-  if ((globalThis as {DBG?:boolean}).DBG) console.log('DBG render sel', JSON.stringify(selection), JSON.stringify(cursor));
   const staffCursor = parts === 'tab' ? null : staffPitch ?? (parts === 'staff' && tabFocused && noteInputMode && !selectionAsSet ? pitchAtStep(clip, cursor.bar, 4) : null);
   /** What the Bend, Vibrato and Tuplet buttons show: the cursor's notes, or only the picked mark's own kind. */
   const cursorKinds = noteKinds(clip, lit || pickedTool ? cursor : null);
@@ -328,35 +321,14 @@ export default function TabPage() {
   const {
     voiceOnly, chooseVoice, pickVoice, moveToVoiceKey, voiceKey, selectOnlyVoice, everyVoice, stepElement, voicePresentAtCursor,
   } = useVoicePick(editor, { whole, track, voice, setVoice, stepToElement: picking.stepToElement });
+  // What the palette's tools, the technique popover and the Tuplet panel do to the clip.
+  const { addBar, onTool, addTechnique, pickTuplet, onPanelChoice } = useTabTools(editor, { target, head, everyVoice, deletePicked, editorKeys: () => editorKeys() });
   // The palettes' layout; a chord name's Edit (and so its double-click) opens Chords at that chord (issue #251).
   const palettes = usePalettes();
-  /**
-   * The Chat panel (`docs/specs/2026-11-08-tab-chat-design.md`, issue #424). The model's changes go through `chatClip`: a reply's first is an undo step, and its
-   * later ones join it, unless the viewer edited in between.
-   */
-  const wholeNow = useRef(whole);
-  useEffect(() => { wholeNow.current = whole; }, [whole]);
-  const chatSet = useRef<Clip | null>(null);
-  const chatClip = (next: Clip, first: boolean) => {
-    dispatchClip({ type: !first && wholeNow.current === chatSet.current ? 'amend' : 'replace', clip: next });
-    chatSet.current = next;
-    // A second change in the same answer reads this one, before the page draws it.
-    wholeNow.current = next;
-  };
-  /** The bar a picked thing is in. */
-  const pickedBar = (hit: Picked) => ('bar' in hit ? hit.bar : placeOf(clip, hit.index).bar);
-  const chatSpot = (): PageSpot => ({
-    track,
-    cursorBar: cursor.bar,
-    selectedBars: selection ? [placeOf(clip, selectedRange(selection)[0]).bar, placeOf(clip, selectedRange(selection)[1]).bar] : null,
-    picked: picked ? pickedWords(picked, pickedBar(picked)) : null,
-  });
-  /** Where the Chat popover is open, and the bars its prompt is about (issue #488). */
-  const [chatAt, setChatAt] = useState<{ x: number; y: number; about: About } | null>(null);
-  // The conversation is the page's, not the panel's, so closing the panel keeps it and its running reply (issue #442).
-  // A reply shown in the Chat popover is read too.
-  const chat = useChatSession({
-    prefs: prefs.chat, current: () => ({ clip: wholeNow.current, spot: chatSpot() }), onClip: chatClip, open: palettes.shown('chat') || chatAt !== null,
+  // The Chat panel and popover (`docs/specs/2026-11-08-tab-chat-design.md`, issues #424, #488).
+  const { chat, chatAt, chatAbout, openChatPopover, closeChatPopover } = useTabChat(editor, {
+    whole, track, layout, prefs: prefs.chat, panelOpen: palettes.shown('chat'),
+    change: (next, amend) => dispatchClip({ type: amend ? 'amend' : 'replace', clip: next }),
   });
   const [chordsAt, setChordsAt] = useState<{ name: string | null } | null>(null);
   // Chords folded or the column collapsed drops its ask, so opening it again doesn't open the chord asked for before.
@@ -545,16 +517,8 @@ export default function TabPage() {
   };
 
 
-  /** A bar of rests before or after the cursor's bar (Ctrl+Shift+Enter or Ctrl+Enter, the Bars group, the menu), with the cursor in it. */
-  const addBar = (where: 'before' | 'after') => {
-    const next = insertBar(clip, cursor, where);
-    commit(next.clip, next.cursor, null);
-  };
-
   /** The bars a selection touches, else the cursor's bar: what the menu's Delete bar takes away. */
-  const menuBars: [number, number] = selection
-    ? [placeOf(clip, selectedRange(selection)[0]).bar, placeOf(clip, selectedRange(selection)[1]).bar]
-    : [cursor.bar, cursor.bar];
+  const menuBars: [number, number] = selection ? selectedBars(clip, selection) : [cursor.bar, cursor.bar];
   /** Paste writes over what is there; this puts the clipboard's tab in before the cursor instead (issue #238). In both menus. */
   const insertPasteItem = { label: 'Insert paste', onSelect: () => void navigator.clipboard?.readText().then(text => { if (text) void pasteTab(text, true); }, () => {}) };
   const removeBars = ([first, last]: [number, number]) => {
@@ -562,148 +526,13 @@ export default function TabPage() {
     commit(next.clip, { ...cursor, ...next.cursor }, null);
   };
 
-  /** Whether a palette tool puts on a Span that is picked once added (let ring, P.M.). */
-  const spanTool = (id: ToolId): id is 'letRing' | 'palmMute' => !noteInputMode && (id === 'letRing' || id === 'palmMute');
-  /**
-   * A let ring or P.M. line just added is picked, as a press on it picks it (`onPickMark`): drawn blue,
-   * its notes no longer lit, so it can be dragged straight to the length wanted (Jeremy, 2026-11-09).
-   */
-  const pickAdded = (next: Part, hit: MarkHit) => {
-    setSelection(hit.to !== undefined && hit.to !== hit.index ? { anchor: hit.index, focus: hit.to } : null);
-    setCursor({ ...cursor, ...placeOf(next, hit.index) });
-    setColumnOnly(true);
-    setPicked(hit);
-  };
-
-  /**
-   * A palette button or panel choice. Off the tab (after Esc or a press elsewhere) nothing is under the
-   * cursor, so the palette acts on nothing, as it lights nothing (Jeremy, 2026-10-30).
-   */
-  const onTool = (id: ToolId) => {
-    if (tabFocused) runTool(id);
-  };
-
-  /** What a palette button does on the cursor or selection (`onTool`), and what the technique popover does with the tool it names. */
-  const runTool = (id: ToolId) => {
-    if (id in WORD_TOOLS) head.openWord(WORD_TOOLS[id as keyof typeof WORD_TOOLS]);
-    else if (id === 'lyrics') head.openLyric(cursor);
-    // The cursor bar's time signature panel, as a press on its drawn numbers opens (the clip's own in the first bar).
-    else if (id === 'barTime') head.openSignature('time', cursor.bar, null);
-    else if (id === 'barKey') head.openSignature('key', cursor.bar, null);
-    else if (id === 'insertBar') addBar('after');
-    else if (id === 'insertBarBefore') addBar('before');
-    // In note input mode the Duration buttons set the next note's length, as the length keys do.
-    else if (noteInputMode && toolValue(id)) setInputLength(lengthOf(toolValue(id)!));
-    else if (noteInputMode && id === 'dot') setInputLength(cycleLengthDots(inputLength));
-    // `,` and the Rest tool: a Gap of the Input length in note input mode, Delete in normal mode (step 6, Q12–Q13).
-    else if (id === 'rest') restKey(editorKeys());
-    // `/` and the Grace tool: Grace entry on and off in note input mode, else a grace note before the picked note (Q8, Q11).
-    else if (id === 'grace' && noteInputMode) setGraceEntry(!graceEntry);
-    else if (id === 'grace') graceKey(editorKeys());
-    // A picked tie arc: the Tie tool takes it away, as Delete does (step 5).
-    else if (id === 'tie' && picked?.kind === 'mark' && picked.mark === 'tie') deletePicked(picked);
-    // In note input mode `=` adds a tied note of the input length after the note at the cursor (step 5).
-    else if (noteInputMode && id === 'tie') {
-      const tied = tieOnInput(clip, cursor, inputLength, insertMode);
-      if (tied) commit(tied, cursor);
-    }
-    // A dead note goes on one string; with none picked there is nothing to mark.
-    else if (!(columnOnly && id === 'dead')) {
-      // On a selection, a Mark goes on every Voice's notes in its time (Q19). In Insert mode a length changes the
-      // Active voice's notes only, and every Voice moves with them (`docs/specs/2026-11-14-tab-insert-mode-design.md`).
-      const pushes = insertMode && isLengthTool(id);
-      const next = applyTool(clip, target, id, pushes);
-      const added = spanTool(id) ? addedSpan(clip, next, id, target) : null;
-      if (!picked && !pushes && !ACTIVE_VOICE_ONLY.has(id) && everyVoice((part, run) => applyTool(part, { ...target, selection: run }, id))) {
-        if (added) pickAdded(next, added);
-        return;
-      }
-      if (added) {
-        commit(next);
-        pickAdded(next, added);
-      } else commitKeepingMark(next);
-    }
-  };
-
-
-  /**
-   * The technique the technique popover named (Shift+P, issue #501), on the cursor or selection as its palette button
-   * puts it; one every target note already has is left as it is, as the popover only adds (spec Q6).
-   */
-  const addTechnique = (name: string) => {
-    const technique = TECHNIQUES.find(t => t.name === name);
-    if (!technique || techniqueOn(clip, target, technique, columnOnly)) return;
-    if (technique.tool) {
-      runTool(technique.tool);
-      return;
-    }
-    // One kind of a mark the palette steps through (wide vibrato, a full bend): on every Voice's notes in a selection's time, as a palette mark goes.
-    const edit = technique.edit!;
-    if (!picked && everyVoice((part, run) => edit(part, { ...target, selection: run }))) return;
-    commitKeepingMark(edit(clip, target));
-  };
-
-  /** A palette change; a picked mark changed by it (vibrato to wide, a bend's amount) stays picked while it is there. */
-  const commitKeepingMark = (next: Part) => {
-    commit(next);
-    if (picked?.kind === 'mark' && markTool(next, picked)) setPicked(picked);
-  };
-
-  /**
-   * A tuplet picked in the Tuplet panel (the button's, or `;`'s at the cursor), step 6. In note input mode it turns
-   * Tuplet entry on, or off for the same tuplet or None (Q6); in normal mode it goes over the picked note's
-   * time, squeezes the selection, or takes the tuplet away (Q1, Q2, Q4), or the line under the clip says why not.
-   */
-  const pickTuplet = (n: number | null) => {
-    if (!tabFocused) return;
-    if (noteInputMode) {
-      setTupletEntry(n === null || n === tupletEntry ? null : n);
-      setTupletFrom(null);
-      return;
-    }
-    const next = applyTuplet(clip, target, n);
-    if (isProblem(next)) setNotice({ tone: 'error', lines: [next.problem] });
-    else commit(next);
-  };
   /** `;`: the Tuplet panel just under the cursor's column. */
   const openTuplets = () => {
     if (view === 'tab') setTupletPanel(cursorSpot(layout, cursor));
   };
-  /**
-   * What a Chat prompt is about (issues #488, #498): the selected bars, else what is picked, else the note the
-   * cursor is on, else the whole arrangement. What is picked and the cursor's note count only while the tab
-   * has them lit, so the Chat palette, opened without touching the tab, says Whole arrangement.
-   */
-  const chatAbout = (): About => {
-    const range = selection ? selectedRange(selection) : null;
-    if (range) return aboutBars([placeOf(clip, range[0]).bar, placeOf(clip, range[1]).bar]);
-    if (!tabFocused) return WHOLE;
-    if (picked) return aboutThing(pickedWords(picked, pickedBar(picked)));
-    const note = !columnOnly ? noteAt(clip, cursor) : null;
-    return note ? aboutThing(noteWords(note.fret, cursor.string, cursor.bar, cursor.column)) : WHOLE;
-  };
-  /**
-   * The Chat popover (issue #488): Ctrl/⌘+I, or the right-click menus' Chat…, opens it at the selection's start,
-   * else the cursor (where a press put it). Its prompt is about the selected bars, else the whole arrangement.
-   */
-  const openChatPopover = () => {
-    const range = selection ? selectedRange(selection) : null;
-    const at = range ? { ...cursor, ...placeOf(clip, range[0]) } : cursor;
-    setChatAt({ ...cursorSpot(layout, at), about: chatAbout() });
-  };
-  const closeChatPopover = (byKey: boolean) => {
-    setChatAt(null);
-    if (byKey) editorRef.current?.focus({ preventScroll: true });
-  };
-
   const closeTuplets = (byKey: boolean) => {
     setTupletPanel(null);
     if (byKey) editorRef.current?.focus({ preventScroll: true });
-  };
-
-  /** A choice in the Bend, Tuplet, Octave line or Whammy bar panel: like a palette button, nothing off the tab. */
-  const onPanelChoice = (apply: () => Part) => {
-    if (tabFocused) commitKeepingMark(apply());
   };
 
   /**
