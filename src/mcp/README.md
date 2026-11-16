@@ -65,7 +65,8 @@ Outside `src/`:
   tool adds its `<option>` in `index.html`, its app in `preview.ts` and
   its presets (ready-made arguments) in `presets.ts`;
   `src/__tests__/mcp/server.test.ts` and `previewPresets.test.ts` fail
-  until it does.
+  until it does. How the log shows each message (its title, sections and
+  JSON) is in `format.ts`, tested by `previewFormat.test.ts`.
 
 ## Adding a page's tools
 
