@@ -576,18 +576,18 @@
 /* Picked (issue #281), its outline says so: no underline. */
 .score-picked .tab-title-text:hover:enabled, .score-picked .tab-title-text:focus-visible { text-decoration: none; }
 
-/* The palettes' columns either side of the clip (TabRail.tsx, issues #454 and #490), flush with the page and
-   divided from it by lines. A column sits against the clip's edge and grows into the page's margin on its
-   side, up to 16px from the window's edge, so the clip keeps its edges, and its width, while the margins hold
-   the columns; past that it gives up width. Collapsed, a column is a 40px strip holding its Expand button; a
-   side with no palettes has no column (its track is 0px wide). */
+/* The palettes' columns either side of the clip (TabRail.tsx, issues #454, #490 and #521), flush with the page
+   and divided from it by lines. A column sits out past the clip's widest edge, into the page's margin on its
+   side, as far as its reach (`--rail-*-out`), up to 16px from the window's edge; the rest of its width is
+   taken from the clip. Collapsed, a column is a 40px strip holding its Expand button; a side with no palettes
+   has no column (its track is 0px wide). */
 .tab-rail-layout {
   --clip-width: calc(min(1240px, 100vw) - 40px);
   --rail-reach: calc(max(0px, (100vw - 1240px) / 2) + 4px);
   position: relative; display: grid; align-items: start;
   grid-template-columns: var(--rail-left, 0px) minmax(0, var(--clip-width)) var(--rail-right, 0px);
-  margin-left: calc(-1 * min(var(--rail-reach), var(--rail-left, 0px)));
-  margin-right: calc(-1 * min(var(--rail-reach), var(--rail-right, 0px)));
+  margin-left: calc(-1 * min(var(--rail-reach), var(--rail-left-out, 0px)));
+  margin-right: calc(-1 * min(var(--rail-reach), var(--rail-right-out, 0px)));
 }
 .tab-rail-column[data-side='left'] { grid-column: 1; grid-row: 1; }
 .tab-rail-clip { grid-column: 2; grid-row: 1; min-width: 0; }
@@ -641,8 +641,11 @@ main:has(> .tab-page) { display: flex; flex-direction: column; }
 .tab-rail-divider:hover::before, .tab-rail-divider:focus-visible::before, .tab-rail-divider[data-dragging]::before {
   width: 3px; border-radius: 2px; background: var(--line-strong);
 }
-.tab-rail-divider[data-side='left'] { right: -15px; }
-.tab-rail-divider[data-side='right'] { left: -15px; }
+.tab-rail-divider[data-side='left'][data-edge='inner'], .tab-rail-divider[data-side='right'][data-edge='outer'] { right: -15px; }
+.tab-rail-divider[data-side='right'][data-edge='inner'], .tab-rail-divider[data-side='left'][data-edge='outer'] { left: -15px; }
+/* The outer edge moves only into the page's margin (issue #521), so it shows only where the window has one:
+   --rail-reach is at least 24px from 1,280px. */
+@media (max-width: 1279px) { .tab-rail-divider[data-edge='outer'] { display: none; } }
 body:has(.tab-rail-divider[data-dragging]) { cursor: ew-resize; user-select: none; }
 .tab-rail-panel-title { margin: 0; font: 600 15px/20px var(--font-sans); color: var(--ink); }
 .tab-rail-tools { flex-direction: column; flex-wrap: nowrap; gap: 14px; }

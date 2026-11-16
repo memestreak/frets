@@ -104,7 +104,7 @@ describe('the palettes’ column (issue #454)', () => {
     fireEvent.click(paletteHeader('Bars'));
     expect(kept()).toEqual({
       open: ['notes', 'bars'], order: FIRST_ORDER, right: ['chat'], heights: {},
-      collapsed: { left: false, right: false }, width: { left: 272, right: 272 },
+      collapsed: { left: false, right: false }, width: { left: 272, right: 272 }, reach: { left: 272, right: 272 },
     });
     fireEvent.keyDown(paletteHeader('Bars'), { key: 'ArrowUp', altKey: true });
     fireEvent.keyDown(screen.getByRole('separator', { name: 'Notes height' }), { key: 'ArrowUp' });
@@ -329,7 +329,7 @@ describe('parseLayout', () => {
   it('reads a first visit’s layout from nothing, or from anything unreadable', () => {
     const first = {
       open: ['notes'], order: FIRST_ORDER, right: ['chat'], heights: {},
-      collapsed: { left: false, right: false }, width: { left: 272, right: 272 },
+      collapsed: { left: false, right: false }, width: { left: 272, right: 272 }, reach: { left: 272, right: 272 },
     };
     expect(parseLayout(null)).toEqual(first);
     expect(parseLayout('not json')).toEqual(first);
@@ -429,6 +429,109 @@ describe('dragging the line between the column and the clip (issue #431)', () =>
     const narrow = css.slice(css.indexOf('/* Under 900px the columns sit over the clip'));
     expect(narrow.slice(0, narrow.indexOf('\n}'))).toContain('.tab-rail-divider { display: none; }');
     expect(rule('.tab-rail-layout')).toContain('grid-template-columns: var(--rail-left, 0px) minmax(0, var(--clip-width)) var(--rail-right, 0px)');
+  });
+});
+
+// `docs/specs/2026-11-16-tab-palette-edges-design.md` (issue #521): the edge dragged follows the pointer.
+describe('a column’s edges follow the pointer (issue #521)', () => {
+  const edge = (side: 'Left' | 'Right', which: 'width' | 'outer edge') => screen.getByRole('separator', { name: `${side} palette ${which}` });
+  const layout = (container: HTMLElement) => container.querySelector<HTMLElement>('.tab-rail-layout')!;
+  const drag = (handle: HTMLElement, by: number) => {
+    fireEvent.pointerDown(handle, { button: 0, clientX: 500, pointerId: 1 });
+    fireEvent.pointerMove(handle, { clientX: 500 + by, pointerId: 1 });
+    fireEvent.pointerUp(handle, { clientX: 500 + by, pointerId: 1 });
+  };
+  /** A wide window: at 1,600px, 184px of margin a side that a column may use, (1600 − 1240) / 2 + 4; at 2,000px, 384. */
+  const wide = (px = 1600) => {
+    const was = window.innerWidth;
+    window.innerWidth = px;
+    return () => { window.innerWidth = was; };
+  };
+
+  it('reads each side’s reach: its width when missing, 0 to 560 in whole px', () => {
+    expect(parseLayout(JSON.stringify({ width: { left: 320 } })).reach).toEqual({ left: 320, right: 272 });
+    expect(parseLayout(JSON.stringify({ reach: { left: 100.4, right: 'x' } })).reach).toEqual({ left: 100, right: 272 });
+    expect(parseLayout(JSON.stringify({ reach: { left: -5, right: 9000 } })).reach).toEqual({ left: 0, right: 560 });
+  });
+
+  it('the inner edge widens into the clip, keeping the reach; away from the clip at its widest it does nothing', () => {
+    const restore = wide(2000);
+    try {
+      const { container } = renderAt();
+      drag(edge('Left', 'width'), -80);
+      expect(edge('Left', 'width')).toHaveAttribute('aria-valuenow', '272');
+      drag(edge('Left', 'width'), 80);
+      expect(kept().width.left).toBe(352);
+      expect(kept().reach.left).toBe(272);
+      expect(layout(container).style.getPropertyValue('--rail-left-out')).toBe('272px');
+    } finally {
+      restore();
+    }
+  });
+
+  it('the outer edge widens into the margin, up to its limit, and narrows toward the clip', () => {
+    const restore = wide();
+    try {
+      renderAt();
+      // 272 wide, 184 of it in the margin (the margin's limit) and 88 over the clip; outward, the margin is used up.
+      drag(edge('Left', 'outer edge'), -80);
+      expect(kept().width.left).toBe(272);
+      expect(kept().reach.left).toBe(184);
+      drag(edge('Left', 'outer edge'), 80);
+      expect(kept().width.left).toBe(224);
+      expect(kept().reach.left).toBe(136);
+    } finally {
+      restore();
+    }
+  });
+
+  it('a column all in the margin widens outward from its outer edge as far as the margin goes', () => {
+    const restore = wide();
+    localStorage.setItem(LAYOUT_KEY, JSON.stringify({ width: { left: 224 }, reach: { left: 100 } }));
+    try {
+      renderAt();
+      drag(edge('Left', 'outer edge'), -200);
+      expect(kept().width.left).toBe(308);
+      expect(kept().reach.left).toBe(184);
+    } finally {
+      restore();
+    }
+  });
+
+  it('on the right, the outer edge’s → widens and ← narrows; the inner edge’s ← widens', () => {
+    const restore = wide();
+    localStorage.setItem(LAYOUT_KEY, JSON.stringify({ reach: { right: 100 } }));
+    try {
+      renderAt();
+      fireEvent.keyDown(edge('Right', 'outer edge'), { key: 'ArrowRight' });
+      expect(kept().width.right).toBe(288);
+      expect(kept().reach.right).toBe(116);
+      fireEvent.keyDown(edge('Right', 'outer edge'), { key: 'ArrowLeft', shiftKey: true });
+      expect(kept().width.right).toBe(224);
+      expect(kept().reach.right).toBe(52);
+      fireEvent.keyDown(edge('Right', 'width'), { key: 'ArrowLeft' });
+      expect(kept().width.right).toBe(240);
+      expect(kept().reach.right).toBe(52);
+    } finally {
+      restore();
+    }
+  });
+
+  it('sets the margins from each side’s reach, and shows the outer edge from 1,280px', () => {
+    localStorage.setItem(LAYOUT_KEY, JSON.stringify({ width: { left: 300 }, reach: { left: 400 }, collapsed: { right: true } }));
+    const { container } = renderAt();
+    expect(layout(container).style.getPropertyValue('--rail-left-out')).toBe('300px');
+    expect(layout(container).style.getPropertyValue('--rail-right-out')).toBe('40px');
+    expect(rule('.tab-rail-layout')).toContain('margin-left: calc(-1 * min(var(--rail-reach), var(--rail-left-out, 0px)))');
+    expect(rule('.tab-rail-layout')).toContain('margin-right: calc(-1 * min(var(--rail-reach), var(--rail-right-out, 0px)))');
+    const css = readFileSync(join(process.cwd(), 'src/features/tab/tab.css'), 'utf8');
+    expect(css).toContain("@media (max-width: 1279px) { .tab-rail-divider[data-edge='outer'] { display: none; } }");
+  });
+
+  it('in a 1,024px window the inner edge narrows a column as before', () => {
+    renderAt();
+    drag(edge('Left', 'width'), -80);
+    expect(kept().width.left).toBe(224);
   });
 });
 

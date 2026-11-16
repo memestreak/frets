@@ -42,14 +42,16 @@ between its two side bars by dragging or "Move to Secondary Side Bar", each with
 - **Each side has its own width**, 224 to 560px, 272 at first, set by the line between it and the clip
   ("Left palette width", "Right palette width"); on the right, leftwards widens. The clip keeps at least
   400px.
-- **Where the room comes from.** A column grows into the page's margin on its side, up to 16px from the
-  window's edge, so the clip keeps both edges, and its width, while the margins hold the columns; past that the
-  clip gives up width. (The page's buttons (New … ?) used to end over the clip card's right edge; they are in the
+- **Where the room comes from.** A column sits out into the page's margin on its side as far as its reach, up
+  to 16px from the window's edge, and takes the rest of its width from the clip; each edge follows the pointer
+  when dragged, the outer one into the margin (`2026-11-16-tab-palette-edges-design.md`, issue #521; until then
+  a wider column grew into the margin first). (The page's buttons (New … ?) used to end over the clip card's right edge; they are in the
   site's bar now, `2026-11-16-tab-toolbars-in-the-bar-design.md`.)
 - **Under 900px** both sides sit over the clip in one stack, the left side's column first, each with its own
   Collapse button, no width handles.
 - **Kept across visits** in `frets.tab.layout`, with the rest of the layout and not in Settings (it is how the
-  window is laid out): `{ open, order, right, heights, collapsed: { left, right }, width: { left, right } }`.
+  window is laid out): `{ open, order, right, heights, collapsed: { left, right }, width: { left, right }, reach: { left, right } }`
+  (`reach` since issue #521).
   `order` is every palette top to bottom; each side lists its own in that order; `right` holds the palettes on
   the right.
 
