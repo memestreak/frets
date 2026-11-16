@@ -66,6 +66,11 @@ export interface PaletteLayout {
   collapsed: Record<Side, boolean>;
   /** Each side's width, in px, while expanded. */
   width: Record<Side, number>;
+  /**
+   * How far each side's open column may reach out past the clip's widest edge into the page's margin, in px
+   * (issue #521); the rest of its width is taken from the clip. Set by dragging the column's outer edge.
+   */
+  reach: Record<Side, number>;
 }
 
 /** The Chords palette's icon: a chord diagram's grid with one dot. */
@@ -108,14 +113,17 @@ const FIRST_ORDER: readonly PanelId[] = PALETTES.map(p => p.id);
 
 const isPanel = (id: unknown): id is PanelId => FIRST_ORDER.includes(id as PanelId);
 
+/** `px` kept between `least` and `most` (`least` winning), in whole px. */
+const clampTo = (px: number, least: number, most: number) => Math.round(Math.min(Math.max(px, least), Math.max(least, most)));
+
 /** A width kept within the column's limits, in whole px. */
-export const clampWidth = (px: number, max: number = PANEL_WIDTH.max) =>
-  Math.round(Math.min(Math.max(px, PANEL_WIDTH.min), Math.max(PANEL_WIDTH.min, max)));
+export const clampWidth = (px: number, max: number = PANEL_WIDTH.max) => clampTo(px, PANEL_WIDTH.min, max);
 
 /** A first visit: Notes open, every palette in its first order, Chat on the right, both sides expanded. */
 const FIRST_LAYOUT: PaletteLayout = {
   open: ['notes'], order: FIRST_ORDER, right: ['chat'], heights: {},
   collapsed: { left: false, right: false }, width: { left: PANEL_WIDTH.start, right: PANEL_WIDTH.start },
+  reach: { left: PANEL_WIDTH.start, right: PANEL_WIDTH.start },
 };
 
 /** The side `id` is on. */
@@ -133,6 +141,17 @@ export const sideState = (layout: PaletteLayout, side: Side): 'open' | 'strip' |
 export const sideRoom = (layout: PaletteLayout, side: Side) =>
   ({ open: layout.width[side], strip: STRIP_WIDTH, none: 0 })[sideState(layout, side) ?? 'none'];
 
+/**
+ * How far, in px, `side`'s column sits out past the clip's widest edge before the window's margin is counted
+ * (CSS takes the least of this and `--rail-reach`): an open column's reach, but never more than its width; a
+ * strip all of its width; nothing with no palettes.
+ */
+export const sideOut = (layout: PaletteLayout, side: Side) =>
+  sideState(layout, side) === 'open' ? Math.min(layout.reach[side], layout.width[side]) : sideRoom(layout, side);
+
+/** The page's margin beside the clip that a column may use, in px, up to 16px from the window's edge: as `--rail-reach`. */
+const marginRoom = () => (typeof window === 'undefined' ? 0 : Math.max(0, (window.innerWidth - 1240) / 2) + 4);
+
 /** A side's own field of a kept `{ left, right }`, or undefined when it isn't of `type`. */
 const sideField = (value: unknown, side: Side, type: 'boolean' | 'number') => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
@@ -144,6 +163,7 @@ const sideField = (value: unknown, side: Side, type: 'boolean' | 'number') => {
 export function parseLayout(text: string | null): PaletteLayout {
   const layout: PaletteLayout = {
     ...FIRST_LAYOUT, heights: {}, collapsed: { ...FIRST_LAYOUT.collapsed }, width: { ...FIRST_LAYOUT.width },
+    reach: { ...FIRST_LAYOUT.reach },
   };
   let saved: unknown;
   try {
@@ -170,6 +190,9 @@ export function parseLayout(text: string | null): PaletteLayout {
     if (collapsed !== undefined) layout.collapsed[side] = collapsed as boolean;
     const width = sideField(s.width, side, 'number');
     if (width !== undefined) layout.width[side] = clampWidth(width as number);
+    // A missing reach is the column's width: all of it in the margin, as before issue #521.
+    const reach = sideField(s.reach, side, 'number');
+    layout.reach[side] = reach === undefined ? layout.width[side] : clampTo(reach as number, 0, PANEL_WIDTH.max);
   }
   return layout;
 }
@@ -218,46 +241,62 @@ export function usePalettes(): Palettes {
 }
 
 /**
- * The line between a column and the clip, as a handle: drag it, or tab to it and press ← → (Shift for bigger
- * steps), to set the column's width; on the right side, leftwards widens it. A press doesn't take the focus
- * from the tab.
+ * An edge of an open column, as a handle that follows the pointer while the column's other edge stays put
+ * (issue #521): drag it, or tab to it and press ← → (Shift for bigger steps). The inner edge is the line
+ * between the column and the clip: moving it gives the clip's width to the column or takes it back, never
+ * making the clip wider than its widest. The outer edge, where the page has a margin beside the clip, gives the
+ * margin's width to the column or takes it back, up to 16px from the window's edge, and the clip stays put. A
+ * press doesn't take the focus from the tab.
  */
-function WidthHandle({ side, width, other, onWidth }: {
+function WidthHandle({ side, edge, width, reach, other, onWidth }: {
   side: Side;
+  edge: 'inner' | 'outer';
   width: number;
+  /** The column's kept reach into the margin. */
+  reach: number;
   /** How wide the other side's column is now, in px (0 when there is none). */
   other: number;
-  onWidth: (px: number, keep?: boolean) => void;
+  onWidth: (px: number, reach: number, keep?: boolean) => void;
 }) {
-  const drag = useRef<{ x: number; width: number; max: number; now: number } | null>(null);
+  const drag = useRef<{ x: number; width: number; reach: number } | null>(null);
   const [dragging, setDragging] = useState(false);
   /** +1 when moving right widens the column, -1 when it narrows it. */
-  const grows = side === 'left' ? 1 : -1;
-  /** The widest the column may be now: the clip keeps `CLIP_MIN` of the layout's width. */
-  const widest = (el: HTMLElement) => {
+  const grows = (side === 'left') === (edge === 'inner') ? 1 : -1;
+  /** The column's width and reach after moving this edge `by` px, the room around it measured now. */
+  const moved = (el: HTMLElement, from: { width: number; reach: number }, by: number) => {
+    const margin = marginRoom();
+    const out = Math.min(margin, from.reach, from.width);
+    if (edge === 'outer') {
+      // The part over the clip stays; the part in the margin grows or shrinks, within the margin.
+      const over = from.width - out;
+      const px = clampTo(from.width + grows * by, Math.max(PANEL_WIDTH.min, over), Math.min(PANEL_WIDTH.max, over + margin));
+      return { width: px, reach: px - over };
+    }
+    // The part in the margin stays; the part over the clip grows or shrinks, the clip keeping `CLIP_MIN`.
     const layout = el.closest('.tab-rail-layout');
     // Not laid out (as in tests): no limit but the column's own.
-    if (!layout?.clientWidth) return PANEL_WIDTH.max;
-    return Math.min(PANEL_WIDTH.max, layout.clientWidth - CLIP_MIN - other);
+    const widest = layout?.clientWidth ? Math.min(PANEL_WIDTH.max, layout.clientWidth - CLIP_MIN - other) : PANEL_WIDTH.max;
+    return { width: clampTo(from.width + grows * by, Math.max(PANEL_WIDTH.min, out), widest), reach: from.reach };
   };
   const down = (e: PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
     e.currentTarget.setPointerCapture?.(e.pointerId);
-    drag.current = { x: e.clientX, width, max: widest(e.currentTarget), now: width };
+    drag.current = { x: e.clientX, width, reach };
     setDragging(true);
   };
+  const now = useRef<{ width: number; reach: number } | null>(null);
   const move = (e: PointerEvent<HTMLDivElement>) => {
     const d = drag.current;
     if (!d) return;
-    d.now = clampWidth(d.width + grows * (e.clientX - d.x), d.max);
-    onWidth(d.now, false);
+    now.current = moved(e.currentTarget, d, e.clientX - d.x);
+    onWidth(now.current.width, now.current.reach, false);
   };
   const up = () => {
-    const d = drag.current;
-    if (!d) return;
+    if (!drag.current) return;
     drag.current = null;
     setDragging(false);
-    onWidth(d.now);
+    if (now.current) onWidth(now.current.width, now.current.reach);
+    now.current = null;
   };
   const key = (e: KeyboardEvent<HTMLDivElement>) => {
     const step = e.shiftKey ? 64 : 16;
@@ -265,14 +304,16 @@ function WidthHandle({ side, width, other, onWidth }: {
     if (!by) return;
     e.preventDefault();
     e.stopPropagation();
-    onWidth(clampWidth(width + grows * by, widest(e.currentTarget)));
+    const next = moved(e.currentTarget, { width, reach }, by);
+    onWidth(next.width, next.reach);
   };
+  const name = side === 'left' ? 'Left' : 'Right';
   // A focusable separator is ARIA's window splitter, an interactive widget, which jsx-a11y doesn't know.
   /* eslint-disable jsx-a11y/no-noninteractive-element-interactions, jsx-a11y/no-noninteractive-tabindex */
   return (
     <div
-      className="tab-rail-divider" data-side={side} role="separator" aria-orientation="vertical"
-      aria-label={`${side === 'left' ? 'Left' : 'Right'} palette width`}
+      className="tab-rail-divider" data-side={side} data-edge={edge} role="separator" aria-orientation="vertical"
+      aria-label={edge === 'inner' ? `${name} palette width` : `${name} palette outer edge`}
       aria-valuenow={width} aria-valuemin={PANEL_WIDTH.min} aria-valuemax={PANEL_WIDTH.max} tabIndex={0}
       data-dragging={dragging ? '' : undefined}
       // Keep the focus, and so the cursor, on the tab; no text is selected while dragging.
@@ -675,10 +716,15 @@ export function TabRail({ palette, palettes, chords, chordsHead, chat, chatStatu
                   );
                 })}
               </div>
-              <WidthHandle
-                side={side} width={layout.width[side]} other={room(side === 'left' ? 'right' : 'left')}
-                onWidth={(px, keep) => change({ width: { ...layout.width, [side]: px } }, keep)}
-              />
+              {(['inner', 'outer'] as const).map(edge => (
+                <WidthHandle
+                  key={edge} side={side} edge={edge} width={layout.width[side]} reach={layout.reach[side]}
+                  other={room(side === 'left' ? 'right' : 'left')}
+                  onWidth={(px, reach, keep) => change(
+                    { width: { ...layout.width, [side]: px }, reach: { ...layout.reach, [side]: reach } }, keep,
+                  )}
+                />
+              ))}
             </aside>
           )}
         </HoverTips>
@@ -688,7 +734,10 @@ export function TabRail({ palette, palettes, chords, chordsHead, chat, chatStatu
   return (
     <div
       ref={frame} className="tab-rail-layout" data-left={sideState(layout, 'left')} data-right={sideState(layout, 'right')}
-      style={{ '--rail-left': `${room('left')}px`, '--rail-right': `${room('right')}px` } as CSSProperties}
+      style={{
+        '--rail-left': `${room('left')}px`, '--rail-right': `${room('right')}px`,
+        '--rail-left-out': `${sideOut(layout, 'left')}px`, '--rail-right-out': `${sideOut(layout, 'right')}px`,
+      } as CSSProperties}
     >
       {lists.left.length > 0 && column('left')}
       <div className="tab-rail-clip">{children}</div>
