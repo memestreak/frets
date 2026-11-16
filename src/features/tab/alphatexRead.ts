@@ -8,11 +8,8 @@
 import type * as AlphaTabModule from '@coderline/alphatab';
 import { mod12, SHARP_NOTES } from '@/lib/theory/notes';
 import type { ReadResult, TextSpot } from './ascii';
-import {
-  barLength, barTicks, defaultGroupCounts, isGroupingOf, sameGroups, BEND_QUARTERS, isRest, isWhammy, MAX_VOICES, stringClashes, unevenMessage, MAX_BPM, MAX_CAPO, MIN_BPM, NOTE_VALUES, STRING_COUNT, COMMON_TIME, isTimeSignature,
-  TREMOLO_VALUES, dynamicOf, tupletFields, type TimeSignature, type BendQuarters, type Clip, type Column, type Note,
-  type NoteValue, type Fermata, isBarsPerLine, partOf, trackName, type MasterBar, type Roll, type Track, type TrackBar,
-} from './clip';
+import { barLength, barTicks, defaultGroupCounts, isGroupingOf, sameGroups, BEND_QUARTERS, isRest, isWhammy, MAX_VOICES, MAX_BPM, MAX_CAPO, MIN_BPM, NOTE_VALUES, STRING_COUNT, COMMON_TIME, isTimeSignature, TREMOLO_VALUES, dynamicOf, tupletFields, type TimeSignature, type BendQuarters, type Clip, type Column, type Note, type NoteValue, type Fermata, isBarsPerLine, partOf, trackName, type MasterBar, type Roll, type Track, type TrackBar } from './clip';
+import { stringClashes, unevenMessage } from './clipProblems';
 import { readFxLine } from './fxLine';
 import { STANDARD_TUNING_TEX } from './instrument';
 import type { FxSettings } from './effects';

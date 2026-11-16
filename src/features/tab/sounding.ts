@@ -7,10 +7,8 @@
  * Times are ticks from the Part's start. Each bar starts where the one before it ends by its own
  * Columns, so a short or overfull bar (kept as written) doesn't move the bars after it.
  */
-import {
-  barLength, barSpan, beatGroupsAt, defaultGroupCounts, barTicks, meterOffset, NOTE_VALUES, SHORTEST_DOTTED, STRING_COUNT, ticks, timeAt, tupletGroups, tupletProblems,
-  WHOLE, type Column, type Duration, type Note, type NoteValue, type Part, type TimeSignature,
-} from './clip';
+import { barLength, barSpan, beatGroupsAt, defaultGroupCounts, barTicks, meterOffset, NOTE_VALUES, SHORTEST_DOTTED, STRING_COUNT, ticks, timeAt, WHOLE, type Column, type Duration, type Note, type NoteValue, type Part, type TimeSignature } from './clip';
+import { tupletGroups, tupletProblems } from './clipProblems';
 
 /** One written note of a Sounding note: the first, or one tied on after it. */
 export interface Piece {

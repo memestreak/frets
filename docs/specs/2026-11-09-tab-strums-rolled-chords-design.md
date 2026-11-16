@@ -83,7 +83,7 @@ Editing follows Dorico first (`docs/tab-editing-principles.md`).
 
 ## How
 
-- `clip.ts`: `Roll`, `Column.roll`, its check in `isColumn`.
+- `clip.ts`: `Roll`, `Column.roll`; its check in `isColumn` (`clipParse.ts`).
 - `alphatexRead.ts` (`rollOf`, in `beatReads`) and `alphatex.ts`
   (`rollTex`).
 - `rollSign.ts`: the sign's shape (`rollSign`, `rollSpan`) and its place

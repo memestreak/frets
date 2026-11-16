@@ -5,10 +5,8 @@
  * reads, every note on its string and fret. Pure; shared by the server (which checks) and the app.
  */
 import { midiOf } from '@/lib/theory/notes';
-import {
-  COMMON_TIME, DEFAULT_BPM, STANDARD_TUNING, STRING_COUNT, isTimeSignature, tupletProblems, unevenBy,
-  type Bar, type Column, type Duration, type Note, type Part, type TimeSignature,
-} from '../clip';
+import { COMMON_TIME, DEFAULT_BPM, STANDARD_TUNING, STRING_COUNT, isTimeSignature, type Bar, type Column, type Duration, type Note, type Part, type TimeSignature } from '../clip';
+import { tupletProblems, unevenBy } from '../clipProblems';
 import { choosePlace } from '../staffEntry';
 import { inputSchema, type ColumnInput, type LineInput, type LoopEnd, type LoopInput, type NoteInput, type View } from './tool';
 

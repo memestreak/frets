@@ -5,7 +5,7 @@ or over, as in "Bar 1 doesn't add up to 4/4: 1 beat and a 32nd short."
 
 ## The amount (his pick: beats, then note values)
 
-`timeInWords` in `clip.ts` says a length of time the way a guitarist counts
+`timeInWords` in `clipProblems.ts` says a length of time the way a guitarist counts
 it in a bar:
 
 1. Whole beats first: "1 beat", "2 beats". A beat is the time signature's

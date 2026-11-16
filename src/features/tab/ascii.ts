@@ -10,12 +10,8 @@
  */
 import { lyricLines } from './lyrics';
 import { chartChords, type ShapedChord } from './chordDiagrams';
-import {
-  barTicks, hasNotes, isPalmMuted, MAX_CAPO, isStandardTuningNames, nearestDuration, unevenMessage, slideDirections, STANDARD_TUNING, STRING_COUNT,
-  ticks, COMMON_TIME, isTimeSignature, tupletFields, tupletLabel, TUPLET_SPANS, WHOLE,
-  asClip, type Bar, type BendQuarters, type Clip, type Part, type Column, type Duration, type Note, type NoteValue,
-  type TimeSignature,
-} from './clip';
+import { barTicks, hasNotes, isPalmMuted, MAX_CAPO, isStandardTuningNames, nearestDuration, slideDirections, STANDARD_TUNING, STRING_COUNT, ticks, COMMON_TIME, isTimeSignature, tupletFields, tupletLabel, TUPLET_SPANS, WHOLE, asClip, type Bar, type BendQuarters, type Clip, type Part, type Column, type Duration, type Note, type NoteValue, type TimeSignature } from './clip';
+import { unevenMessage } from './clipProblems';
 
 /** Where in the text an error is: from and to are string indexes (to is past its last character). */
 export interface TextSpot {

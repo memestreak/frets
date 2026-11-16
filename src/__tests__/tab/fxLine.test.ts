@@ -7,7 +7,8 @@ import * as alphaTab from '@coderline/alphatab';
 import { writeAlphaTex, writePart } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { clipReducer, sameMusic, type ClipState } from '@/features/tab/clipState';
-import { parseClip, partOf, withPart, type Clip, type Part } from '@/features/tab/clip';
+import { partOf, withPart, type Clip, type Part } from '@/features/tab/clip';
+import { parseClip } from '@/features/tab/clipParse';
 import { DEFAULT_FX, type FxSettings } from '@/features/tab/effects';
 import { fxLine, readFxLine } from '@/features/tab/fxLine';
 

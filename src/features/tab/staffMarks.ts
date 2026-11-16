@@ -6,7 +6,8 @@
  * With the staff alone, bends and taps go on it too (under a staff the tab shows them). Each mark has
  * the box a press picks it by. Pure: `StaffDrawing.tsx` draws them, `marks.ts` adds their boxes.
  */
-import { columnAccent, columnMordent, whammyGoesOn, whammySemitones, TREMOLO_VALUES, tupletGroups, tupletLabel, type Bend, type Column, type Fermata, type Note, type Ottava, type Roll } from './clip';
+import { columnAccent, columnMordent, whammyGoesOn, whammySemitones, TREMOLO_VALUES, tupletLabel, type Bend, type Column, type Fermata, type Note, type Ottava, type Roll } from './clip';
+import { tupletGroups } from './clipProblems';
 import { OTTAVA_CLEAR, stemUpFor, VIBRATO_CLEAR, VIBRATO_OVER_MARKS, type Layout } from './layout';
 import { BEND_LABEL_STEP, SPACE, STEM_STEPS, stepY, TAP_RADIUS, type StaffReach } from './rows';
 import { accidentalRoom, bendFromRoom, HEAD_WIDTH, ROLL_ROOM } from './widths';

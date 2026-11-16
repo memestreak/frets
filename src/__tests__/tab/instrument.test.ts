@@ -6,7 +6,8 @@ import * as alphaTab from '@coderline/alphatab';
 import { writeAlphaTex, writePart } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { sameMusic } from '@/features/tab/clipState';
-import { parseClip, partOf, withPart, type Clip, type Part } from '@/features/tab/clip';
+import { partOf, withPart, type Clip, type Part } from '@/features/tab/clip';
+import { parseClip } from '@/features/tab/clipParse';
 import { instrumentName, instrumentTag, keepsGuitarTuning, soundFor, substituteNote } from '@/features/tab/instrument';
 import { perform } from '@/features/tab/playback';
 
