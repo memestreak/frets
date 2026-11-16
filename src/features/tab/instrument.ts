@@ -40,6 +40,14 @@ const STEEL = 25;
 const ELECTRIC = 27;
 
 /**
+ * What Frets calls its three sounds, in the Sound list and its ⚠. The piano is "Grand Piano", not
+ * General MIDI's "Acoustic Grand Piano" (Jeremy, 2026-11-16: shorter, and the list narrower).
+ */
+export const SOUND_NAMES: Readonly<Record<number, string>> = {
+  [PIANO]: 'Grand Piano', [STEEL]: 'Steel Guitar', [ELECTRIC]: 'Clean Electric Guitar',
+};
+
+/**
  * The sound Frets plays a program with: itself when Frets has it, else the nearest by family.
  * Electric guitars (jazz, muted, overdriven, distortion, harmonics) play as the clean electric;
  * pianos, keys and organs as the piano; everything else as the steel guitar.
@@ -56,7 +64,7 @@ export function soundFor(program: number | undefined): number {
 export function substituteNote(program: number | undefined): string | null {
   const sound = soundFor(program);
   if (program === undefined || program === sound) return null;
-  return `This arrangement asks for ${instrumentName(program)}; Frets plays ${instrumentName(sound)}.`;
+  return `This arrangement asks for ${instrumentName(program)}; Frets plays ${SOUND_NAMES[sound]}.`;
 }
 
 /** alphaTex's names for the three sounds, as Frets writes them. */

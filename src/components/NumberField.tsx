@@ -140,8 +140,8 @@ export function NumberField({ value, min, max, step, dragStep = step, decimals =
     letGoOfFields(e.currentTarget.closest('.number-field'));
   };
 
-  // Room for the longest value, its sign included.
-  const width = Math.max(chars, max.toFixed(decimals).length, min.toFixed(decimals).length) + (signed && max > 0 ? 1 : 0);
+  // Room for the longest value, its sign included: "+12" and "-12" are both three characters.
+  const width = Math.max(chars, max.toFixed(decimals).length + (signed && max > 0 ? 1 : 0), min.toFixed(decimals).length);
   return (
     <span className={compact ? 'number-field number-field-compact' : 'number-field'} data-disabled={disabled || undefined}>
       <input disabled={disabled}

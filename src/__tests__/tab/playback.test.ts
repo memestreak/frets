@@ -57,6 +57,11 @@ describe('playback sounds', () => {
     expect(isSound(24) || isSound(111) || isSound('25')).toBe(false);
   });
 
+  it('calls the piano Grand Piano', () => {
+    expect(SOUND_FAMILIES.flatMap(([, sounds]) => sounds.map(([, name]) => name)))
+      .toEqual(['Grand Piano', 'Steel Guitar', 'Clean Electric Guitar']);
+  });
+
   it('plays a sound from its own soundfont, which alphaTab reads with sound in it', () => {
     for (const piano of OWN_FONTS) {
       expect(isSound(piano.program)).toBe(true);

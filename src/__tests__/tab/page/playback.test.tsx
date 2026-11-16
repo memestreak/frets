@@ -90,6 +90,10 @@ describe('TabPage playback', () => {
     const regionEnd = screen.getByRole('menuitemcheckbox', { name: 'Stop playback at region end' });
     expect(stop).toHaveAttribute('aria-checked', 'false');
     expect(regionEnd).toHaveAttribute('aria-checked', 'false');
+    // The menu takes the focus, not its first option, which then looked lit.
+    expect(screen.getByRole('menu', { name: 'Playback options' })).toHaveFocus();
+    // The pause's length is greyed out while loops don't pause.
+    expect(screen.getByRole('spinbutton', { name: 'Pause between loops (seconds)' })).toBeDisabled();
     fireEvent.click(stop);
     fireEvent.click(regionEnd);
     expect(regionEnd).toHaveAttribute('aria-checked', 'true');
@@ -99,7 +103,8 @@ describe('TabPage playback', () => {
     expect(pause).toHaveAttribute('aria-checked', 'true');
     const seconds = screen.getByRole('spinbutton', { name: 'Pause between loops (seconds)' });
     expect(seconds).toHaveValue('1.0');
-    fireEvent.click(screen.getByRole('button', { name: 'Longer pause' }));
+    expect(seconds).toBeEnabled();
+    fireEvent.keyDown(seconds, { key: 'ArrowUp' });
     expect(seconds).toHaveValue('1.5');
     fireEvent.change(seconds, { target: { value: '2.25' } });
     fireEvent.keyDown(seconds, { key: 'Enter' });
@@ -114,6 +119,8 @@ describe('TabPage playback', () => {
     renderAt();
     const transpose = screen.getByRole('spinbutton', { name: 'Transpose (semitones)' });
     expect(transpose).toHaveValue('0');
+    // Room for "+12" and no more.
+    expect(transpose).toHaveStyle({ width: '3ch' });
     fireEvent.click(screen.getByRole('button', { name: 'Transpose up' }));
     expect(transpose).toHaveValue('+1');
     fireEvent.change(transpose, { target: { value: '-5' } });

@@ -18,7 +18,7 @@ He picked B ("lets use piano B").
 
 ## The piano
 
-- Acoustic Grand Piano (program 0) is now the Salamander Grand, B above. Its soundfont is fetched
+- Grand Piano (program 0, General MIDI's Acoustic Grand Piano) is now the Salamander Grand, B above. Its soundfont is fetched
   the first time that sound plays or is picked (Play says Loading meanwhile) and kept for the visit;
   it wins over SONiVOX's piano. No other sound loads more.
 - It plays at about SONiVOX's loudness: a level for it, from rendering one passage with each.

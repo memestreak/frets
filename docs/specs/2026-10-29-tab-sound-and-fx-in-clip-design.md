@@ -77,11 +77,11 @@ play the right kind of sound (`instrument.ts`).
 - Kept exactly as written; it changes only when a Sound is picked.
 - Played by the nearest of the three, by General MIDI family: electric
   guitars (26–31: jazz, muted, overdriven, distortion, harmonics) as Clean
-  Electric Guitar; pianos, keys and organs (0–7, 16–23) as Acoustic Grand
-  Piano; everything else as Steel Guitar.
+  Electric Guitar; pianos, keys and organs (0–7, 16–23) as Grand Piano;
+  everything else as Steel Guitar.
 - The Sound list shows the sound played, with a small red ⚠ after it whose
   tip says "This arrangement asks for Distortion Guitar; Frets plays Clean
   Electric Guitar."
 - A name alphaTab doesn't know (`\instrument banana`) it reads as program 0
   without an error, so Frets warns under the clip: "Frets doesn't know the
-  instrument banana; it plays as Acoustic Grand Piano." and keeps it.
+  instrument banana; it plays as Grand Piano." and keeps it.

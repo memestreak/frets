@@ -601,7 +601,7 @@ export function PlaybackFooter({ clip, playback, from, until, selection, onLoop,
             <span className="tab-caption" aria-hidden="true">Transpose</span>
           </div>
           {/* The track's own: its Sound and FX in one thin box, captioned with its name (Jeremy, 2026-10-30). */}
-          <div className="tab-captioned" role="group" aria-label={`Track: ${fullName}`}>
+          <div className="tab-captioned tab-track" role="group" aria-label={`Track: ${fullName}`}>
             <div className="tab-slot tab-track-box">
               {/* A sound picked, the list lets go of the focus (`useLetGoAfterUse`), so Space plays again (Jeremy, 2026-10-28). */}
               <select className="input tab-sound" aria-label="Sound" value={sound} onChange={e => onSound(Number(e.target.value))}>
@@ -611,9 +611,11 @@ export function PlaybackFooter({ clip, playback, from, until, selection, onLoop,
                   </optgroup>
                 ))}
               </select>
-              {soundNote && <span className="tab-sound-note" role="img" aria-label={soundNote} data-tip={soundNote}>⚠</span>}
-              {midiNote && <span className="tab-sound-note" role="img" aria-label={midiNote} data-tip={midiNote}>⚠</span>}
-              <FxButton fx={effects} onFx={onEffects} />
+              <span className="tab-track-rest">
+                {soundNote && <span className="tab-sound-note" role="img" aria-label={soundNote} data-tip={soundNote}>⚠</span>}
+                {midiNote && <span className="tab-sound-note" role="img" aria-label={midiNote} data-tip={midiNote}>⚠</span>}
+                <FxButton fx={effects} onFx={onEffects} />
+              </span>
             </div>
             <span className="tab-caption" aria-hidden="true" data-tip={label === fullName ? undefined : fullName}>{label}</span>
           </div>

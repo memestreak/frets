@@ -10,7 +10,7 @@ Within a visit, a sound already loaded once and was kept. The wait came on
 each page load, at the first Play: alphaTab decodes a sound's samples (Ogg
 Vorbis, in the `.sf3` files) the first time a clip uses it, on the page's own
 thread, in one block. Measured in Chromium: Steel Guitar (the Iowa soundfont)
-about 1.5 to 2.4 s, Acoustic Grand Piano (Salamander) about 4 to 5 s, Clean
+about 1.5 to 2.4 s, Grand Piano (Salamander) about 4 to 5 s, Clean
 Electric Guitar about 0.6 s; a SONiVOX sound about 0.1 s. The page could not
 respond meanwhile.
 
