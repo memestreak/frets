@@ -5,7 +5,7 @@
  * shape, for as long as a column carries it. Pure.
  */
 import { readChordName, type ChordReading } from '@/lib/theory/chordSearch';
-import type { Column, Part, Track, TrackBar } from './clip';
+import { ticks, type Column, type Part, type Track, type TrackBar } from './clip';
 
 /**
  * One alphaTex `\chord` definition, as written: a name and a shape. Every property alphaTab 1.8.4
@@ -38,9 +38,26 @@ export interface ChordEntry {
   reading: ChordReading | null;
 }
 
-/** Every Column of the track, every Voice. */
-function* columnsOf(bars: readonly TrackBar[]): Iterable<Column> {
-  for (const bar of bars) for (const voice of bar.voices) yield* voice;
+/**
+ * Every chord symbol of the track, in the order they're played: bar by bar, then by when in the bar
+ * each comes (a grace note takes no time), the first Voice first when two Voices name one at once.
+ */
+function symbolsOf(bars: readonly TrackBar[]): string[] {
+  const names: string[] = [];
+  for (const bar of bars) {
+    const symbols: { name: string; at: number }[] = [];
+    for (const voice of bar.voices) {
+      let at = 0;
+      for (const column of voice) {
+        if (column.chord) symbols.push({ name: column.chord, at });
+        if (!column.grace) at += ticks(column.duration);
+      }
+    }
+    // A stable sort, so the first Voice stays first at a tie.
+    symbols.sort((a, b) => a.at - b.at);
+    names.push(...symbols.map(s => s.name));
+  }
+  return names;
 }
 
 /**
@@ -52,25 +69,26 @@ export function chordDefOf(chords: readonly ChordDef[] | undefined, name: string
 }
 
 /**
- * The track's Chord set: its definitions in the order written, then each name only typed over a
- * column, in the order the columns come. Two definitions may share a name; symbols point at the last.
+ * The track's Chord set, in the order the music first uses each chord (Jeremy, 2026-11-16: it reads like
+ * the song), then the unused ones in the order written. A name only typed over a column is in the set,
+ * with no shape. Two definitions may share a name; symbols point at the last, so an earlier one is unused.
  */
 export function chordSet(track: Pick<Track, 'chords' | 'bars'>): ChordEntry[] {
   const defs = track.chords ?? [];
-  const entries: ChordEntry[] = defs.map(def => ({ name: def.name, def, uses: 0, reading: readChordName(def.name) }));
+  const written: ChordEntry[] = defs.map(def => ({ name: def.name, def, uses: 0, reading: readChordName(def.name) }));
   const byName = new Map<string, ChordEntry>();
-  for (const entry of entries) byName.set(entry.name, entry);
-  for (const column of columnsOf(track.bars)) {
-    if (!column.chord) continue;
-    let entry = byName.get(column.chord);
+  for (const entry of written) byName.set(entry.name, entry);
+  const used: ChordEntry[] = [];
+  for (const name of symbolsOf(track.bars)) {
+    let entry = byName.get(name);
     if (!entry) {
-      entry = { name: column.chord, uses: 0, reading: readChordName(column.chord) };
-      entries.push(entry);
-      byName.set(entry.name, entry);
+      entry = { name, uses: 0, reading: readChordName(name) };
+      byName.set(name, entry);
     }
+    if (entry.uses === 0) used.push(entry);
     entry.uses++;
   }
-  return entries;
+  return [...used, ...written.filter(entry => entry.uses === 0)];
 }
 
 /** A definition as the alphaTex writer wants it: `\chord ("Am7" 0 1 0 2 0 x) {firstfret 1}`. */

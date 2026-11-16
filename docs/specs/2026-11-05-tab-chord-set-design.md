@@ -20,6 +20,15 @@ field is as it was (now opened with Shift+Q, `2026-11-10-tab-chord-popover-desig
   the frets per string, `firstfret`, `barre`, `showdiagram`,
   `showfingering` and `showname`. A property not written stays unwritten,
   so a definition writes back as it was.
+- **In the order of first use** (issue
+  [#522](https://github.com/memestreak/frets/issues/522), Jeremy
+  2026-11-16: it reads like the song). The set lists its chords in the
+  order the music first plays them: bar by bar, then by time in the bar
+  (a grace note takes none), the first Voice first when two Voices name a
+  chord at once. Unused chords come after, in the order their `\chord`
+  lines are written. The alphaTex keeps its `\chord` lines in the order
+  written; only the list is ordered. Until then the set listed definitions
+  in the order written, then names only typed.
 - **Symbols point at entries by name.** A column's chord symbol is still
   its name (`Column.chord`, alphaTex `ch "Am7"`). It points at the entry of
   that name in its track's set, matched exactly, case and all: "AM7" and
@@ -73,8 +82,8 @@ Settled while building (my calls, open to change):
   `showFingering?`, `showName?`.
 - `Track.chords?: ChordDef[]`, carried by a `Part` like the capo and FX,
   so edits, undo, storage, links and copies keep it.
-- `chordSet(track)`: the entries, definitions first in the order written,
-  then names only typed, in the order the columns come; each with its
+- `chordSet(track)`: the entries, used ones in the order of first use,
+  then unused ones in the order written; each with its
   definition (if any), how many columns use it, and its reading.
 - `chordDefOf(chords, name)`: the definition a symbol points at.
 
@@ -127,5 +136,11 @@ Settled while building (my calls, open to change):
 - Fewer than six strings: the rest not played; a negative fret is `x`;
   more than six: named, the first six read.
 - A `\chord` with no strings is kept as written.
+- Order: definitions written G, C, D (unused), Am with the music playing
+  C, Am, G, C list C, Am, G, then D; a name only typed comes at its first
+  use; a chord on beat 1 of voice 2 comes before one on beat 3 of voice 1;
+  a grace note's chord comes before the chord on the beat it leads into;
+  of two definitions of one name, the earlier (unused) one goes with the
+  unused chords.
 - A stored set survives `parseClip`; a definition with the wrong number of
   frets is refused.
