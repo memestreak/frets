@@ -5,7 +5,7 @@
  * (italics, code, strike, a link, an unclosed `**`) is drawn as typed. A new line in a Text (issue #445)
  * is one of its letters. Pure.
  */
-import { parseInlines, type Inline } from './chat/markdown';
+import { parseInlines, type Inline } from './markdown';
 
 /** A run of a Text's drawn letters, all bold or all plain. */
 export interface TextRun {

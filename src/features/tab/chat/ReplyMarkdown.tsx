@@ -3,7 +3,7 @@
  * HTML, so nothing a model writes can become markup; links open in a new tab.
  */
 import type { ReactNode } from 'react';
-import { parseMarkdown, type Block, type Inline } from './markdown';
+import { parseMarkdown, type Block, type Inline } from '../markdown';
 
 export function ReplyMarkdown({ text }: { text: string }) {
   return <div className="tab-chat-text">{parseMarkdown(text).map(renderBlock)}</div>;
