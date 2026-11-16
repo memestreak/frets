@@ -320,13 +320,20 @@
 /* The volume, at the row's far right. */
 .tab-volume-end { margin-left: auto; }
 /* The shown track's Sound and FX, boxed together as the track's (Jeremy, 2026-10-30), with its name,
-   cut to ten characters, under the box. */
+   cut to ten characters, under the box and centred under the Sound list (Jeremy, 2026-11-16). The box
+   shares the group's two columns (the list; its notes and FX), so the name sits in the first. The
+   box's padding and border widen that column, and a 1px left margin brings the name back to the
+   list's centre (measured in Chromium). */
+.tab-track { display: grid; grid-template-columns: auto auto; }
 .tab-track-box {
-  display: flex; align-items: center; gap: 6px;
+  grid-column: 1 / -1; display: grid; grid-template-columns: subgrid; align-items: center; column-gap: 6px;
   padding: 3px; border: 1px solid var(--line); border-radius: var(--radius-md);
 }
-/* The sound: a dropdown of every pitched General MIDI sound, by family, as wide as its longest. */
-.tab-sound { width: auto; min-width: 0; font: 400 14px/20px var(--font-sans); }
+.tab-track-rest { display: flex; align-items: center; gap: 6px; }
+.tab-track > .tab-caption { grid-column: 1; justify-self: center; margin-left: 1px; }
+/* The sound: a dropdown of the sounds, by family, as wide as its longest name with little room after
+   it (Jeremy, 2026-11-16). */
+.tab-sound { width: auto; min-width: 0; padding-right: 2px; font: 400 14px/20px var(--font-sans); }
 /* A clip's instrument Frets has no sound for: a small red ⚠ after the list, its tip naming both. */
 .tab-sound-note { color: var(--danger); cursor: help; font: 400 14px/20px var(--font-sans); margin-left: -6px; }
 /* The FX button (Jeremy, 2026-10-28): one outlined control, FX opening the dialog and, at its

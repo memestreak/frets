@@ -299,7 +299,9 @@ and "Speed · 100%" sits under the field).
 ### Tests
 
 - The Speed and Transpose captions reset their fields on a double-click.
-- The track's name shows under the box, cut to ten characters.
+- The track's name shows under the box, cut to ten characters, centred under
+  the Sound list (Jeremy, 2026-11-16), which is as wide as its longest name with
+  little room after it.
 
 ## Loop lets the selection go (2026-11-05)
 
