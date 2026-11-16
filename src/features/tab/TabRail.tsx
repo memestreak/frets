@@ -117,7 +117,7 @@ const isPanel = (id: unknown): id is PanelId => FIRST_ORDER.includes(id as Panel
 const clampTo = (px: number, least: number, most: number) => Math.round(Math.min(Math.max(px, least), Math.max(least, most)));
 
 /** A width kept within the column's limits, in whole px. */
-export const clampWidth = (px: number, max: number = PANEL_WIDTH.max) => clampTo(px, PANEL_WIDTH.min, max);
+const clampWidth = (px: number, max: number = PANEL_WIDTH.max) => clampTo(px, PANEL_WIDTH.min, max);
 
 /** A first visit: Notes open, every palette in its first order, Chat on the right, both sides expanded. */
 const FIRST_LAYOUT: PaletteLayout = {
@@ -146,7 +146,7 @@ const sideRoom = (layout: PaletteLayout, side: Side) =>
  * (CSS takes the least of this and `--rail-reach`): an open column's reach, but never more than its width; a
  * strip all of its width; nothing with no palettes.
  */
-export const sideOut = (layout: PaletteLayout, side: Side) =>
+const sideOut = (layout: PaletteLayout, side: Side) =>
   sideState(layout, side) === 'open' ? Math.min(layout.reach[side], layout.width[side]) : sideRoom(layout, side);
 
 /** The page's margin beside the clip that a column may use, in px, up to 16px from the window's edge: as `--rail-reach`. */
