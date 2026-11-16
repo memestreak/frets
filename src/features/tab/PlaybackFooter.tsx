@@ -21,7 +21,8 @@ import {
 } from './metronomeClicks';
 import { VolumeKnob } from '@/components/VolumeKnob';
 import { DEFAULT_ROLLS, type Rolls } from './rolls';
-import { MAX_COUNT_IN_BARS, SOUND_FAMILIES, TabPlayer, speedRange, type HeardPosition, type PlayerView, type Sound } from './playback';
+import { MAX_COUNT_IN_BARS, SOUND_FAMILIES, speedRange, type HeardPosition, type Sound } from './playback';
+import { TabPlayer, type PlayerView } from './tabPlayer';
 import { heardEffects, type FxSettings } from './effects';
 import { sameMusic } from './clipState';
 import { FxButton } from './FxButton';

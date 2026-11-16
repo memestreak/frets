@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { type Part, partOf } from '@/features/tab/clip';
-import { TabPlayer, type PlayerView } from '@/features/tab/playback';
+import { TabPlayer, type PlayerView } from '@/features/tab/tabPlayer';
 import { fakeAudio, outputBuffer } from './fakeAudio';
 
 const RATE = 44100;

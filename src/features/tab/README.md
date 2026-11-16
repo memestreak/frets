@@ -454,12 +454,20 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 
 ## Playback
 
-- `playback.ts` — plays a clip with alphaTab's synthesizer and the
-  soundfonts in `public/soundfont/` (`OWN_FONTS`, built by
-  `scripts/build-soundfonts.py`); `countOf`, `withCountIn`, `heardPosition`
-  — `2026-10-26-tab-playback-design.md`,
+- `playback.ts` — a clip as alphaTab's score and MIDI (`perform`), the
+  sounds and soundfonts in `public/soundfont/` (`OWN_FONTS`, built by
+  `scripts/build-soundfonts.py`), the count-in (`withCountIn`) and where
+  a tick is in the clip (`heardAt`, `tickOf`) —
+  `2026-10-26-tab-playback-design.md`,
   `2026-10-27-tab-instruments-design.md`,
   `2026-10-28-tab-sound-preload-design.md`.
+- `tabPlayer.ts` — `TabPlayer`, the synthesizer with the soundfont loaded
+  and a clip's MIDI, playing through `audioOutput.ts`, and the playhead's
+  timing.
+- `midiFixes.ts` — fixes to alphaTab's MIDI generator that reach into its
+  private fields (one note a string, bends while tremolo picking, vibrato
+  on bends, a slid note keeping its pitch): check them on an alphaTab
+  upgrade.
 - `audioOutput.ts` — the Web Audio output the synthesizer plays through;
   `ringOn`, `chokeAll`; `soundsAt`, when a frame is heard, MIDI out's clock.
 - `midiOut.ts` — playback out over MIDI (issue #457): Tab › MIDI output
