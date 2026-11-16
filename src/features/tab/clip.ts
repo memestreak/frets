@@ -699,19 +699,6 @@ export function timeInWords(t: number, time: TimeSignature): string {
   return listed(parts);
 }
 
-/** Bar numbers (from 0) as runs, counted from 1: "3–8", "2, 5 and 7–9". */
-export function barRuns(bars: readonly number[]): string {
-  const sorted = [...new Set(bars)].sort((a, b) => a - b);
-  const runs: string[] = [];
-  for (let i = 0; i < sorted.length; i++) {
-    let j = i;
-    while (sorted[j + 1] === sorted[j] + 1) j++;
-    runs.push(j === i ? `${sorted[i] + 1}` : `${sorted[i] + 1}–${sorted[j] + 1}`);
-    i = j;
-  }
-  return listed(runs);
-}
-
 /**
  * A sentence for each bar and string where two of the part's Voices sound at once: "Bar 3 has two voices
  * on string 2." A tied note sounds on; a grace note takes no time and is left out. Strings are numbered as

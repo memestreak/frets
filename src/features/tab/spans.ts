@@ -3,8 +3,8 @@
  * over neighbouring columns that have them (let ring, P.M., vibrato, octave lines, hairpins). Which
  * columns a Span covers, and moving its ends, as its Handles and Alt+Shift+← → do. Pure.
  */
-import { STRING_COUNT, type Column, type Note, type Part } from './clip';
-import { indexOf, normalize, placeOf, type Cursor, type Selection } from './editing';
+import { type Column, type Note, type Part } from './clip';
+import { indexOf, normalize, type Cursor, type Selection } from './editing';
 import type { MarkHit } from './marks';
 
 export type SpanMark = 'letRing' | 'palmMute' | 'vibrato' | 'ottava' | 'hairpin';
@@ -134,14 +134,6 @@ export function moveSpan(clip: Part, mark: SpanMark, old: [number, number], next
 /** The column a place in the clip is, for callers holding a flat index. */
 export function spanColumns(clip: Part): Column[] {
   return columnsOf(clip);
-}
-
-/** The first string with a note in a column at `index`, for the cursor, or 0. */
-export function firstString(clip: Part, index: number): number {
-  const { bar, column } = placeOf(clip, index);
-  const notes = clip.bars[bar]?.columns[column]?.notes ?? [];
-  const s = notes.findIndex(n => n !== null);
-  return s === -1 ? 0 : Math.min(s, STRING_COUNT - 1);
 }
 
 /**
