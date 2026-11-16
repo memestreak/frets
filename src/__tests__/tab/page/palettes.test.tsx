@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { cleanup, fireEvent, screen } from '@testing-library/react';
-import { LAYOUT_KEY, PALETTE_MIN, parseLayout, placeOn, type PanelId } from '@/features/tab/TabRail';
+import { LAYOUT_KEY, PALETTE_MIN, parseLayout, placeOn, type PanelId } from '@/features/tab/paletteLayout';
 import { setUpPage, renderAt, alphaTex, openWith } from './helpers';
 import { column, paletteHeader, paletteOf } from '../tool';
 
