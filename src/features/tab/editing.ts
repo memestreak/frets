@@ -83,6 +83,12 @@ export function selectedRange(selection: Selection): [number, number] {
   return [Math.min(selection.anchor, selection.focus), Math.max(selection.anchor, selection.focus)];
 }
 
+/** The first and last bars a selection touches. */
+export function selectedBars(clip: Part, selection: Selection): [number, number] {
+  const [from, to] = selectedRange(selection);
+  return [placeOf(clip, from).bar, placeOf(clip, to).bar];
+}
+
 /**
  * A Shift+press's selection (issue #366): the selection, or the cursor's column `cursor` when nothing is
  * selected, grown to take in the columns `from`–`to` pressed. It only ever grows, never moves or shrinks:

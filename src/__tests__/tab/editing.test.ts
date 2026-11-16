@@ -3,7 +3,7 @@ import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { writePart, writeBars } from '@/features/tab/alphatex';
 import { fewestRests, WHOLE, type Part, partOf, emptyPart } from '@/features/tab/clip';
 import { parseEditing } from '@/features/tab/editingPrefs';
-import { clampCursor, copyText, deleteBars, deleteColumns, removeEmptyBar, indexOf, insertBar, moveColumn, noteAt, insertPaste, placeOf, setDead, setFret, runAround, type Cursor } from '@/features/tab/editing';
+import { clampCursor, copyText, deleteBars, deleteColumns, removeEmptyBar, indexOf, insertBar, moveColumn, noteAt, insertPaste, placeOf, selectedBars, setDead, setFret, runAround, type Cursor } from '@/features/tab/editing';
 import { cycleRepeatEnd, setEnding, setCapo, setChordName, setSection, setTempo } from '@/features/tab/barEdits';
 import { cycleBend, cycleBendShape, cycleDots, cycleSlide, stepDuration, setMark, cycleMark, toggleLegato, toggleStroke } from '@/features/tab/noteEdits';
 
@@ -385,5 +385,19 @@ describe('deleteBars', () => {
     expect(bars(clip)).toBe('r.2{d} |');
     expect(clip.time).toEqual({ beats: 3, value: 4 });
     expect(cursor).toEqual({ bar: 0, column: 0 });
+  });
+});
+
+describe('selectedBars', () => {
+  // Columns: bar 0 has 2 (indexes 0–1), bar 1 has 1 (2), bar 2 has 2 (3–4).
+  const clip = clipOf('5.1.4 7.1.4 | 0.6.2 | 3.5.4 5.5.4 |');
+
+  it('names the first and last bar a selection touches, either way round', () => {
+    expect(selectedBars(clip, { anchor: 1, focus: 3 })).toEqual([0, 2]);
+    expect(selectedBars(clip, { anchor: 3, focus: 1 })).toEqual([0, 2]);
+  });
+
+  it('is one bar for a selection inside it', () => {
+    expect(selectedBars(clip, { anchor: 3, focus: 4 })).toEqual([2, 2]);
   });
 });

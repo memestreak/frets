@@ -98,7 +98,7 @@ mute lines. Guitar Pro 8's Command palette (Ctrl+E) takes "let-ring",
 4. `useHeadPanels.tsx`: `openWord('technique')` opens it on a column
    only; `finishWord` hands the named technique to the page
    (`onTechnique`).
-5. `TabPage.tsx`: `runTool` (what `onTool` does once the tab has the
+5. `useTabTools.ts`: `runTool` (what `onTool` does once the tab has the
    keys) and `addTechnique`; `editorKeys.ts`: Shift+P;
    `shortcuts.ts`: the popover's keys.
 6. A test arrangement, `editing_tests/technique-popover.atex`.
