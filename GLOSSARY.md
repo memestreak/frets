@@ -104,6 +104,13 @@ Change chord link: the same Name, Root, Type and shapes as defining a new
 chord, with Cancel, Save as new chord and Save chord.
 _Avoid_: modify chord
 
+**Chat panel**:
+The palette on the Rail where you write to a model about the Arrangement
+and it answers, reading and replacing bars with its tools. Its prompt is
+also typed in the Chat popover, into the same conversation, which lasts
+the visit.
+_Avoid_: assistant, AI panel
+
 **Chord set**:
 The chords an Arrangement defines for a Track, shown as tiles in the Tab
 page's Chords palette, each with its diagram and a dot saying how many times
@@ -149,6 +156,13 @@ columns the Span covers, never the notes' time.
 The length the next note entered in Note input mode takes, chosen before the
 note goes in.
 
+**Insert mode**:
+A toggle on I or the Notes palette's button, Dorico's: while it is on,
+entering a note, lengthening one and pasting push the music after them
+later, and Delete, shortening and cutting pull it back, leaving no Gap.
+Every visit starts in Overwrite, its opposite.
+_Avoid_: ripple mode, insert method
+
 **Line break**:
 Where a Clip forces the music onto a new System, written in alphaTex
 as `\systemsLayout` and drawn only with "Clip's line breaks" on.
@@ -170,6 +184,17 @@ The Tab page's mode for entering notes, turned on and off with N or the
 pencil; Esc goes back to Normal mode. Dorico's name. Edits happen in
 Normal mode too, so it is not an edit mode.
 _Avoid_: note input (alone), edit mode, editing mode
+
+**Overwrite**:
+The default way of entering notes: a note, a paste or a longer length
+writes over what is there, and Delete leaves a Gap. The opposite of
+Insert mode.
+
+**Palette**:
+One foldable section of the Rail, opened from its header, several at
+once: Notes, Articulations, Bars, Chords or the Chat panel. Each can be
+dragged to another place, or to the Rail's other side.
+_Avoid_: sidebar, section (for a palette)
 
 **Panel**:
 A small window of controls opened at what it edits, by a press or a
@@ -196,15 +221,18 @@ in alphaTex. No other bar is short.
 _Avoid_: anacrusis, upbeat bar
 
 **Popover**:
-A small, temporary field for typing a Mark as text, kept to the keyboard
-and opened over the staff at the cursor or the earliest selected note,
-as Dorico's popovers are: a chord name, a Text annotation, a section, a dynamic, a
-syllable of the Lyrics. Not a Panel of choices.
+A small, temporary field for typing, kept to the keyboard and opened
+over the staff at the cursor or the earliest selected note, as Dorico's
+popovers are. Most type a Mark as text: a chord name, a Text annotation,
+a section, a dynamic, a syllable of the Lyrics, a technique. The Chat
+popover types a prompt for the Chat panel instead. Not a Panel of
+choices.
 
 **Rail**:
-The column of palettes at the Clip's left, each opened or folded from
-its header, several at once: Notes, Articulations and Bars (each a set
-of Tool groups), Chords and Chat.
+The two columns of Palettes, one on each side of the Clip, each
+collapsing to a strip of its own: Notes, Articulations and Bars (each a
+set of Tool groups) and Chords on the left, the Chat panel on the right,
+until moved.
 
 **Re-bar**:
 Lay a Voice's notes into bars again by the time signatures, split and
