@@ -10,7 +10,7 @@ export const LYRIC_SIZE = 11;
 /** From one Lyric line's middle to the next. */
 export const LYRIC_LINE = 15;
 /** The room kept between two syllables along a line, so neighbours never touch. */
-export const LYRIC_GAP = 6;
+const LYRIC_GAP = 6;
 /** A hyphen's room, where a syllable is joined to the next. */
 export const HYPHEN_ROOM = 10;
 /** The most Lyric lines a column takes: plenty for verses and a chorus, and a cap on a runaway Down arrow. */
@@ -45,7 +45,7 @@ export function lyricLines(columns: readonly Column[]): number {
  * Whether a column takes a syllable, as Dorico and MuseScore have it: a note that is played, so not a
  * rest, a grace note, or a column whose notes are all held on from the one before by ties.
  */
-export function takesLyric(column: Column | null | undefined): boolean {
+function takesLyric(column: Column | null | undefined): boolean {
   if (!column || column.grace || isRest(column)) return false;
   return column.notes.some(n => n !== null && !n.tie);
 }

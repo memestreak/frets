@@ -23,7 +23,7 @@ export interface EditingPrefs {
 }
 
 export type ChordNames = 'shape' | 'sounding';
-export const CHORD_NAMES: readonly ChordNames[] = ['shape', 'sounding'];
+const CHORD_NAMES: readonly ChordNames[] = ['shape', 'sounding'];
 
 export const DEFAULT_EDITING: EditingPrefs = { fixedGrid: false, grid: DEFAULT_GRID, gridLook: DEFAULT_GRID_LOOK, chordNames: 'shape' };
 

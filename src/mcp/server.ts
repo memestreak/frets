@@ -9,7 +9,7 @@ import { SERVER_INSTRUCTIONS } from './instructions';
 import { MCP_PAGES } from './tools';
 import type { AppsHtml } from './types';
 
-export const SERVER_INFO = { name: 'frets', version: '1.0.0' };
+const SERVER_INFO = { name: 'frets', version: '1.0.0' };
 
 /** A server with every page's tools and the server's instructions (`instructions.ts`), serving `apps`, the built apps' HTML by name. */
 export function createFretsServer(apps: AppsHtml): McpServer {

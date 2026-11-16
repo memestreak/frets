@@ -44,7 +44,7 @@ export const PANELS: readonly { id: Exclude<PanelId, 'chords' | 'chat'>; name: s
 export const LAYOUT_KEY = 'frets.tab.layout';
 
 /** A column's width in px: 17rem until its divider is dragged, and never narrower or wider than these. */
-export const PANEL_WIDTH = { start: 272, min: 224, max: 560 } as const;
+const PANEL_WIDTH = { start: 272, min: 224, max: 560 } as const;
 /** A collapsed column's strip, in px. */
 const STRIP_WIDTH = 40;
 /** The clip keeps at least this much width beside a column being widened. */
@@ -117,7 +117,7 @@ const isPanel = (id: unknown): id is PanelId => FIRST_ORDER.includes(id as Panel
 const clampTo = (px: number, least: number, most: number) => Math.round(Math.min(Math.max(px, least), Math.max(least, most)));
 
 /** A width kept within the column's limits, in whole px. */
-export const clampWidth = (px: number, max: number = PANEL_WIDTH.max) => clampTo(px, PANEL_WIDTH.min, max);
+const clampWidth = (px: number, max: number = PANEL_WIDTH.max) => clampTo(px, PANEL_WIDTH.min, max);
 
 /** A first visit: Notes open, every palette in its first order, Chat on the right, both sides expanded. */
 const FIRST_LAYOUT: PaletteLayout = {
@@ -127,18 +127,18 @@ const FIRST_LAYOUT: PaletteLayout = {
 };
 
 /** The side `id` is on. */
-export const sideOf = (layout: Pick<PaletteLayout, 'right'>, id: PanelId): Side => (layout.right.includes(id) ? 'right' : 'left');
+const sideOf = (layout: Pick<PaletteLayout, 'right'>, id: PanelId): Side => (layout.right.includes(id) ? 'right' : 'left');
 
 /** The palettes on `side`, top to bottom. */
-export const paletteList = (layout: Pick<PaletteLayout, 'order' | 'right'>, side: Side) =>
+const paletteList = (layout: Pick<PaletteLayout, 'order' | 'right'>, side: Side) =>
   layout.order.filter(id => sideOf(layout, id) === side);
 
 /** What `side` shows: an open column, its strip, or nothing when it has no palettes. */
-export const sideState = (layout: PaletteLayout, side: Side): 'open' | 'strip' | undefined =>
+const sideState = (layout: PaletteLayout, side: Side): 'open' | 'strip' | undefined =>
   (!paletteList(layout, side).length ? undefined : layout.collapsed[side] ? 'strip' : 'open');
 
 /** How wide `side`'s column is, in px: its width, its strip, or 0 when it has no palettes. */
-export const sideRoom = (layout: PaletteLayout, side: Side) =>
+const sideRoom = (layout: PaletteLayout, side: Side) =>
   ({ open: layout.width[side], strip: STRIP_WIDTH, none: 0 })[sideState(layout, side) ?? 'none'];
 
 /**
@@ -146,7 +146,7 @@ export const sideRoom = (layout: PaletteLayout, side: Side) =>
  * (CSS takes the least of this and `--rail-reach`): an open column's reach, but never more than its width; a
  * strip all of its width; nothing with no palettes.
  */
-export const sideOut = (layout: PaletteLayout, side: Side) =>
+const sideOut = (layout: PaletteLayout, side: Side) =>
   sideState(layout, side) === 'open' ? Math.min(layout.reach[side], layout.width[side]) : sideRoom(layout, side);
 
 /** The page's margin beside the clip that a column may use, in px, up to 16px from the window's edge: as `--rail-reach`. */

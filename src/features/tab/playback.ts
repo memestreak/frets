@@ -30,7 +30,7 @@ type ScoreNote = AlphaTabModule.model.Note;
 type TickLookup = AlphaTabModule.midi.MidiTickLookup;
 
 /** Where the soundfont is served from. */
-export const SOUNDFONT_URL = '/soundfont/sonivox.sf3';
+const SOUNDFONT_URL = '/soundfont/sonivox.sf3';
 /** The slowest and fastest alphaTab's synthesizer plays, as fractions of the written tempo. */
 const SYNTH_MIN_SPEED = 0.125;
 const SYNTH_MAX_SPEED = 8;
@@ -467,7 +467,7 @@ function vibratoOnBends(at: AlphaTab, generator: AlphaTabModule.midi.MidiFileGen
  * alphaTab's own vibrato (a sine of `amplitude` quarter tones, a period every `phase` ticks, a point
  * every `step`) added to the bend's height there, read off a straight line between its points.
  */
-export function wobbled(points: readonly { tick: number; value: number }[], start: number, end: number, phase: number, amplitude: number, step: number) {
+function wobbled(points: readonly { tick: number; value: number }[], start: number, end: number, phase: number, amplitude: number, step: number) {
   const heightAt = (tick: number) => {
     let k = 0;
     while (k + 1 < points.length && points[k + 1].tick <= tick) k++;
@@ -633,7 +633,7 @@ export function shapeAlone(clip: Part, frets: readonly (number | null)[]): Part 
 }
 
 /** The clip's column a beat of the score is, by its place in the whole clip; null for a beat Frets has no column for (an empty bar's). */
-export function columnOfBeat(clip: Part, beat: Beat): number | null {
+function columnOfBeat(clip: Part, beat: Beat): number | null {
   const bar = beat.voice.bar.index;
   if (bar >= clip.bars.length) return null;
   if (beat.voice.index === (clip.voice ?? 0) && beat.index < clip.bars[bar].columns.length) return indexOf(clip, bar, beat.index);

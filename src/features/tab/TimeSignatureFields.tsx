@@ -43,7 +43,7 @@ export function TimeSignatureFields({ time, onChange }: {
 }
 
 /** A count as a small text field: a typed count from `min` to `max` takes effect on Enter or blur; ↑ ↓ step it. */
-export function CountInput({ value, min, max, label, onValue }: {
+function CountInput({ value, min, max, label, onValue }: {
   value: number;
   min: number;
   max: number;

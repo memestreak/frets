@@ -18,12 +18,12 @@ import { PARTS, type Parts } from './layout';
 export const SITE = 'https://frets.eminor.net';
 
 /** A link holding the plain text, percent-encoded. */
-export const PLAIN_HASH = '#tab=';
+const PLAIN_HASH = '#tab=';
 /** A link holding the text compressed. */
-export const COMPRESSED_HASH = '#tabz=';
+const COMPRESSED_HASH = '#tabz=';
 
 /** The link parameter that picks the staff view, the tab or both for one visit, e.g. `/tab?show=both#tabz=…`. */
-export const SHOW_PARAM = 'show';
+const SHOW_PARAM = 'show';
 
 /**
  * The link that opens `text` on the Tab page at `origin` (e.g. https://frets.eminor.net); with

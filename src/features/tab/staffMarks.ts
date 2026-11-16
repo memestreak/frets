@@ -49,8 +49,8 @@ export type StaffShape =
 export type StaffMark = Placed & StaffShape;
 
 /** A fermata's half width and height (Bravura's, at the staff's size), and its gap over what it stands on. */
-export const FERMATA_HALF = 11;
-export const FERMATA_HEIGHT = 12;
+const FERMATA_HALF = 11;
+const FERMATA_HEIGHT = 12;
 const FERMATA_CLEAR = 3;
 /** The bar number's room over the staff's top line, which a fermata over a bar's first note stands over. */
 const BAR_NUMBER_ROOM = 10;

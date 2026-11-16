@@ -155,7 +155,7 @@ export function useClipImport({ openNew, confirmLeave, open, onNotice, showTab, 
 }
 
 /** Takes a link that opens a clip out of the address, so a reload doesn't bring it back. */
-export function clearLinkHash() {
+function clearLinkHash() {
   const { pathname, search, hash } = window.location;
   if (isOpeningLink(hash)) window.history.replaceState(null, '', pathname + search);
 }

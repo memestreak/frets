@@ -122,7 +122,7 @@ export async function copySvgCode(svg: string): Promise<string> {
 }
 
 /** Saves an SVG drawing as `<fileName>.png` or `.svg`. */
-export async function downloadSvg(format: 'png' | 'svg', svg: string, fileName: string): Promise<string> {
+async function downloadSvg(format: 'png' | 'svg', svg: string, fileName: string): Promise<string> {
   const blob = format === 'png' ? await svgToPng(svg) : new Blob([svg], { type: 'image/svg+xml' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);

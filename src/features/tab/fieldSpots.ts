@@ -98,7 +98,7 @@ export function wordSpot(layout: Layout, width: number, { kind, bar, column }: {
 }
 
 /** The Lyrics field's size (`.tab-lyric`): small, as Dorico's lyrics popover. */
-export const LYRIC_FIELD = { width: 180, height: 30 };
+const LYRIC_FIELD = { width: 180, height: 30 };
 /** From the field's left edge to where its text starts: the grip and the line's number. */
 const LYRIC_TEXT_LEAD = 44;
 /** Room over the staff's top line for an up stem on a note in the staff. */

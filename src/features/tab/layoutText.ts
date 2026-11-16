@@ -158,7 +158,7 @@ export function textBox(layout: Layout, hit: WordHit): { x: number; y: number; w
 }
 
 /** Where the diagram under a column's chord name is drawn, in its line's units; null when it has none. */
-export function diagramBox(placed: PlacedColumn, rows: System['rows']): { x0: number; x1: number; y0: number; y1: number } | null {
+function diagramBox(placed: PlacedColumn, rows: System['rows']): { x0: number; x1: number; y0: number; y1: number } | null {
   if (!placed.diagram || rows.diagrams === null) return null;
   const { width, height } = gridSize(placed.diagram);
   const half = (width * OVER_NAME_SCALE) / 2;

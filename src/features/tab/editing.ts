@@ -608,7 +608,7 @@ export function statedIn(text: string): Stated {
 }
 
 /** The tempo in force at bar `index`: the latest one at or before it; none before the first. */
-export function tempoAt(clip: Pick<Part, 'bars'>, index: number): Tempo | null {
+function tempoAt(clip: Pick<Part, 'bars'>, index: number): Tempo | null {
   for (let b = Math.min(index, clip.bars.length - 1); b >= 0; b--) {
     const tempo = clip.bars[b].tempo;
     if (tempo) return tempo;

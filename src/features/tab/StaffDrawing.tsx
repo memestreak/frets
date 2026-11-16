@@ -320,7 +320,7 @@ const PAREN_HEIGHT = 1.45;
 const GHOST_CHORD_SPREAD = 4;
 
 /** Whether a column is a chord of ghost notes close enough together to share one pair of brackets. */
-export function ghostChord(column: Column, heads: Head[]): boolean {
+function ghostChord(column: Column, heads: Head[]): boolean {
   return heads.length > 1 && heads.every(h => column.notes[h.string]?.ghost) && heads[heads.length - 1].step - heads[0].step <= GHOST_CHORD_SPREAD;
 }
 

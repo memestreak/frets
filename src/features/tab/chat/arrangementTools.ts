@@ -113,7 +113,7 @@ const UNEVEN_WARNING = /doesn't add up to/;
  * What Frets marks wrong in `clip`: each bar's red ⚠ (`barErrors`, by track and bar from 1, as `read_arrangement`
  * numbers them), then what the alphaTex reader says when it reads the clip back, as "Kept but not drawn yet: …".
  */
-export async function arrangementProblems(clip: Clip, read: ToolContext['read']): Promise<string[]> {
+async function arrangementProblems(clip: Clip, read: ToolContext['read']): Promise<string[]> {
   const result = await read(writeAlphaTex(clip));
   return problemsOf(clip, result.ok ? result.warnings : result.errors);
 }

@@ -15,7 +15,7 @@ export interface Place {
 }
 
 /** The next Column that takes time after `place` (grace notes skipped), across bar lines, or null at the clip's end. */
-export function nextTimed(clip: Part, place: Place): Place | null {
+function nextTimed(clip: Part, place: Place): Place | null {
   let { bar, column } = place;
   for (;;) {
     column++;
@@ -29,7 +29,7 @@ export function nextTimed(clip: Part, place: Place): Place | null {
 }
 
 /** The last Column that takes time before `place` (grace notes skipped), or null at the clip's start. */
-export function previousTimed(clip: Part, place: Place): Place | null {
+function previousTimed(clip: Part, place: Place): Place | null {
   let { bar, column } = place;
   for (;;) {
     column--;

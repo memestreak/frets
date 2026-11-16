@@ -68,7 +68,7 @@ function withoutOn(hit: MarkHit): MarkHit {
 }
 
 /** Whether two elements are the same thing. */
-export function sameElement(a: Element, b: Element): boolean {
+function sameElement(a: Element, b: Element): boolean {
   if (a.kind !== b.kind) return false;
   if (a.kind === 'mark' && b.kind === 'mark') return a.mark === b.mark && a.index === b.index && a.string === b.string;
   if ('bar' in a && 'bar' in b) return a.bar === b.bar;

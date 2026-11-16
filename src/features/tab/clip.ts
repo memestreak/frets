@@ -28,7 +28,7 @@ export const TUPLET_SPANS: Readonly<Record<number, number>> = { 3: 2, 5: 4, 6: 4
 /** Those tuplets, in order: the palette's choices. */
 export const TUPLETS: readonly number[] = [3, 5, 6, 7, 9, 10, 11, 12];
 /** The most notes in a tuplet; with this many at most, every tuplet's notes are a whole number of ticks. */
-export const MAX_TUPLET = 12;
+const MAX_TUPLET = 12;
 
 /** How many plain notes a duration's tuplet takes the time of: its own span, else the usual one. */
 export function spanOf(duration: Duration): number {
@@ -47,7 +47,7 @@ export function tupletLabel(duration: Duration): string {
 }
 
 /** Whether two durations are in the same kind of tuplet (or neither is). */
-export function sameTuplet(a: Duration, b: Duration): boolean {
+function sameTuplet(a: Duration, b: Duration): boolean {
   return a.tuplet === b.tuplet && a.tupletSpan === b.tupletSpan;
 }
 
@@ -223,8 +223,8 @@ export type TremoloValue = 8 | 16 | 32;
 export const TREMOLO_VALUES: readonly TremoloValue[] = [8, 16, 32];
 
 /** The most points a whammy bar takes (alphaTab's limit), and its deepest point: four octaves down. */
-export const MAX_WHAMMY_POINTS = 60;
-export const DEEPEST_WHAMMY = -96;
+const MAX_WHAMMY_POINTS = 60;
+const DEEPEST_WHAMMY = -96;
 
 /** Whether `v` is a whammy bar Frets draws: two or more whole quarter tones, none above the note. */
 export function isWhammy(v: unknown): v is number[] {
@@ -234,7 +234,7 @@ export function isWhammy(v: unknown): v is number[] {
 
 /** A fermata's shape: short (pointed), medium (the usual arc) or long (square). */
 export type Fermata = 'short' | 'medium' | 'long';
-export const FERMATAS: readonly Fermata[] = ['short', 'medium', 'long'];
+const FERMATAS: readonly Fermata[] = ['short', 'medium', 'long'];
 
 /** What every track's bar shares: alphaTab's master bar. */
 export interface MasterBar {
@@ -611,7 +611,7 @@ export function sameGroups(a: readonly number[], b: readonly number[]): boolean 
 }
 
 /** The bar whose time signature bar `index` is in: the last one at or before it that sets one, else the first. */
-export function timeBarOf(clip: Pick<Part, 'bars'>, index: number): number {
+function timeBarOf(clip: Pick<Part, 'bars'>, index: number): number {
   for (let b = Math.min(index, clip.bars.length - 1); b > 0; b--) if (clip.bars[b].time) return b;
   return 0;
 }
@@ -1294,11 +1294,11 @@ const optOneOf = (v: unknown, values: readonly string[]) => v === undefined || v
 const optString = (v: unknown) => v === undefined || typeof v === 'string';
 const optStrings = (v: unknown) => v === undefined || (Array.isArray(v) && v.every(x => typeof x === 'string'));
 
-export function isBpm(v: unknown): v is number {
+function isBpm(v: unknown): v is number {
   return Number.isInteger(v) && (v as number) >= MIN_BPM && (v as number) <= MAX_BPM;
 }
 
-export function isCapo(v: unknown): v is number {
+function isCapo(v: unknown): v is number {
   return Number.isInteger(v) && (v as number) >= 1 && (v as number) <= MAX_CAPO;
 }
 
@@ -1389,7 +1389,7 @@ export function isBarsPerLine(v: unknown): v is number {
 }
 
 /** alphaTab's bars per line past `systemsLayout` when `\defaultSystemsLayout` isn't written. */
-export const DEFAULT_BARS_PER_LINE = 3;
+const DEFAULT_BARS_PER_LINE = 3;
 
 /**
  * How many bars the clip's line `line` (from 0) holds, or null when the clip doesn't set its own line

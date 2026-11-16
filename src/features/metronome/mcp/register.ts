@@ -8,7 +8,7 @@ import { appHtml, type AppsHtml } from '@/mcp/types';
 import { APP_URI, TOOL_DESCRIPTION, TOOL_NAME, describeRhythm, rhythmFromInput, toolInput, type MetronomeState } from './tool';
 
 /** The app's name: `mcp/apps/metronome/`, built to `mcp/dist/metronome.html`. */
-export const APP_NAME = 'metronome';
+const APP_NAME = 'metronome';
 
 export function registerMetronomeTools(server: McpServer, apps: AppsHtml): void {
   const html = appHtml(apps, APP_NAME);

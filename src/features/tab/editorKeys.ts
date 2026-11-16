@@ -429,7 +429,7 @@ function insertGap(editor: EditorKeys) {
  * Delete (or `,` in normal mode, step 6 Q13) at the cursor: with `removeTime` (Ctrl/⌘+Delete) the time goes
  * too. Bars stay full (issue #238, as MuseScore): Delete leaves rests, and a grace note goes leaving no Gap.
  */
-export function deleteAtCursor(editor: EditorKeys, removeTime: boolean) {
+function deleteAtCursor(editor: EditorKeys, removeTime: boolean) {
   const { clip, cursor, selection, columnOnly, commit } = editor;
   // In Insert mode Delete takes the time away too, but for a note of a chord or a grace note (`insertMode.ts`).
   if (editor.insertMode && deleteTakesTime(clip, cursor, selection, columnOnly)) removeTime = true;

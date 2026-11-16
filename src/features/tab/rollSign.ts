@@ -35,7 +35,7 @@ export function rollSpan(from: number, to: number): { top: number; bottom: numbe
 }
 
 /** Whether the roll's arrow points up the page: one that starts on the low string. */
-export function pointsUp(roll: Pick<Roll, 'direction'>): boolean {
+function pointsUp(roll: Pick<Roll, 'direction'>): boolean {
   return roll.direction === 'down';
 }
 

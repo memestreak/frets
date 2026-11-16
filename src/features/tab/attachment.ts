@@ -240,7 +240,7 @@ export function attachment(layout: Layout, picked: MarkHit | WordHit | null): At
 }
 
 /** How far round a Handle's centre a press takes it, across and up or down. */
-export const HANDLE_REACH = 10;
+const HANDLE_REACH = 10;
 
 /** The Handle under a press, or null. */
 export function handleAt(handles: readonly Handle[], x: number, y: number): Handle | null {

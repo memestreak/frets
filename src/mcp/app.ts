@@ -10,7 +10,7 @@ export function appInfo(page: string) {
 }
 
 /** Takes the host's light or dark theme, when the host says which. */
-export function followHostTheme(ctx: McpUiHostContext | undefined): void {
+function followHostTheme(ctx: McpUiHostContext | undefined): void {
   if (ctx?.theme) applyDocumentTheme(ctx.theme);
 }
 

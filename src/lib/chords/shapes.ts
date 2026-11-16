@@ -101,7 +101,7 @@ export function fingersNeeded(v: Shape): number {
  * each sounding string counting a little in favour, so a full barre beats
  * the same shape with a string left out.
  */
-export function difficulty(v: Shape): number {
+function difficulty(v: Shape): number {
   const fretted = frettedNotes(v);
   const span = fretted.length ? Math.max(...fretted) - Math.min(...fretted) : 0;
   return fingersNeeded(v) + span + 3 * innerMutes(v) - soundingStrings(v).length / 2;

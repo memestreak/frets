@@ -74,7 +74,7 @@ export function loadLibrary(): Library {
   return parseLibrary(loadJson(LIBRARY_KEY));
 }
 
-export function saveLibrary(library: Library): void {
+function saveLibrary(library: Library): void {
   saveJson(LIBRARY_KEY, library);
 }
 

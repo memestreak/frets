@@ -637,7 +637,7 @@ export function layoutClip(clip: Part, width: number, parts: Parts = 'tab', diag
 }
 
 /** One line of a clip, as `rowsFor` reads it: its own bars, and the capo only when it draws the capo's row (show_tab's first line). */
-export function lineClip(clip: Part, bars: number[], capo: boolean): Part {
+function lineClip(clip: Part, bars: number[], capo: boolean): Part {
   return { ...clip, capo: capo ? clip.capo : undefined, bars: bars.map(i => clip.bars[i]) };
 }
 

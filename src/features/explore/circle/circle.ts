@@ -21,13 +21,13 @@ const SPOKES = Array.from({ length: 12 }, (_, spoke) => spoke);
 /** Major keys round the outer ring, from C at the top, clockwise: …F♯, D♭… */
 export const MAJOR_KEYS: readonly string[] = SPOKES.map(s => keyTonic(keyOnSpoke(s, false)));
 /** Each major key's relative minor, on the same spoke: …D♯, B♭… */
-export const MINOR_KEYS: readonly string[] = SPOKES.map(s => keyTonic(keyOnSpoke(s, true)));
+const MINOR_KEYS: readonly string[] = SPOKES.map(s => keyTonic(keyOnSpoke(s, true)));
 const IONIAN = scaleDef('ionian')!;
 /** Each major key's vii°, spelled in that key: F♯ major's is E♯°. */
-export const DIM_ROOTS: readonly string[] = SPOKES.map(s => keyScale(keyOnSpoke(s, false)).degrees[6].note);
+const DIM_ROOTS: readonly string[] = SPOKES.map(s => keyScale(keyOnSpoke(s, false)).degrees[6].note);
 
 export type Ring = 'major' | 'minor' | 'dim';
-export const RINGS: readonly Ring[] = ['major', 'minor', 'dim'];
+const RINGS: readonly Ring[] = ['major', 'minor', 'dim'];
 
 /** One cell of the wheel: a ring and a spoke, 0–11 clockwise from the top. */
 export interface Cell {
@@ -44,7 +44,7 @@ const RING_OFFSET: Record<Ring, number> = { major: 0, minor: 9, dim: 11 };
 export const rootPc = ({ ring, spoke }: Cell): number => mod12(spoke * 7 + RING_OFFSET[ring]);
 
 /** The spoke whose major key starts on this pitch class. */
-export const majorSpoke = (pc: number): number => spokeOf(wheelKey(pc, false));
+const majorSpoke = (pc: number): number => spokeOf(wheelKey(pc, false));
 
 const RING_OF_QUALITY: Record<string, Ring> = { major: 'major', minor: 'minor', diminished: 'dim' };
 

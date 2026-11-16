@@ -224,7 +224,7 @@ function Thumbnail({ image, index, onView }: { image: ChatImage; index: number; 
 }
 
 /** The hover on the ⚠ shown when the model can't read the images waiting to be sent. */
-export function blindText(model: string): string {
+function blindText(model: string): string {
   return `${model} can't read images, so it won't see these. Pick a model that can, such as anthropic/claude-opus-5.5.`;
 }
 

@@ -26,7 +26,7 @@ export interface PlaybackOptionValues {
 }
 
 /** A menu item's tick, there while it is on. */
-export function OptionCheck({ on }: { on: boolean }) {
+function OptionCheck({ on }: { on: boolean }) {
   return (
     <span className="tab-options-check" aria-hidden="true">
       {on && <svg width={12} height={12} viewBox="0 0 12 12"><path d="m2 6.5 2.5 2.5L10 3" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" /></svg>}

@@ -16,7 +16,7 @@ export function shortDataUrl(url: string): string {
 }
 
 /** A size in characters as bytes, kilobytes or megabytes, as `412 KB`. */
-export function sizeText(chars: number): string {
+function sizeText(chars: number): string {
   if (chars < 1024) return `${chars} B`;
   if (chars < 1024 * 1024) return `${Math.round(chars / 1024)} KB`;
   return `${(chars / (1024 * 1024)).toFixed(1)} MB`;

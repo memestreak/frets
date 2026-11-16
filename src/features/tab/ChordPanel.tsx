@@ -28,7 +28,7 @@ const INSERT_WHAT: readonly { id: InsertWhat; label: string }[] = [
 ];
 
 /** The column with `name` over it, `frets` as its notes, or both. */
-export function insertedColumn(column: Column, what: InsertWhat, name: string, frets: readonly (number | null)[] | null): Column {
+function insertedColumn(column: Column, what: InsertWhat, name: string, frets: readonly (number | null)[] | null): Column {
   const named = what === 'notes' ? column : { ...column, chord: name };
   if (what === 'name' || !frets) return named;
   return { ...named, notes: frets.map(fret => (fret === null ? null : { fret })) };

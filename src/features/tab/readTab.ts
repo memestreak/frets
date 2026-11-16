@@ -18,7 +18,7 @@ export function looksLikeAscii(text: string): boolean {
 }
 
 /** A reader's warning that a bar doesn't add up (`unevenMessage`): a re-barred clip has none. */
-export const UNEVEN_WARNING = /doesn't add up to/;
+const UNEVEN_WARNING = /doesn't add up to/;
 
 export interface ReadOptions {
   /**

@@ -13,7 +13,7 @@
 const PAPER_RATE = 29761;
 
 /** The longest pre-delay, in seconds (the Pre-delay setting's top; Jeremy, 2026-10-22). */
-export const MAX_PRE_DELAY_SECONDS = 0.5;
+const MAX_PRE_DELAY_SECONDS = 0.5;
 /** The input low-pass's coefficient (table 1's bandwidth). */
 const BANDWIDTH = 0.9995;
 /** The four input diffusers (figure 1): lengths and coefficients (input diffusion 1, 2). */
@@ -61,9 +61,9 @@ const RIGHT_TAPS: readonly [Line, number, number][] = [
 ];
 
 /** How long a change of the settings takes to glide, in seconds. */
-export const REVERB_GLIDE_SECONDS = 0.05;
+const REVERB_GLIDE_SECONDS = 0.05;
 /** The decay coefficient's ceiling, whatever time is asked for. */
-export const MAX_DECAY = 0.9995;
+const MAX_DECAY = 0.9995;
 /**
  * The measured -60 dB time over the time asked for, uncorrected: the
  * input diffusers lengthen it, the damping shortens it. Fitted at Tone 70
@@ -71,7 +71,7 @@ export const MAX_DECAY = 0.9995;
  * 0% at 1.5 s, -7% at 5 and 20 s. 0.2 s is as short as the diffusion
  * allows: it measures about 0.33 s.
  */
-export const DECAY_FIT = 0.94;
+const DECAY_FIT = 0.94;
 
 /** A delay line: written a sample at a time, read so many samples back. */
 class Delay {
@@ -132,7 +132,7 @@ export interface ReverbSettings {
 }
 
 /** The paper's decay coefficient for a -60 dB time of `seconds`, at `rate`, round a loop of `loop` samples. */
-export function decayFor(seconds: number, rate: number, loop: number): number {
+function decayFor(seconds: number, rate: number, loop: number): number {
   // Round the figure eight the signal is multiplied by the decay four
   // times in `loop` samples: g^(4 n / loop) = 10^-3 at n = seconds x rate.
   const g = 10 ** ((-3 * loop) / (4 * rate * Math.max(0.01, seconds / DECAY_FIT)));
@@ -147,21 +147,21 @@ export function decayFor(seconds: number, rate: number, loop: number): number {
  * short decay. So it is held to ring no longer than DIFFUSION_SHARE of
  * the time asked, as the paper ties decay diffusion 2 to the decay.
  */
-export function diffusionFor(seconds: number, rate: number, length: number): number {
+function diffusionFor(seconds: number, rate: number, length: number): number {
   const ring = DIFFUSION_SHARE * Math.max(0.01, seconds);
   return Math.min(DECAY_DIFFUSION_1, 10 ** ((-3 * length) / (rate * ring)));
 }
 
 /** The longest the tank's first diffusers may ring, as a share of the decay time. */
-export const DIFFUSION_SHARE = 0.4;
+const DIFFUSION_SHARE = 0.4;
 
 /** The damping for a tone, 0 (darkest) to 100 (brightest, none). */
-export function dampingFor(tone: number): number {
+function dampingFor(tone: number): number {
   return 0.7 * (1 - Math.min(100, Math.max(0, tone)) / 100);
 }
 
 /** The dry and wet gains for a mix, 0 to 100: both full at 50. */
-export function mixGains(mix: number): { dry: number; wet: number } {
+function mixGains(mix: number): { dry: number; wet: number } {
   const m = Math.min(100, Math.max(0, mix)) / 100;
   return { dry: Math.min(1, 2 * (1 - m)), wet: Math.min(1, 2 * m) };
 }

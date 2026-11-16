@@ -26,13 +26,13 @@ export interface Hit {
 }
 
 /** How far above the top string and below the bottom one a press still lands on the staff, as the cursor's band reaches. */
-export const STAFF_REACH = 10;
+const STAFF_REACH = 10;
 
 /**
  * How near a note head's centre a press on the notation staff must be: on the head, and a little round it
  * (issue #478). It reached a whole head across and a whole space up or down, so the next line picked it.
  */
-export const HEAD_REACH_X = HEAD_WIDTH / 2 + 2;
+const HEAD_REACH_X = HEAD_WIDTH / 2 + 2;
 export const HEAD_REACH_Y = SPACE / 2 + 1.5;
 
 /** How far past a dot's centre a press still lands on its note. */
@@ -198,7 +198,7 @@ export function hitTest(layout: Layout, x: number, y: number): Hit | null {
 }
 
 /** How far right of a column's centre a press still counts as on it: about a note head's half width. */
-export const ON_COLUMN_REACH = 8;
+const ON_COLUMN_REACH = 8;
 
 /**
  * Where a press anywhere in a bar's height, above or below the staff included, puts the playback line:

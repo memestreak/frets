@@ -365,7 +365,7 @@ export function isBareRest(column: Column): boolean {
  * A tuplet group's Columns as the meter writes them: every run of bare rests in it written again as
  * the fewest rests in the tuplet's values (spec Q3). The Columns as they are when a run can't be.
  */
-export function spellTupletRests(columns: Column[]): Column[] {
+function spellTupletRests(columns: Column[]): Column[] {
   const out: Column[] = [];
   let run: Column[] = [];
   const flush = () => {
@@ -388,12 +388,12 @@ export function spellTupletRests(columns: Column[]): Column[] {
 }
 
 /** Whether a tuplet group's Columns hold no note: the tuplet goes, its time a Gap (spec Q5). */
-export function isEmptyTuplet(columns: Column[]): boolean {
+function isEmptyTuplet(columns: Column[]): boolean {
   return columns.every(c => !c.notes.some(Boolean));
 }
 
 /** A grace note's value by how many are before the note, as books and alphaTab have them: an eighth, two sixteenths, thirty-seconds (spec Q9). */
-export function graceValue(count: number): NoteValue {
+function graceValue(count: number): NoteValue {
   return count <= 1 ? 8 : count === 2 ? 16 : 32;
 }
 

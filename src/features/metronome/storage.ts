@@ -24,7 +24,7 @@ export type ViewId = (typeof VIEWS)[number][0];
 export interface Display {
   view: ViewId;
 }
-export const DEFAULT_DISPLAY: Display = { view: 'readout' };
+const DEFAULT_DISPLAY: Display = { view: 'readout' };
 
 export interface Playback {
   /** 0 to 1. */

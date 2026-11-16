@@ -44,7 +44,7 @@ npm install
 npm run dev        # Dev server at localhost:3000
 npm run dev:https  # Same over https (self-signed), for the mic from another device
 npm run build      # The MCP Apps, then the static export to out/, then /mcp-preview/
-npm run lint       # ESLint
+npm run lint       # ESLint, then knip (unused files, exports and dependencies)
 npm test           # Vitest
 npm run typecheck  # tsc --noEmit
 npm run icons      # Re-render the icons after changing the mark's SVGs

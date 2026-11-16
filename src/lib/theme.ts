@@ -42,7 +42,7 @@ export const currentTheme = (): ThemeChoice => {
  * Dark, one per system theme for Auto. Made here and by the boot script, not
  * by Next's `viewport`, because React puts its own metas back on hydration.
  */
-export function syncThemeColor(choice: ThemeChoice): void {
+function syncThemeColor(choice: ThemeChoice): void {
   document.querySelectorAll('meta[name="theme-color"]').forEach(meta => meta.remove());
   for (const scheme of choice === 'auto' ? (['light', 'dark'] as const) : [choice]) {
     const meta = document.createElement('meta');
@@ -61,7 +61,7 @@ export function applyTheme(choice: ThemeChoice): void {
 }
 
 /** The link parameter that picks a theme, e.g. `?theme=light`. */
-export const THEME_PARAM = 'theme';
+const THEME_PARAM = 'theme';
 
 /**
  * Runs in <head> before first paint, so the page never flashes the wrong

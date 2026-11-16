@@ -25,9 +25,9 @@ const HYSTERESIS = 0.7;
 const ONSET_RATIO = 1.8;
 
 /** The right note counts once held this long, in milliseconds. */
-export const RIGHT_HOLD_MS = 150;
+const RIGHT_HOLD_MS = 150;
 /** Anything else counts once held this long. */
-export const OTHER_HOLD_MS = 250;
+const OTHER_HOLD_MS = 250;
 
 /** Has a note sounded long enough to judge? */
 export const heldEnough = (heldMs: number, right: boolean): boolean =>
