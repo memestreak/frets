@@ -18,9 +18,12 @@ const collapseButton = (side = 'left') => screen.getByRole('button', { name: `Co
 const expandButton = (side = 'left') => screen.getByRole('button', { name: `Expand ${side} palettes` });
 const FIRST_ORDER = ['notes', 'articulations', 'bars', 'chords', 'chat'];
 
-/** The declarations of a rule in tab.css, found by its exact selector (the first such rule). */
+/** The Tab page's CSS for the palettes: tab.css, then palettes.css, in the order globals.css imports them. */
+const tabCss = () => ['tab.css', 'palettes.css'].map(f => readFileSync(join(process.cwd(), 'src/features/tab', f), 'utf8')).join('\n');
+
+/** The declarations of a rule in that CSS, found by its exact selector (the first such rule). */
 const rule = (selector: string) => {
-  const css = readFileSync(join(process.cwd(), 'src/features/tab/tab.css'), 'utf8');
+  const css = tabCss();
   const start = css.indexOf(`${selector} {`);
   expect(start, selector).toBeGreaterThanOrEqual(0);
   return css.slice(start, css.indexOf('}', start));
@@ -425,7 +428,7 @@ describe('dragging the line between the column and the clip (issue #431)', () =>
     fireEvent.click(collapseButton());
     expect(screen.queryByRole('separator', { name: 'Left palette width' })).toBeNull();
     expect(screen.getByRole('separator', { name: 'Right palette width' })).toBeInTheDocument();
-    const css = readFileSync(join(process.cwd(), 'src/features/tab/tab.css'), 'utf8');
+    const css = tabCss();
     const narrow = css.slice(css.indexOf('/* Under 900px the columns sit over the clip'));
     expect(narrow.slice(0, narrow.indexOf('\n}'))).toContain('.tab-rail-divider { display: none; }');
     expect(rule('.tab-rail-layout')).toContain('grid-template-columns: var(--rail-left, 0px) minmax(0, var(--clip-width)) var(--rail-right, 0px)');
@@ -524,7 +527,7 @@ describe('a column’s edges follow the pointer (issue #521)', () => {
     expect(layout(container).style.getPropertyValue('--rail-right-out')).toBe('40px');
     expect(rule('.tab-rail-layout')).toContain('margin-left: calc(-1 * min(var(--rail-reach), var(--rail-left-out, 0px)))');
     expect(rule('.tab-rail-layout')).toContain('margin-right: calc(-1 * min(var(--rail-reach), var(--rail-right-out, 0px)))');
-    const css = readFileSync(join(process.cwd(), 'src/features/tab/tab.css'), 'utf8');
+    const css = tabCss();
     expect(css).toContain("@media (max-width: 1279px) { .tab-rail-divider[data-edge='outer'] { display: none; } }");
   });
 
