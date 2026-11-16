@@ -35,7 +35,7 @@ panel is `docs/specs/2026-11-08-tab-chat-design.md` (issue #424).
 
 ## How
 
-- `chat/markdown.ts`: `parseMarkdown` (blocks), `parseInlines`, `safeHref`.
+- `markdown.ts` (in `src/features/tab/`, since Text annotations read it too): `parseMarkdown` (blocks), `parseInlines`, `safeHref`.
   A small reader of what chat replies use, written for Frets rather than a
   dependency: the page has few, and a CommonMark library with an HTML
   sanitiser would be the larger part of the panel.

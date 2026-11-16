@@ -1,5 +1,5 @@
 import { render } from '@testing-library/react';
-import { parseInlines, parseMarkdown, safeHref } from '@/features/tab/chat/markdown';
+import { parseInlines, parseMarkdown, safeHref } from '@/features/tab/markdown';
 import { ReplyMarkdown } from '@/features/tab/chat/ReplyMarkdown';
 
 // Issue #427: a Chat reply's markdown, read safely and drawn without HTML.

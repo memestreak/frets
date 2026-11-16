@@ -24,7 +24,7 @@ lyrics.
   as typed (`\*`); before any other letter it is a letter. In alphaTex
   the backslash is itself escaped: `txt "\\*"`.
 - The reader is the Chat panel's own (`parseInlines` in
-  `chat/markdown.ts`, issue #427) with `boldOnly` on; there is no second
+  `markdown.ts`, issue #427) with `boldOnly` on; there is no second
   parser.
 - The alphaTex, the AlphaTex view, share links and copy keep the marks
   as typed.
@@ -88,7 +88,7 @@ None reads Markdown.
 ## How
 
 - `textMarks.ts`: `readTextMarks`, `drawnText`, `runsOf`, `toggleBold`.
-- `chat/markdown.ts`: `parseInlines(text, { boldOnly: true })`.
+- `markdown.ts`: `parseInlines(text, { boldOnly: true })`.
 - `stackWords.ts`: `wrapWords` breaks at new lines and tells the width
   where each line starts; `lineStarts`.
 - `beatText.ts`: `placeBeatTexts` and `wrapBeatText` wrap the drawn

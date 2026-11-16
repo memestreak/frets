@@ -1,6 +1,8 @@
 /**
  * The markdown a model writes in a Chat reply, read into blocks and inlines (issue #427). Only what
  * chat replies use: paragraphs, headings, emphasis, code, lists, quotes, rules, tables and links.
+ * Text annotations read it too (`textMarks.ts`, `parseInlines` with `boldOnly`, #447), so a change
+ * here can change how a Text annotation draws and exports to Guitar Pro.
  * Raw HTML is never markup here: it stays text, and React shows text as text. A link is a link only
  * when its address is http, https or mailto; any other (javascript:, a relative path) leaves its words.
  */
