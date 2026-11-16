@@ -78,7 +78,9 @@ and in its spec.
 - `useStableHandlers.ts` — gives `TabClip` the same handlers each render,
   so a playback step doesn't draw it again.
 - `tab.css` — the page's CSS (`.tab-*`, `.score-*`), imported from
-  `src/app/globals.css`.
+  `src/app/globals.css`, then `palettes.css` (the palettes' columns,
+  stacks and tools: `.tab-rail*`, `.tab-stack*`, `.tab-palette*`) and
+  `chat/chat.css` (`.tab-chat*`), in that order.
 - `views.ts` — the three views (Notation, ASCII Tab, AlphaTex) and the
   switch's order.
 - `notice.ts` — what the line under the clip says (an import's guesses, a

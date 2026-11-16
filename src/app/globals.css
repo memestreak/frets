@@ -10,6 +10,8 @@
 @import "../features/explore/explore.css" layer(components);
 @import "../features/chords/chords.css" layer(components);
 @import "../features/tab/tab.css" layer(components);
+@import "../features/tab/palettes.css" layer(components);
+@import "../features/tab/chat/chat.css" layer(components);
 @import "../features/agents/agents.css" layer(components);
 @import "../features/metronome/metronome.css" layer(components);
 

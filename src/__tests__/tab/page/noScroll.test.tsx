@@ -86,7 +86,7 @@ describe('a press never scrolls the page (issue #470)', () => {
 
   it('the palettes’ column is never the scroll anchor, so collapsing or opening a palette keeps the page still', () => {
     // jsdom has no scroll anchoring, so the rule itself is checked.
-    const css = readFileSync(join(process.cwd(), 'src/features/tab/tab.css'), 'utf8');
+    const css = readFileSync(join(process.cwd(), 'src/features/tab/palettes.css'), 'utf8');
     expect(css).toMatch(/\.tab-rail-column\s*\{\s*overflow-anchor:\s*none;\s*\}/);
   });
 });
