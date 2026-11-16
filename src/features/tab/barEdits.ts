@@ -75,7 +75,7 @@ export function cycleRepeatEnd(clip: Part, cursor: Cursor): Part {
 }
 
 /** The most times a repeat's count field takes. */
-export const MAX_REPEAT_TIMES = 9;
+const MAX_REPEAT_TIMES = 9;
 
 /** A bar's repeat end played `times` times (2 to 9; 2 is written without a count); the bar must end a repeat. */
 export function setRepeatTimes(clip: Part, bar: number, times: number): Part {

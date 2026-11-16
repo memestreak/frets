@@ -17,15 +17,9 @@ export function paletteHeader(name: string): HTMLElement {
 export const paletteOf = (name: string) => screen.getByRole('region', { name });
 
 /** Opens a palette, if it is folded. */
-export function openPalette(name: string) {
+function openPalette(name: string) {
   const header = paletteHeader(name);
   if (header.getAttribute('aria-expanded') !== 'true') fireEvent.click(header);
-}
-
-/** Folds a palette, if it is open. */
-export function foldPalette(name: string) {
-  const header = paletteHeader(name);
-  if (header.getAttribute('aria-expanded') === 'true') fireEvent.click(header);
 }
 
 /**

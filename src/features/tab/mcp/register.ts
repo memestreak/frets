@@ -12,7 +12,7 @@ import { VIEW_WORDS, describeLine, describeLoop, lineFromInput, loopOf } from '.
 import { APP_URI, TOOL_DESCRIPTION, TOOL_NAME, toolInput, type LineInput, type LoopInput, type View } from './tool';
 
 /** The app's name: `mcp/apps/tab/`, built to `mcp/dist/tab.html`. */
-export const APP_NAME = 'tab';
+const APP_NAME = 'tab';
 
 /** What the tool hands the app: the checked line, how to draw it, and its loop points if it has any. */
 export interface TabState {

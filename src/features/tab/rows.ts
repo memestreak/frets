@@ -124,7 +124,7 @@ export const BEND_RISE = 26;
 export const BEND_LABEL_STEP = 11;
 /** The shortest rise of a bend's arrow, right of its number; and a bend let down's shortest run to its arrowhead down. */
 export const BEND_PEAK = 14;
-export const BEND_DROP = 24;
+const BEND_DROP = 24;
 
 /**
  * How far right of its number a bend's arrow peaks and, let down, where its arrow down lands: over the
@@ -141,7 +141,7 @@ export function bendShape(placed: Pick<PlacedColumn, 'bendRoom' | 'bendPeakRoom'
 }
 
 /** From the bottom string down to the top of the whammy bar's room, and that room's height: its lines and labels. */
-export const DIVES_GAP = 6;
+const DIVES_GAP = 6;
 export const DIVES_ROOM = 34;
 
 /** The radius of a tap's circled T, over the staff and over its number on the tab. */
@@ -153,7 +153,7 @@ export const BEND_LABEL_RAISE = 9;
 const STEMS_OVER_ROOM = 50;
 
 /** Whether a part's bar draws two or more Voices, so each Voice's stems take its side (step 9, Q2, Q4). */
-export function severalVoices(bar: Bar, ownVoice = 0): boolean {
+function severalVoices(bar: Bar, ownVoice = 0): boolean {
   if (!bar.otherVoices?.length) return false;
   const ownDrawn = ownVoice === 0 ? bar.columns.length > 0 : hasNotes(bar.columns);
   return bar.otherVoices.length + (ownDrawn ? 1 : 0) >= 2;

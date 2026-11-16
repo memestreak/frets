@@ -9,7 +9,7 @@ import { loadAlphaTab, readAlphaTexWith } from './alphatexRead';
 import { commentSpots, lineMarks, type LineMark } from './alphatexText';
 
 /** How long after the last key the text is read, and the clip changed if it reads cleanly. */
-export const READ_DELAY_MS = 500;
+const READ_DELAY_MS = 500;
 
 /** What the last read of the text found wrong: errors with a spot in it, and errors with none (two tracks, say). */
 interface Problems {

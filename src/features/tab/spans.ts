@@ -8,14 +8,14 @@ import { indexOf, normalize, type Cursor, type Selection } from './editing';
 import type { MarkHit } from './marks';
 
 export type SpanMark = 'letRing' | 'palmMute' | 'vibrato' | 'ottava' | 'hairpin';
-export const SPAN_MARKS: readonly SpanMark[] = ['letRing', 'palmMute', 'vibrato', 'ottava', 'hairpin'];
+const SPAN_MARKS: readonly SpanMark[] = ['letRing', 'palmMute', 'vibrato', 'ottava', 'hairpin'];
 
 export function isSpan(mark: string): mark is SpanMark {
   return (SPAN_MARKS as readonly string[]).includes(mark);
 }
 
 /** Spans stored on notes stop at a rest; those stored on columns (octave lines, hairpins) can cover rests. */
-export function onNotes(mark: SpanMark): boolean {
+function onNotes(mark: SpanMark): boolean {
   return mark === 'letRing' || mark === 'palmMute' || mark === 'vibrato';
 }
 

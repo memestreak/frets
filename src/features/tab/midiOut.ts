@@ -20,7 +20,7 @@ export interface MidiSettings {
 }
 
 /** MIDI's own default pitch bend range, which most synths keep. */
-export const DEFAULT_BEND_RANGE = 2;
+const DEFAULT_BEND_RANGE = 2;
 export const MIN_BEND_RANGE = 1;
 export const MAX_BEND_RANGE = 24;
 
@@ -35,7 +35,7 @@ export const MIDI_TRACKS = 4;
 const isChannel = (v: unknown): v is number => Number.isInteger(v) && (v as number) >= MIN_CHANNEL && (v as number) <= MAX_CHANNEL;
 
 /** A track's default channel: Track N on N. `track` counts from 0. */
-export const defaultChannel = (track: number) => track + 1;
+const defaultChannel = (track: number) => track + 1;
 
 /** The channel a track (from 0) goes out on, 1 to 16; null for a track past `MIDI_TRACKS`. */
 export function channelOf(settings: MidiSettings, track: number): number | null {

@@ -75,7 +75,7 @@ export function chartChords(part: Part): ChartChord[] {
 export const GRID_STRING = 9;
 export const GRID_FRET = 11;
 /** The fewest frets a diagram draws. */
-export const GRID_FRETS = 4;
+const GRID_FRETS = 4;
 /** Room over the nut for × and ○. */
 export const GRID_MARKS = 9;
 /** Room right of a diagram for its first fret ("5fr"). */

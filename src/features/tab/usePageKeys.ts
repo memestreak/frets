@@ -14,7 +14,7 @@ import type { PlayRange } from './usePlayRange';
 import type { View } from './views';
 
 /** Fields, dialogs and the like: the page's keys, paste and undo leave what is typed there to them. */
-export const TEXT_FIELDS = 'input, select, textarea, dialog';
+const TEXT_FIELDS = 'input, select, textarea, dialog';
 
 /** Where the focus may go from the tab and note input mode stay on: the clip's own fields, the palettes and their collapsed strip, panels and menus. */
 /**

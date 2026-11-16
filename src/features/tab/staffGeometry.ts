@@ -13,7 +13,7 @@ import { type DrawnAt } from './runs';
 import type { Head } from './notation';
 
 /** The rest drawn for each note value. */
-export const RESTS: Record<number, GlyphName> = {
+const RESTS: Record<number, GlyphName> = {
   1: 'restWhole', 2: 'restHalf', 4: 'restQuarter', 8: 'rest8th', 16: 'rest16th', 32: 'rest32nd', 64: 'rest64th',
 };
 

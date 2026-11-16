@@ -44,7 +44,7 @@ export function writtenStrings(tuning: readonly string[]): number[] {
 }
 
 /** A note's sounding pitch: open string, capo and fret; null for a dead note, which has none. */
-export function soundingPitch(open: number[], capo: number, s: number, note: Note): number | null {
+function soundingPitch(open: number[], capo: number, s: number, note: Note): number | null {
   return note.fret === null ? null : open[s] + capo + note.fret;
 }
 
@@ -101,7 +101,7 @@ export interface SmallHead {
  * tied note carries on from the note before, and a grace note bent up is itself the starting pitch,
  * so none of them gets a starting head of its own.
  */
-export function pickedBendSemitones(column: Column, note: Note): number {
+function pickedBendSemitones(column: Column, note: Note): number {
   if (!note.bend || note.tie || note.bend.pre || column.grace || note.fret === null) return 0;
   return Math.floor(note.bend.quarters / 2);
 }

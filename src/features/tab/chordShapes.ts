@@ -17,7 +17,7 @@ import { writtenStrings } from './notation';
 export const PLAIN_LOOK: DiagramLook = { ...PAGE_LOOK, tone: () => ({ fill: 'var(--ink)', fg: 'var(--surface-raised)' }) };
 
 /** The chord a name means, over its bass for a slash chord; null for a name that isn't a chord ("N.C."). */
-export function chordOfName(name: string): ChordInfo | null {
+function chordOfName(name: string): ChordInfo | null {
   const reading = readChordName(name);
   if (!reading) return null;
   const chord = chordOf(reading.root, reading.type);

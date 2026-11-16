@@ -12,7 +12,7 @@ import { chainPlaces } from './ties';
 import { placeAtTime, pushTime, timeOf, writeOver } from './timeline';
 
 /** The most Voices a track has (`MAX_VOICES` in the reader). */
-export const VOICE_COUNT = 4;
+const VOICE_COUNT = 4;
 
 /** The part as Voice `voice`'s own Part: that Voice's Columns as each bar's, numbered as `partOf` numbers them. */
 export function asVoice(part: Part, voice: number): Part {
@@ -35,7 +35,7 @@ function presentIn(part: Part, b: number, voice: number): boolean {
 }
 
 /** The stretch of time a selection of the part's own Voice covers, in ticks from the start: [from, to). */
-export function selectionTime(part: Part, selection: Selection): [number, number] {
+function selectionTime(part: Part, selection: Selection): [number, number] {
   const [low, high] = selectedRange(selection);
   const first = placeOf(part, low);
   const last = placeOf(part, high);
@@ -79,7 +79,7 @@ export function voiceSelections(part: Part, selection: Selection): Map<number, [
 }
 
 /** The Voices other than the part's own that any bar of it carries, in order. */
-export function otherVoicesOf(part: Part): number[] {
+function otherVoicesOf(part: Part): number[] {
   const voices = new Set<number>();
   for (const bar of part.bars) for (const o of bar.otherVoices ?? []) voices.add(o.voice);
   return [...voices].sort((a, b) => a - b);

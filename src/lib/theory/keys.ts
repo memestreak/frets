@@ -18,7 +18,7 @@ export interface Key {
   minor?: true;
 }
 export const C_MAJOR: Key = { fifths: 0 };
-export const MAX_FIFTHS = 7;
+const MAX_FIFTHS = 7;
 
 /** The key with this many fifths, major or minor. */
 export const keyOf = (fifths: number, minor: boolean): Key => (minor ? { fifths, minor: true } : { fifths });
@@ -35,9 +35,9 @@ export function sameKey(a: Key, b: Key): boolean {
 }
 
 /** Each major key's tonic, from seven flats (C♭) to seven sharps (C♯). */
-export const MAJOR_NAMES = ['Cb', 'Gb', 'Db', 'Ab', 'Eb', 'Bb', 'F', 'C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#'];
+const MAJOR_NAMES = ['Cb', 'Gb', 'Db', 'Ab', 'Eb', 'Bb', 'F', 'C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#'];
 /** Each minor key's tonic, from seven flats (A♭) to seven sharps (A♯). */
-export const MINOR_NAMES = ['Ab', 'Eb', 'Bb', 'F', 'C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#', 'G#', 'D#', 'A#'];
+const MINOR_NAMES = ['Ab', 'Eb', 'Bb', 'F', 'C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#', 'G#', 'D#', 'A#'];
 
 /** The key's tonic as alphaTex and tonal spell it, "F#" or "Bb", without major or minor. */
 export function keyTonic(key: Key): string {

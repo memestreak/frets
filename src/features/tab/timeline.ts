@@ -436,7 +436,7 @@ export interface StreamEdit {
  * edit's reach keep their Columns (an Uneven bar its ⚠); past the Part's end, bars are added. Null when
  * a tuplet would cross a bar line.
  */
-export function editTimeline(part: Part, edit: StreamEdit): Part | null {
+function editTimeline(part: Part, edit: StreamEdit): Part | null {
   const first = placeAtTime(part, edit.at).bar;
   const base = timeOf(part, first, 0);
   // The bar lines after the edit, as stream times, and which bar each starts.
@@ -538,7 +538,7 @@ function lengthUpTo(items: Item[], length: number): Item[] | null {
 /* — the edits — */
 
 /** Columns as stream items (their own lengths), for writing over. */
-export function itemsFrom(columns: Column[]): Item[] {
+function itemsFrom(columns: Column[]): Item[] {
   return itemsOf(columns, 0);
 }
 

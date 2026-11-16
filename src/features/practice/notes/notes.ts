@@ -48,7 +48,7 @@ export const resetNoteSettings = (set: NoteSettings): NoteSettings => ({
   mode: set.mode, pause: set.pause, mic: set.mic,
 });
 
-export const stringsInScope = (set: NoteSettings): number[] =>
+const stringsInScope = (set: NoteSettings): number[] =>
   STRINGS.filter(s => set.strings[s]);
 
 type Range = Pick<NoteSettings, 'rFrom' | 'rTo'>;

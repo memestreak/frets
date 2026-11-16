@@ -18,8 +18,8 @@ import { unbeamed } from './beams';
 
 export const TUPLET_NEEDS_PLAIN = 'A tuplet goes on a note without a dot.';
 export const TUPLET_TOO_SHORT = "That tuplet's notes would be shorter than a sixty-fourth.";
-export const TUPLET_ALREADY = 'Take the tuplet away first: these notes are in one already.';
-export const TUPLET_CANT_WRITE = "Those notes can't be written in that tuplet.";
+const TUPLET_ALREADY = 'Take the tuplet away first: these notes are in one already.';
+const TUPLET_CANT_WRITE = "Those notes can't be written in that tuplet.";
 
 /** An edit that may be refused: the Part, or the sentence the line under the clip says. */
 export type Edited = Part | { problem: string };
@@ -49,7 +49,7 @@ export function groupAt(part: Part, place: Place): TupletGroup | null {
 }
 
 /** Every tuplet group of a bar. */
-export function groupsOf(part: Part, b: number): TupletGroup[] {
+function groupsOf(part: Part, b: number): TupletGroup[] {
   const bar = part.bars[b];
   if (!bar) return [];
   const timed = bar.columns.flatMap((c, k) => (c.grace ? [] : [k]));
@@ -120,7 +120,7 @@ function kindFor(n: number): Pick<Duration, 'tuplet'> {
  * A tuplet of `n` over one picked note's time (spec Q1): the note becomes its first note and the rest is
  * a Gap in it. A triplet splits the value in halves, 5–7 in quarters, 9–12 in eighths.
  */
-export function tupletOver(part: Part, cursor: Cursor, n: number): Edited {
+function tupletOver(part: Part, cursor: Cursor, n: number): Edited {
   const anchor = lengthAnchor(part, cursor);
   if (!anchor) return part;
   const column = columnAt(part, anchor)!;
@@ -143,7 +143,7 @@ export function tupletOver(part: Part, cursor: Cursor, n: number): Edited {
  * last tuplet they don't fill ends in a Gap inside it. Longer than the selection it writes over what
  * follows; shorter, it leaves a Gap.
  */
-export function squeezeTuplet(part: Part, from: number, to: number, n: number): Edited {
+function squeezeTuplet(part: Part, from: number, to: number, n: number): Edited {
   const columns: Column[] = [];
   for (let i = from; i <= to; i++) columns.push(columnAt(part, { ...placeOf(part, i), string: 0 })!);
   const timed = columns.filter(c => !c.grace);

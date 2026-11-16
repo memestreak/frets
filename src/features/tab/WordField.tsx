@@ -88,7 +88,7 @@ const ALPHABETICAL = [...DYNAMICS].sort();
  * The dynamics a dynamic's list offers for what is typed: those starting with it, every one for nothing typed,
  * alphabetically. The dynamic typed exactly is always first, so Enter sets it.
  */
-export function dynamicsFor(typed: string): readonly Dynamic[] {
+function dynamicsFor(typed: string): readonly Dynamic[] {
   const start = typed.trim().toLowerCase();
   return ALPHABETICAL.filter(d => d.startsWith(start));
 }

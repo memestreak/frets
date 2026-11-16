@@ -28,7 +28,7 @@ export function stepOf(clip: Part, bar: number, pitch: number): number {
 }
 
 /** The pitch of a line or space as the key has it: F♯ on the top line in G major. */
-export function pitchOfStep(clip: Part, bar: number, step: number): number {
+function pitchOfStep(clip: Part, bar: number, step: number): number {
   const letterSteps = step + STEP_ZERO;
   const octave = Math.floor(letterSteps / 7);
   const letter = letterSteps - octave * 7;

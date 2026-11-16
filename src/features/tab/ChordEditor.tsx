@@ -345,7 +345,7 @@ const HIGHEST_START = 15;
  * a fret puts a finger there, and a second lifts it, leaving the string open; left of the nut, a press
  * turns an open string muted and a muted one open. ‹ › move the frets shown, for shapes up the neck.
  */
-export function ShapeEditor({ shape, onChange }: { shape: Shape; onChange: (s: Shape) => void }) {
+function ShapeEditor({ shape, onChange }: { shape: Shape; onChange: (s: Shape) => void }) {
   const [start, setStart] = useState(() => diagramStartFret(shape));
   // A shape from elsewhere (a tile, a new chord) brings its frets into view; one drawn here doesn't move them.
   const [seen, setSeen] = useState(shapeKey(shape));

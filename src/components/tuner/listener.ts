@@ -35,7 +35,7 @@ const WINDOW = 4096;
 const ANALYSE_EVERY_MS = 30;
 
 /** Sort a failure from getUserMedia, or a page without it, into a MicError. */
-export function micError(e: unknown): MicError {
+function micError(e: unknown): MicError {
   if (typeof window !== 'undefined' && !window.isSecureContext) return 'insecure';
   const name = e instanceof DOMException ? e.name : '';
   if (name === 'NotAllowedError' || name === 'SecurityError') return 'denied';

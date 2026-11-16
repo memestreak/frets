@@ -27,7 +27,7 @@ function stateOf(raw: unknown): MetronomeState | null {
 }
 
 /** What the model is told: one line, and the rhythm to pass back to `show_metronome`. */
-export function modelContext(rhythm: Rhythm, playing: boolean) {
+function modelContext(rhythm: Rhythm, playing: boolean) {
   return {
     content: [{
       type: 'text' as const,

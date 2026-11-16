@@ -1,0 +1,14 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "mcp/apps/*/main.tsx",
+    "mcp/apps/noWorkerDecoder.ts",
+    "mcp/stdio.ts",
+    "mcp/*.mts",
+    "functions/*.ts",
+    "scripts/*.mjs"
+  ],
+  "project": ["src/**/*.{ts,tsx}", "mcp/**/*.{ts,tsx,mts,mjs}", "functions/**/*.ts", "scripts/**/*.mjs"],
+  "ignoreDependencies": ["tailwindcss"],
+  "ignoreExportsUsedInFile": { "type": true, "interface": true }
+}

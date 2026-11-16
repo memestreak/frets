@@ -23,7 +23,7 @@ export const APP_INFO = appInfo('tab');
  * What the model is told when the user changes how the line plays: the loop points in words and in
  * `show_tab`'s own shape, so a call to show the line again can carry them.
  */
-export function modelContext(part: Part, heard: Heard) {
+function modelContext(part: Part, heard: Heard) {
   const looping = heard.loop ? `looping ${describeLoop(part, heard.loop)}` : 'not looping';
   return {
     content: [{ type: 'text' as const, text: `The user is now playing the line at ${heard.bpm} bpm, ${looping}.` }],

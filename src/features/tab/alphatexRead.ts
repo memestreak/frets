@@ -563,7 +563,7 @@ function hasTag(bar: BarNode | undefined, tag: string): boolean {
 
 /** A bar's columns in one Voice: the tree's beats, one per beat alphaTab made (a beat written "*3" stands for three). */
 /** A beat's lyrics as a column keeps them: no trailing empty lines, none at all when every line is empty. */
-export function lyricsOf(lines: readonly string[] | null | undefined): string[] | undefined {
+function lyricsOf(lines: readonly string[] | null | undefined): string[] | undefined {
   const kept = (lines ?? []).map(l => l ?? '');
   while (kept.length > 0 && kept[kept.length - 1].trim() === '') kept.pop();
   return kept.length > 0 ? kept : undefined;

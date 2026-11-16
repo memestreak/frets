@@ -8,10 +8,10 @@ import { appHtml, type AppsHtml } from '@/mcp/types';
 import { APP_URI, TOOL_DESCRIPTION, TOOL_NAME, TOOL_RESULT } from './tool';
 
 /** The app's name: `mcp/apps/tuner/`, built to `mcp/dist/tuner.html`. */
-export const APP_NAME = 'tuner';
+const APP_NAME = 'tuner';
 
 /** What the app's frame asks the host for: the mic. */
-export const APP_UI_META = { permissions: { microphone: {} } };
+const APP_UI_META = { permissions: { microphone: {} } };
 
 export function registerTunerTools(server: McpServer, apps: AppsHtml): void {
   const html = appHtml(apps, APP_NAME);

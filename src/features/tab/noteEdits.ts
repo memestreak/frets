@@ -494,7 +494,7 @@ export function cycleBendShape(clip: Part, cursor: Cursor): Part {
 /* — Beam overrides (`docs/specs/2026-11-04-tab-beat-groups-beams-design.md`) — */
 
 /** Whether Column `column` of bar `bar` can take a Beam override: a beamable note with one just before it in the bar (spec Q11). */
-export function canBeam(clip: Part, bar: number, column: number): boolean {
+function canBeam(clip: Part, bar: number, column: number): boolean {
   const columns = clip.bars[bar]?.columns ?? [];
   return column > 0 && !!columns[column] && isBeamable(columns[column]) && isBeamable(columns[column - 1]);
 }

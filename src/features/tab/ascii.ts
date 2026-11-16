@@ -603,7 +603,7 @@ function checkJoins(bars: Bar[], errors: string[]) {
 /* ———————————————————————————— writing ———————————————————————————— */
 
 /** How a note is written: the mark before its position, then the note itself. */
-export function noteText(note: Note, slide: 'up' | 'down' = 'up'): { prefix: string; text: string } {
+function noteText(note: Note, slide: 'up' | 'down' = 'up'): { prefix: string; text: string } {
   let prefix = '';
   if (note.legato) prefix = note.legato;
   else if (note.slide) prefix = slide === 'up' ? '/' : '\\';
@@ -623,7 +623,7 @@ export function noteText(note: Note, slide: 'up' | 'down' = 'up'): { prefix: str
   return { prefix, text };
 }
 
-export function rhythmToken(duration: Duration): string {
+function rhythmToken(duration: Duration): string {
   const letter = Object.keys(RHYTHM_LETTERS).find(k => RHYTHM_LETTERS[k] === duration.value)!;
   return letter + '.'.repeat(duration.dots) + (duration.tuplet ? tupletLabel(duration) : '');
 }
@@ -728,7 +728,7 @@ function writeBlock(bars: Bar[], names: string[], slides: Map<Note, 'up' | 'down
  * each moment some Voice starts a note is a Column, its notes those starting then (the part's own Voice's
  * first on a string both use), lasting until the next such moment.
  */
-export function mergedVoices(clip: Part): Part {
+function mergedVoices(clip: Part): Part {
   if (!clip.bars.some(bar => bar.otherVoices?.some(o => hasNotes(o.columns)))) return clip;
   const bars = clip.bars.map(bar => {
     const others = (bar.otherVoices ?? []).filter(o => hasNotes(o.columns)).map(o => o.columns);

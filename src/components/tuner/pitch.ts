@@ -2,11 +2,11 @@ import { SHARP_NAMES } from '@/lib/music';
 import { mod12 } from '@/lib/theory/notes';
 
 /** Lowest pitch looked for: a little under the low E (82 Hz). */
-export const MIN_HZ = 75;
+const MIN_HZ = 75;
 /** Highest pitch looked for: well over fret 15 on the high e (784 Hz). */
-export const MAX_HZ = 1100;
+const MAX_HZ = 1100;
 /** Quieter than this (RMS of the window) is silence. */
-export const SILENCE_RMS = 0.01;
+const SILENCE_RMS = 0.01;
 /** YIN's threshold: the first lag whose normalised difference dips under it. */
 const YIN_THRESHOLD = 0.15;
 /** With no dip under the threshold, the best lag must still beat this. */

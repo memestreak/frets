@@ -169,7 +169,7 @@ function barStarts(part: Part): number[] {
  * The loop points a call asks for, as the clip counts them, or why they can't be: an end in a bar or
  * column the line hasn't got, or a start after the end.
  */
-export function loopPoints(part: Part, loop: LoopInput): LoopPoints | string {
+function loopPoints(part: Part, loop: LoopInput): LoopPoints | string {
   const starts = barStarts(part);
   const at = (which: 'start' | 'end'): number | string => {
     const end = loop[which];

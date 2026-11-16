@@ -44,7 +44,7 @@ export const PANELS: readonly { id: Exclude<PanelId, 'chords' | 'chat'>; name: s
 export const LAYOUT_KEY = 'frets.tab.layout';
 
 /** A column's width in px: 17rem until its divider is dragged, and never narrower or wider than these. */
-export const PANEL_WIDTH = { start: 272, min: 224, max: 560 } as const;
+const PANEL_WIDTH = { start: 272, min: 224, max: 560 } as const;
 /** A collapsed column's strip, in px. */
 const STRIP_WIDTH = 40;
 /** The clip keeps at least this much width beside a column being widened. */
@@ -127,10 +127,10 @@ const FIRST_LAYOUT: PaletteLayout = {
 };
 
 /** The side `id` is on. */
-export const sideOf = (layout: Pick<PaletteLayout, 'right'>, id: PanelId): Side => (layout.right.includes(id) ? 'right' : 'left');
+const sideOf = (layout: Pick<PaletteLayout, 'right'>, id: PanelId): Side => (layout.right.includes(id) ? 'right' : 'left');
 
 /** The palettes on `side`, top to bottom. */
-export const paletteList = (layout: Pick<PaletteLayout, 'order' | 'right'>, side: Side) =>
+const paletteList = (layout: Pick<PaletteLayout, 'order' | 'right'>, side: Side) =>
   layout.order.filter(id => sideOf(layout, id) === side);
 
 /** What `side` shows: an open column, its strip, or nothing when it has no palettes. */

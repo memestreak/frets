@@ -20,7 +20,7 @@ import { barSelection, growSelection, indexOf, selectedRange, type Selection } f
 import { DEFAULT_FX } from '../effects';
 import type { Hit } from '../hitTest';
 import { isWholeBarRest, layoutClip, type Parts } from '../layout';
-import { LoopHandles, LoopIcon, Playhead, StopIcon, usePlayback, type Loop } from '../PlaybackFooter';
+import { LoopHandles, LoopIcon, Playhead, StopIcon, usePlayback } from '../PlaybackFooter';
 import { DEFAULT_SOUND } from '../playback';
 import { SITE, shareLink } from '../shareLink';
 import { TabClip } from '../TabClip';
@@ -234,4 +234,3 @@ export function ChatTab({ part, view: asked, loop: askedLoop, onOpen, onHeard }:
   );
 }
 
-export type { Loop };

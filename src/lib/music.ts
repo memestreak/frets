@@ -8,13 +8,12 @@ export const TUNING = [40, 45, 50, 55, 59, 64] as const;
 export const isStandardTuning = (tuning: Tuning): boolean =>
   tuning.length === TUNING.length && tuning.every((m, s) => (m - TUNING[s]) % 12 === 0);
 export const STRING_NAMES = ['E', 'A', 'D', 'G', 'B', 'e'] as const;
-export const STRING_COUNT = 6;
 export const STRINGS = [0, 1, 2, 3, 4, 5] as const;
 
 /** Each pitch class with sharps, as shown: "C♯". */
 export const SHARP_NAMES: readonly string[] = SHARP_NOTES.map(prettyNote);
 /** Each pitch class with flats, as shown: "D♭". */
-export const FLAT_NAMES: readonly string[] = FLAT_NOTES.map(prettyNote);
+const FLAT_NAMES: readonly string[] = FLAT_NOTES.map(prettyNote);
 /** Both spellings on one label: "C♯/D♭". */
 export const NOTE_LABELS = SHARP_NAMES.map((s, i) =>
   s === FLAT_NAMES[i] ? s : `${s}/${FLAT_NAMES[i]}`,
@@ -82,5 +81,5 @@ export const sameSpot = (a: Spot, b: Spot): boolean =>
   a.s === b.s && a.f === b.f;
 
 export type Rng = () => number;
-export const randInt = (rng: Rng, n: number): number => Math.floor(rng() * n);
+const randInt = (rng: Rng, n: number): number => Math.floor(rng() * n);
 export const pick = <T>(rng: Rng, a: readonly T[]): T => a[randInt(rng, a.length)];
