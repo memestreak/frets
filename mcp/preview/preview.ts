@@ -13,6 +13,7 @@ import tab from '../dist/tab.html?raw';
 import tuner from '../dist/tuner.html?raw';
 import { createFretsServer } from '@/mcp/server';
 import { PRESETS } from './presets';
+import { entryTitle, forModel, megabytes, pretty, sections, tokens } from './format';
 import { TOOL_NAME as METRONOME } from '@/features/metronome/mcp/tool';
 import { TOOL_NAME as TAB } from '@/features/tab/mcp/tool';
 import { TOOL_NAME as TUNER } from '@/features/tuner/mcp/tool';
@@ -64,53 +65,6 @@ function fillSections(entry: HTMLElement, detail: Record<string, unknown>) {
     entry.append(head, pre);
   }
 }
-/** A log line: the MCP method, then what it's about, e.g. `tools/call · show_tab #2 (~180 tokens)`. */
-const entryTitle = (method: string, about: string) => `${method} · ${about}`;
-/** What a host passes on to the model: everything but `_meta`, which is for the host and the app. */
-const forModel = (message: Record<string, unknown>) => {
-  const seen = { ...message };
-  delete seen._meta;
-  return seen;
-};
-/**
- * A message split into what each part is: a result's or update's text (`content`) and its
- * structured data (`structuredContent`); a tool's description and input schema; then the rest; and
- * last, `_meta`, which the host keeps from the model (a tool's app's `ui://` address is in it).
- */
-function sections(message: Record<string, unknown>, width: number): { title: string; body: string }[] {
-  const json = (value: unknown) => pretty(value, width);
-  const out: { title: string; body: string }[] = [];
-  const { _meta: meta, ...rest } = message;
-  if (Array.isArray(rest.content)) {
-    const parts = rest.content as { type: string; text?: string }[];
-    out.push({ title: 'Text (content)', body: parts.map(c => (c.type === 'text' ? c.text : json(c))).join('\n\n') });
-    delete rest.content;
-  }
-  if ('structuredContent' in rest) {
-    out.push({ title: 'Structured data (structuredContent)', body: json(rest.structuredContent) });
-    delete rest.structuredContent;
-  }
-  if (typeof rest.instructions === 'string') {
-    out.push({ title: 'Instructions', body: rest.instructions });
-    delete rest.instructions;
-  }
-  if (typeof rest.description === 'string') {
-    out.push({ title: 'Description', body: rest.description });
-    delete rest.description;
-  }
-  if ('inputSchema' in rest) {
-    out.push({ title: 'Input schema (inputSchema)', body: json(rest.inputSchema) });
-    delete rest.inputSchema;
-  }
-  const others = Object.entries(rest).filter(([, v]) => v !== undefined);
-  if (others.length) out.push({ title: out.length ? 'Also' : 'Message', body: json(Object.fromEntries(others)) });
-  if (meta !== undefined) out.push({ title: 'Host only (_meta), not sent to the model', body: json(meta) });
-  return out;
-}
-/** An app's size, as its HTML's UTF-8 bytes, e.g. `4.0 MB`. */
-const megabytes = (html: string) => `${(new TextEncoder().encode(html).length / 1e6).toFixed(1)} MB`;
-/** A rough token count (about 4 characters a token), for a sense of what a tool costs. */
-const tokens = (value: unknown) => `~${Math.round(JSON.stringify(value).length / 4)} tokens`;
 
 const HOST = { name: 'Frets preview host', version: '1.0.0' };
 let theme: McpUiTheme = new URLSearchParams(location.search).get('theme') === 'dark' ? 'dark' : 'light';
@@ -146,18 +100,6 @@ for (const name of [METRONOME, TAB, TUNER]) {
   log(entryTitle('resources/read', `${uri} (${megabytes(html)}, host only)`), {
     uri: content.uri, mimeType: content.mimeType, size: megabytes(html), _meta: content._meta,
   });
-}
-
-/** JSON, indented, but with each object or array that fits in `width` characters kept on one line. */
-function pretty(value: unknown, width = 72, indent = ''): string {
-  const flat = JSON.stringify(value);
-  if (value === null || typeof value !== 'object' || indent.length + flat.length <= width) return flat;
-  const inner = `${indent}  `;
-  const lines = Array.isArray(value)
-    ? value.map(v => inner + pretty(v, width, inner))
-    : Object.entries(value).filter(([, v]) => v !== undefined).map(([k, v]) => `${inner}${JSON.stringify(k)}: ${pretty(v, width, inner)}`);
-  const [open, close] = Array.isArray(value) ? ['[', ']'] : ['{', '}'];
-  return `${open}\n${lines.join(',\n')}\n${indent}${close}`;
 }
 
 /** A call's arguments: one line, which opens to the whole call, pretty-printed. */
