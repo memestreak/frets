@@ -1,7 +1,8 @@
 /** The tab's own rhythm under the strings (when no staff carries it): stems, beams, flags and rests. */
 
 import { type ReactNode } from 'react';
-import { isRest, TREMOLO_VALUES, tupletGroups, tupletLabel, type Column } from './clip';
+import { isRest, TREMOLO_VALUES, tupletLabel, type Column } from './clip';
+import { tupletGroups } from './clipProblems';
 import { wholeRestX, type PlacedBar, type PlacedColumn } from './layout';
 import { type Rows } from './rows';
 import { beamGroups } from './beams';

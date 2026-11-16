@@ -5,10 +5,8 @@
  * bar's Marks go to the bar line nearest to where its music now starts; a Source bar line that no
  * longer falls on a bar line misses a downbeat, and the misses are reported in runs. Pure; no React.
  */
-import {
-  barLength, barNumber, barSpan, barTicks, beatGroupsAt, hasNotes, listed, meterOffset, partOf, timeAt, timeInWords, trackName,
-  withTrackParts, type Bar, type Clip, type Column, type MasterBar, type TimeSignature, type TrackBar,
-} from './clip';
+import { barLength, barNumber, barSpan, barTicks, beatGroupsAt, hasNotes, meterOffset, partOf, timeAt, trackName, withTrackParts, type Bar, type Clip, type Column, type MasterBar, type TimeSignature, type TrackBar } from './clip';
+import { listed, timeInWords } from './clipProblems';
 import { layVoices, writtenByMeter, type Span } from './timeline';
 
 /** A Source bar line that misses a downbeat, in one Voice of one Track. */

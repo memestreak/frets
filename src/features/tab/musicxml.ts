@@ -6,11 +6,8 @@
  * Pure: `writeMusicXml` gives the file's text, `musicXmlLosses` what the file can't hold.
  */
 import { syllableOf } from './lyrics';
-import {
-  barNumber, barTicks, bendCarries, hasNotes, hasPickup, columnAccent, columnMordent, isLetRing, isPalmMuted, isRest, keyAt, partOf,
-  beatGroupsAt, spanOf, startsFreeTime, STRING_COUNT, ticks, timeAt, tupletGroups, WHOLE, barsPerLine, changesKey, changesTime,
-  type Bar, type Clip, type Column, type Note, type NoteValue, type Ottava, type Part, type TimeSignature,
-} from './clip';
+import { barNumber, barTicks, bendCarries, hasNotes, hasPickup, columnAccent, columnMordent, isLetRing, isPalmMuted, isRest, keyAt, partOf, beatGroupsAt, spanOf, startsFreeTime, STRING_COUNT, ticks, timeAt, WHOLE, barsPerLine, changesKey, changesTime, type Bar, type Clip, type Column, type Note, type NoteValue, type Ottava, type Part, type TimeSignature } from './clip';
+import { tupletGroups } from './clipProblems';
 import { diagramOf, gridFrets, type ShapedChord } from './chordDiagrams';
 import { beamGroups } from './beams';
 import { headerValue, creditsOf, CREDIT_TAGS } from './credits';

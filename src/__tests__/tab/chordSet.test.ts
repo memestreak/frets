@@ -7,7 +7,8 @@ import { writeAlphaTex } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { setChordName } from '@/features/tab/barEdits';
 import { chordDefOf, chordSet, withChordShape, withNewChord, withRenamedChord, type ChordDef } from '@/features/tab/chordSet';
-import { parseClip, partOf, withPart, type Clip } from '@/features/tab/clip';
+import { partOf, withPart, type Clip } from '@/features/tab/clip';
+import { parseClip } from '@/features/tab/clipParse';
 import { readChordName } from '@/lib/theory/chordSearch';
 
 function read(text: string): { clip: Clip; warnings: string[] } {

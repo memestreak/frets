@@ -5,7 +5,8 @@
  * changes nothing, and its errors go back to the model to fix.
  */
 import { alphaTexTracks, writeAlphaTex } from '../alphatex';
-import { barErrors, partOf, type Clip } from '../clip';
+import { partOf, type Clip } from '../clip';
+import { barErrors } from '../clipProblems';
 import type { ReadResult } from '../ascii';
 
 /** Where the viewer is on the page, for the model to know what "here" and "these bars" mean. */

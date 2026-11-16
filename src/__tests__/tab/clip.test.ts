@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { beatTicks, isStandardTuningNames, isTimeSignature, parseClip, WHOLE, asClip, type Part } from '@/features/tab/clip';
+import { beatTicks, isStandardTuningNames, isTimeSignature, WHOLE, asClip, type Part } from '@/features/tab/clip';
+import { parseClip } from '@/features/tab/clipParse';
 
 describe('time signatures', () => {
   it('hold 1 to 32 beats over 2, 4, 8, 16 or 32', () => {

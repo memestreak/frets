@@ -8,7 +8,8 @@
  * the rest's, so a 16th grid lands on the bar's 16ths whatever came before. Pure; a grid is passed as
  * its step in ticks.
  */
-import { barLength, beatGroupsAt, fewestRests, NOTE_VALUES, ticks, timeAt, tupletGroups, type Bar, type Duration, type NoteValue, type Part } from './clip';
+import { barLength, beatGroupsAt, fewestRests, NOTE_VALUES, ticks, timeAt, type Bar, type Duration, type NoteValue, type Part } from './clip';
+import { tupletGroups } from './clipProblems';
 import { emptyColumn, isPlainRest, normalize, replaceBar, type Cursor } from './editing';
 import { emptyBarRests, tupletKind, tupletRests } from './sounding';
 import type { Layout, PlacedBar, PlacedColumn } from './layout';

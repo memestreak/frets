@@ -105,10 +105,15 @@ and in its spec.
   (signatures, repeats, tempo, sections), each track's bars holding up to
   four Voices; `Part` is one Voice of one track with those marks, the
   other Voices carried read-only (`otherVoices`), made by `partOf` and put
-  back by `withPart`; `stringClashes` for the
-  line under the clip; `parseClip`, `timeAt`, `titled`, `barsPerLine`,
-  `bendRaises`, `bendLandings` — `2026-10-26-tab-rhythm-design.md`,
+  back by `withPart`; `timeAt`, `titled`, `barsPerLine`, `bendRaises`,
+  `bendLandings` — `2026-10-26-tab-rhythm-design.md`,
   `2026-10-30-tab-tracks-design.md`, `2026-11-03-tab-voices-design.md`.
+- `clipProblems.ts` — a bar's problems in words: `barErrors` (the ⚠ tip
+  under a bar), `unevenMessage`, `brokenTupletMessage` and `stringClashes`
+  (the line under the clip), `timeInWords`, `tupletProblems`,
+  `tupletGroups` — `2026-10-29-tab-uneven-bar-amounts-design.md`.
+- `clipParse.ts` — `parseClip`, a clip read back from storage checked
+  field by field, and the validators it uses.
 - `clipState.ts` — the clip with undo and redo, which arrangement it is,
   and the clip as last saved (`base`), so undoing back to it leaves nothing
   unsaved; `amend` joins a change to the last undo step (a Chat reply's later changes); `sameMusic` lets an FX change play on without a stop.

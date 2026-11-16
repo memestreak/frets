@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
-import { barErrors, dynamicOf, type Part } from './clip';
+import { dynamicOf, type Part } from './clip';
+import { barErrors } from './clipProblems';
 import { columnAt, indexOf, withRestsInEmptyBars, type Cursor } from './editing';
 import { setBarKey, setBarTime, setBeatGroups, setPickup, setBeatText, setChordName, setDynamic, setEnding, setRepeatTimes, setSection } from './barEdits';
 import { BarKeyPanel } from './BarKeyPanel';

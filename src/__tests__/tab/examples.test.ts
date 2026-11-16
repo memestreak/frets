@@ -5,7 +5,8 @@
 import * as alphaTab from '@coderline/alphatab';
 import { writeAlphaTex } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
-import { unevenMessage, partOf } from '@/features/tab/clip';
+import { partOf } from '@/features/tab/clip';
+import { unevenMessage } from '@/features/tab/clipProblems';
 import { builtinsFrom, folderTitle, SAMPLES_FOLDER } from '@/features/tab/builtins';
 import { readBuiltinFiles } from '@/__tests__/tab/testArrangements';
 import { reBarImport } from '@/features/tab/reBarImport';

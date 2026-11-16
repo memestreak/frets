@@ -1,7 +1,8 @@
 import { readFileSync } from 'fs';
 import path from 'path';
 import { readAscii, writeAscii } from '@/features/tab/ascii';
-import { BEND_QUARTERS, isPalmMuted, NOTE_VALUES, SHORTEST_DOTTED, STANDARD_TUNING, ticks, TUPLETS, unevenMessage, type Bar, type Column, type Duration, type Note, type Part, partOf } from '@/features/tab/clip';
+import { BEND_QUARTERS, isPalmMuted, NOTE_VALUES, SHORTEST_DOTTED, STANDARD_TUNING, ticks, TUPLETS, type Bar, type Column, type Duration, type Note, type Part, partOf } from '@/features/tab/clip';
+import { unevenMessage } from '@/features/tab/clipProblems';
 import { seededRng } from '../helpers/rng';
 
 /** The worked examples in section 8 of the format's definition, as written there. */

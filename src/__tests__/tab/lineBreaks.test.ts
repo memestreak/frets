@@ -3,7 +3,8 @@ import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { writeAlphaTex, writePart } from '@/features/tab/alphatex';
 import { layoutClip } from '@/features/tab/layout';
-import { barsPerLine, parseClip, type Part, partOf, asClip } from '@/features/tab/clip';
+import { barsPerLine, type Part, partOf, asClip } from '@/features/tab/clip';
+import { parseClip } from '@/features/tab/clipParse';
 import { DEFAULT_VIEW, laidOut, parseNotation } from '@/features/tab/viewOptions';
 
 const read = (text: string) => readAlphaTexWith(alphaTab, text);

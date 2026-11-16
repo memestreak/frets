@@ -4,10 +4,8 @@
  * changed or typed inside one, and a grace note added before a note. A tuplet is still a mark on each
  * of its Columns (alphaTex `{tu n}`), a grace note a Column that takes no time (`{gr}`). Pure; no React.
  */
-import {
-  STRING_COUNT, ticks, tupletGroups, TUPLET_SPANS,
-  type Bar, type Column, type Duration, type NoteValue, type Part,
-} from './clip';
+import { STRING_COUNT, ticks, TUPLET_SPANS, type Bar, type Column, type Duration, type NoteValue, type Part } from './clip';
+import { tupletGroups } from './clipProblems';
 import { columnAt, cursorTime, emptyColumn, normalize, placeOf, replaceBar, selectedRange, without, type Cursor, type Target } from './editing';
 import { chainDuration, chainTicks, lengthAnchor, type Place } from './ties';
 import { graceValues, isBareRest, tupletKind as kindOf, tupletRests } from './sounding';

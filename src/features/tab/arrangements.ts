@@ -5,7 +5,8 @@
  * change) and names the open one; each clip has a key of its own. The open clip, while it has unsaved
  * changes or was never saved, is kept under `DRAFT_KEY` so a reload brings it back as it was.
  */
-import { emptyClip, parseClip, titled, type Clip } from './clip';
+import { emptyClip, titled, type Clip } from './clip';
+import { parseClip } from './clipParse';
 import { loadJson, saveJson } from '@/lib/storage';
 
 /** The index: which arrangement is open, and every kept one. */

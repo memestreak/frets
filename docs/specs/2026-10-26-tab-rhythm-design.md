@@ -151,7 +151,7 @@ the capo once, and the facts line. All 16 checks passed.
 A tuplet whose run of columns isn't a whole number of groups (a triplet
 member deleted) is an error until it is whole again. A run is counted in
 its shortest note, so a quarter and an eighth make a whole triplet
-(`tupletProblems` in `clip.ts`). Every bar with an error (it doesn't add
+(`tupletProblems` in `clipProblems.ts`). Every bar with an error (it doesn't add
 up, or a tuplet in it isn't whole) gets a small triangle with "!" in the
 danger colour under its start; its one-second tip (`HoverTips`) says what
 is wrong (`barErrors`). The page draws it, an exported image never does.
@@ -159,7 +159,7 @@ The same words stay in the line under the clip, for touch screens and
 screen readers.
 
 Each tuplet group's number ("3", "9", "3:4") sits under its middle
-(`tupletGroups` in `clip.ts`). When one beam doesn't already join the whole
+(`tupletGroups` in `clipProblems.ts`). When one beam doesn't already join the whole
 group (a rest in it, quarter notes, or a lone note), a bracket across every
 member, rests included, has the number in a gap (Jeremy, 2026-10-26: a "3"
 not joined to three notes looked wrong, and a bracket under a beamed group

@@ -5,9 +5,9 @@
 import * as alphaTab from '@coderline/alphatab';
 import { writeAlphaTex } from '@/features/tab/alphatex';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
-import {
-  barErrors, parseClip, partOf, stringClashes, unevenMessage, withPart, type Clip, type Column,
-} from '@/features/tab/clip';
+import { partOf, withPart, type Clip, type Column } from '@/features/tab/clip';
+import { barErrors, stringClashes, unevenMessage } from '@/features/tab/clipProblems';
+import { parseClip } from '@/features/tab/clipParse';
 import { deleteColumns } from '@/features/tab/editing';
 import { clearToRests } from '@/features/tab/noteEdits';
 import { writeGuitarProWith } from '@/features/tab/guitarPro';
