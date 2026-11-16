@@ -50,9 +50,10 @@ describe('the Chord set in alphaTex', () => {
     const text = '\\ts (4 4)\n\\chord ("A" 0 2 2 2 0 x)\n\\chord ("A" 5 5 6 7 7 5)\n0.5.4{ch "A"} r.4 r.2 |\n';
     const { clip } = read(text);
     const set = chordSet(clip.tracks[0]);
+    // The used one first; the earlier, unused one goes with the unused chords.
     expect(set.map(e => [e.name, e.def?.frets, e.uses])).toEqual([
-      ['A', [0, 2, 2, 2, 0, null], 0],
       ['A', [5, 5, 6, 7, 7, 5], 1],
+      ['A', [0, 2, 2, 2, 0, null], 0],
     ]);
     expect(chordDefOf(clip.tracks[0].chords, 'A')?.frets).toEqual([5, 5, 6, 7, 7, 5]);
     expect(writeAlphaTex(clip)).toBe(text);
@@ -121,9 +122,10 @@ describe('typed names', () => {
     part = setChordName(part, { bar: 0, column: 0, string: 0 }, 'Dm7');
     part = setChordName(part, { bar: 0, column: 1, string: 0 }, 'Am7');
     const edited = withPart(clip, part);
+    // Dm7 is over the first column, so it comes first.
     expect(chordSet(edited.tracks[0]).map(e => [e.name, e.def ? 'shape' : 'no shape', e.uses])).toEqual([
-      ['Am7', 'shape', 1],
       ['Dm7', 'no shape', 1],
+      ['Am7', 'shape', 1],
     ]);
     // The new name is written as its symbol alone; the definitions stay.
     expect(writeAlphaTex(edited)).toBe('\\ts (4 4)\n\\chord ("Am7" 0 1 0 2 0 x)\n0.5.4{ch "Dm7"} r.4{ch "Am7"} r.2 |\n');
@@ -199,5 +201,50 @@ describe('changing the Chord set from the Chords panel (issue #251)', () => {
     // A name already taken, by a definition or a column, renames nothing.
     expect(withRenamedChord(part, 'G', 'C')).toBe(part);
     expect(withRenamedChord(next, 'G barre', 'G barre')).toBe(next);
+  });
+});
+
+describe('the Chord set in the order of first use (issue #522)', () => {
+  const names = (text: string) => chordSet(read(text).clip.tracks[0]).map(e => [e.name, e.uses]);
+
+  it('lists used chords as the music first plays them, then unused ones in the order written', () => {
+    const text = [
+      '\\ts (4 4)',
+      '\\chord ("G" 3 0 0 0 2 3)',
+      '\\chord ("C" 0 1 0 2 3 x)',
+      '\\chord ("D" 2 3 2 0 x x)',
+      '\\chord ("Am" 0 1 2 2 0 x)',
+      'r.4{ch "C"} r.4{ch "Am"} r.2 | r.2{ch "G"} r.2{ch "C"} |',
+      '',
+    ].join('\n');
+    expect(names(text)).toEqual([['C', 2], ['Am', 1], ['G', 1], ['D', 0]]);
+  });
+
+  it('puts a name only typed at its first use, among the defined ones', () => {
+    const text = '\\ts (4 4)\n\\chord ("G" 3 0 0 0 2 3)\n\\chord ("E" 0 0 1 2 2 0)\nr.4{ch "N.C."} r.4{ch "G"} r.2{ch "Em"} |\n';
+    expect(names(text)).toEqual([['N.C.', 1], ['G', 1], ['Em', 1], ['E', 0]]);
+  });
+
+  it('orders by time in the bar across Voices, the first Voice first at a tie', () => {
+    const text = '\\voiceMode barWise \\ts (4 4) \\voice 0.1.2 0.1.4{ch "D"} 0.1.4 \\voice 0.6.4{ch "A"} 0.6.4 0.6.4{ch "B"} 0.6.4 |';
+    // Voice 2 holds A on beat 1 and B on beat 3, where voice 1 has D: A, then D before B.
+    const clip = read(text).clip;
+    expect(clip.tracks[0].bars[0].voices.length).toBe(2);
+    expect(chordSet(clip.tracks[0]).map(e => e.name)).toEqual(['A', 'D', 'B']);
+  });
+
+  it("puts a grace note's chord before the chord on the beat it leads into", () => {
+    const text = '\\ts (4 4)\nr.4 0.5.16{gr ch "F"} 0.5.4{ch "G"} r.2 |\n';
+    expect(names(text)).toEqual([['F', 1], ['G', 1]]);
+  });
+
+  it('moves an unused chord to its first use once a column names it', () => {
+    const { clip } = read('\\ts (4 4)\n\\chord ("G" 3 0 0 0 2 3)\n\\chord ("C" 0 1 0 2 3 x)\nr.4{ch "C"} r.4 r.2 |\n');
+    expect(chordSet(clip.tracks[0]).map(e => e.name)).toEqual(['C', 'G']);
+    const bars = clip.tracks[0].bars.map(bar => ({
+      ...bar,
+      voices: bar.voices.map(voice => voice.map((c, i) => (i === 1 ? { ...c, chord: 'G' } : c))),
+    }));
+    expect(chordSet({ ...clip.tracks[0], bars }).map(e => [e.name, e.uses])).toEqual([['C', 1], ['G', 1]]);
   });
 });
