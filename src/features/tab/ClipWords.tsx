@@ -143,12 +143,12 @@ function columnWords(system: System, rows: Rows, word: WordHit | null, plain: Ta
         const textRow = textRowOf(rows, placed);
         if (!placed.column.text || textRow === null) continue;
         const look = lookOf({ kind: 'text', index: placed.index });
-        // Each line a tspan, and in it a tspan per bold run (issue #446). An empty line (two new lines,
+        // Upright, not italic (Jeremy, 2026-11-21). Each line a tspan, and in it a tspan per bold run (issue #446). An empty line (two new lines,
         // issue #445) holds a no-break space, as an empty tspan would not move down.
         const { runs } = beatTextLines(placed.column.text, placed.textLines);
         parts.push(
           <text
-            key={`text-${placed.index}`} x={placed.x - BEAT_TEXT_INSET} y={textRow + placed.textTop * BEAT_TEXT_LINE + 4} fontSize={BEAT_TEXT_SIZE} fontStyle="italic"
+            key={`text-${placed.index}`} x={placed.x - BEAT_TEXT_INSET} y={textRow + placed.textTop * BEAT_TEXT_LINE + 4} fontSize={BEAT_TEXT_SIZE}
             fill={look.ink} data-testid="beat-text"
           >
             {runs.map((line, k) => (

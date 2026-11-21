@@ -16,7 +16,7 @@ lyrics.
 ## Bold
 
 - `**words**` and `__words__` are drawn bold (weight 700, the Text's
-  italics and ink kept); the marks are not drawn.
+  ink kept; a Text is drawn upright since 2026-11-21); the marks are not drawn.
 - Nothing else is read: `*one star*`, `_one underscore_`, `***three***`,
   `` `code` ``, `~~strike~~`, links and an unclosed or empty `**` are
   drawn as typed. `_` inside a word (snake_case) stays as typed.

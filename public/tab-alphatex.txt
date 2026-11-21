@@ -284,7 +284,7 @@ then "." and its duration:
                Put it on the beat it is written over; a chord name may
                be anything ("N.C.", "Am7(b5)"). A \chord of the same
                name, case and all, gives it its shape.
-    txt "..."  free text over the beat, drawn in italics from that beat
+    txt "..."  free text over the beat, drawn upright from that beat
                rightward: 0.1.1{txt "let ring, slowing"}. A long text
                wraps at its spaces onto more lines, before the next
                beat's text or the right edge, and after about 60

@@ -492,8 +492,8 @@ export const ICONS: Record<Exclude<ToolId, 'bend' | 'vibrato' | 'tuplet' | 'wah'
   repeatEnd: <><line x1={18} y1={4} x2={18} y2={20} strokeWidth={3} /><line x1={14} y1={4} x2={14} y2={20} /><circle cx={9} cy={9.5} r={1.6} fill="currentColor" stroke="none" /><circle cx={9} cy={14.5} r={1.6} fill="currentColor" stroke="none" /></>,
   ending: <><path d="M4 20 V6 H20" /><Label x={10} y={16} size={10}>1.</Label></>,
   chordName: <Label y={16} size={10}>Am</Label>,
-  // Words in italics, as free text is drawn over the tab.
-  beatText: <text x={12} y={16} fontSize={10} fontStyle="italic" fill="currentColor" stroke="none" textAnchor="middle">abc</text>,
+  // Upright words, as text annotations are drawn over the tab.
+  beatText: <text x={12} y={16} fontSize={10} fill="currentColor" stroke="none" textAnchor="middle">abc</text>,
   // A syllable joined to the next, as Lyrics are drawn under the notes.
   lyrics: <text x={12} y={16} fontSize={9} fill="currentColor" stroke="none" textAnchor="middle">la-la</text>,
   section: <><rect x={3} y={7} width={18} height={11} rx={1.5} /><Label y={15.5} size={7.5}>Intro</Label></>,
