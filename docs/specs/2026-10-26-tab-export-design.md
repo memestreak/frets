@@ -64,6 +64,8 @@ For PNG and SVG the dialog also shows, as the Chords page's does:
   - **Transparent background:** Off (default, white behind the tab) or On.
   - **Clip name:** Show (default) or Hide, above the tab. The name is the
     clip's own; it can't be changed in the dialog.
+  - **Bar numbers:** As in the song (default), From 1 or Hide, and for
+    some bars **Start with** (`docs/specs/2026-11-21-tab-export-bars-design.md`).
 
 The Chords dialog's Colours and Intervals choices have no meaning for tab,
 so they are left out. The image is black ink, as the chords' black and

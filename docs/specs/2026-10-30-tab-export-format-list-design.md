@@ -30,6 +30,11 @@ From top to bottom:
      its white rectangle, PNG its white pixels).
    - **Clip name** Show | Hide. The name is the clip's own; the dialog no
      longer has a field to change it for one export.
+   - **Bar numbers** As in the song | From 1 | Hide
+     (`docs/specs/2026-11-21-tab-export-bars-design.md`).
+   - Opened on some bars from the right-click menu, the heading names them
+     and a **Start with** row (Key, Time signature, Tempo) shows for every
+     format (the same spec).
 5. The status line on the left; on the right **Copy** and **Download**
    (primary).
    - **Download** saves the picked format through `saveFile.ts`, the same

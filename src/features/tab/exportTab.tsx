@@ -26,12 +26,27 @@ export interface TabExportStyle {
   transparent: boolean;
   /** The clip's name above the tab. */
   name: boolean;
+  /**
+   * The images' bar numbers: as the song numbers them (an image of bars 9–12 reads 9 to 12), from 1, or
+   * none. Shown as the View options draw them unless hidden here.
+   */
+  barNumbers: ExportBarNumbers;
+  /** Selected bars start with the key, time signature (with its Beat groups) and tempo in force there; off, only what their first bar sets itself. */
+  startKey: boolean;
+  startTime: boolean;
+  startTempo: boolean;
 }
+
+export const EXPORT_BAR_NUMBERS = ['song', 'one', 'hide'] as const;
+export type ExportBarNumbers = (typeof EXPORT_BAR_NUMBERS)[number];
+export const EXPORT_BAR_NUMBER_NAMES: Record<ExportBarNumbers, string> = { song: 'As in the song', one: 'From 1', hide: 'Hide' };
 
 export const TAB_EXPORT_WIDTHS = [480, 640, 800, 1000, 1200] as const;
 export type TabExportWidth = (typeof TAB_EXPORT_WIDTHS)[number];
 
-export const DEFAULT_TAB_EXPORT: TabExportStyle = { width: 800, transparent: false, name: true };
+export const DEFAULT_TAB_EXPORT: TabExportStyle = {
+  width: 800, transparent: false, name: true, barNumbers: 'song', startKey: true, startTime: true, startTempo: true,
+};
 
 /** Saved choices, with a default for any field missing or invalid. */
 export function parseTabExportStyle(raw: unknown): TabExportStyle {
@@ -41,7 +56,16 @@ export function parseTabExportStyle(raw: unknown): TabExportStyle {
     width: TAB_EXPORT_WIDTHS.find(w => w === o.width) ?? d.width,
     transparent: typeof o.transparent === 'boolean' ? o.transparent : d.transparent,
     name: typeof o.name === 'boolean' ? o.name : d.name,
+    barNumbers: EXPORT_BAR_NUMBERS.find(b => b === o.barNumbers) ?? d.barNumbers,
+    startKey: typeof o.startKey === 'boolean' ? o.startKey : d.startKey,
+    startTime: typeof o.startTime === 'boolean' ? o.startTime : d.startTime,
+    startTempo: typeof o.startTempo === 'boolean' ? o.startTempo : d.startTempo,
   };
+}
+
+/** The View options an image is drawn with: the page's, its bar numbers hidden when the Export choices hide them. */
+export function exportView(view: TabView, style: TabExportStyle): TabView {
+  return style.barNumbers === 'hide' ? { ...view, barNumbers: 'none' } : view;
 }
 
 /** Black ink, as the chord export's black and white: an image is printed or pasted anywhere. */

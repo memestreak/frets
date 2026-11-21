@@ -449,7 +449,11 @@ ties, bends, grace notes, mordents, wah, fermatas and free time.
 - `exportTab.tsx` — the clip as PNG and SVG, with the score head, and the
   Export section's settings — `2026-10-26-tab-export-design.md`.
 - `TabExportDialog.tsx` — Export: one Format list and one Download, Copy
-  for the formats that paste — `2026-10-30-tab-export-format-list-design.md`.
+  for the formats that paste — `2026-10-30-tab-export-format-list-design.md`;
+  on some bars, from the right-click menu's Export options….
+- `barExport.ts` — some bars cut from the whole clip for Copy as PNG and
+  Export options… (`clipOfBars`, their numbers, `imagePart`) —
+  `2026-11-21-tab-export-bars-design.md`.
 - `musicxml.ts` — the clip as MusicXML 4.0, `musicXmlLosses` —
   `2026-10-30-tab-musicxml-export-design.md`.
 - `guitarPro.ts` — the clip as a `.gp` file via alphaTab's `Gp7Exporter` —
@@ -543,6 +547,9 @@ or saved. Standard tuning only.
   `mcp/dist/tab.html`.
 
 ## Specs
+
+- `docs/specs/2026-11-21-tab-export-bars-design.md`: the right-click menu's
+  Copy as PNG and Export options… on selected bars (issue #532)
 
 The principles every editing spec since step 1 follows, with Dorico,
 MuseScore and Guitar Pro 8 compared: `docs/tab-editing-principles.md`.

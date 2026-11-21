@@ -29,7 +29,7 @@ import {
   DEFAULT_COLOURS, DEFAULT_NOTATION, MAX_SIZE, MIN_SIZE, NOTATION_KEY, SIZE_STEP, parseAlphaTex, parseAscii, parseColours,
   parseNotation, type AlphaTexPrefs, type AsciiPrefs, type ColourPrefs, type Colours, type NotationPrefs,
 } from './viewOptions';
-import { DEFAULT_TAB_EXPORT, TAB_EXPORT_KEY, TAB_EXPORT_WIDTHS, parseTabExportStyle, type TabExportStyle } from './exportTab';
+import { DEFAULT_TAB_EXPORT, EXPORT_BAR_NUMBERS, EXPORT_BAR_NUMBER_NAMES, TAB_EXPORT_KEY, TAB_EXPORT_WIDTHS, parseTabExportStyle, type ExportBarNumbers, type TabExportStyle } from './exportTab';
 import { PARTS, type Parts } from './layout';
 import { DEFAULT_EDITING, EDITING_KEY, parseEditing, type ChordNames, type EditingPrefs } from './editingPrefs';
 import { DEFAULT_IMPORT, IMPORT_KEY, parseImportPrefs, type ImportPrefs } from './importPrefs';
@@ -403,6 +403,10 @@ export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: Playback
           choiceField('width', 'Size (px wide)', TAB_EXPORT_WIDTHS.map(w => [w, String(w)] as const)),
           twoWayField('transparent', 'Transparent background', 'On', 'Off'),
           twoWayField('name', 'Clip name', 'Show', 'Hide'),
+          choiceField<TabExportStyle, 'barNumbers', ExportBarNumbers>('barNumbers', 'Bar numbers', EXPORT_BAR_NUMBERS.map(b => [b, EXPORT_BAR_NUMBER_NAMES[b]] as const)),
+          checkField('startKey', 'Selected bars start with the key'),
+          checkField('startTime', 'Selected bars start with the time signature'),
+          checkField('startTempo', 'Selected bars start with the tempo'),
         ],
       }),
       section<ChatPrefs>({
