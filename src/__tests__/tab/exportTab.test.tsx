@@ -3,7 +3,7 @@ import { readAscii } from '@/features/tab/ascii';
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import {
-  DEFAULT_TAB_EXPORT, parseTabExportStyle, tabFileName, tabImageSize, tabSvg,
+  DEFAULT_TAB_EXPORT, exportedClip, parseTabExportStyle, tabFileName, tabImageSize, tabSvg,
 } from '@/features/tab/exportTab';
 import { DEFAULT_VIEW } from '@/features/tab/viewOptions';
 import { type Clip, partOf } from '@/features/tab/clip';
@@ -26,6 +26,9 @@ describe('parseTabExportStyle', () => {
     expect(parseTabExportStyle({ barNumbers: 'one', startKey: false, startTime: false, startTempo: false }))
       .toEqual({ ...DEFAULT_TAB_EXPORT, barNumbers: 'one', startKey: false, startTime: false, startTempo: false });
     expect(parseTabExportStyle({ barNumbers: 'every', startKey: 'no' })).toEqual(DEFAULT_TAB_EXPORT);
+    expect(parseTabExportStyle({ timeSignatures: false, tabLetters: false, texts: false }))
+      .toEqual({ ...DEFAULT_TAB_EXPORT, timeSignatures: false, tabLetters: false, texts: false });
+    expect(parseTabExportStyle({ timeSignatures: 'no', tabLetters: 0, texts: null, barNumbers: 'song' })).toEqual(DEFAULT_TAB_EXPORT);
     expect(parseTabExportStyle({ width: 700, transparent: 'yes' })).toEqual(DEFAULT_TAB_EXPORT);
   });
 });
@@ -88,5 +91,54 @@ describe('the tab as an image', () => {
   it('names its file safely', () => {
     expect(tabFileName('My riff: take 2')).toBe('My_riff__take_2');
     expect(tabFileName('')).toBe('Tab');
+  });
+});
+
+describe('what an export leaves out (issue #532)', () => {
+  const read = (text: string) => {
+    const result = readAlphaTexWith(alphaTab, text);
+    if (!result.ok) throw new Error(result.errors.join('\n'));
+    return result.clip;
+  };
+  const texted = read('\\ts (4 4)\n0.6.2{txt "let ring"} 2.6.2 |\n\\ts (3 4) 3.6.2{d txt "slowly"} |');
+  const svgOf = (style: Partial<typeof DEFAULT_TAB_EXPORT>, parts: 'tab' | 'both' = 'tab') => {
+    const host = document.createElement('div');
+    host.innerHTML = tabSvg(partOf(texted), { ...DEFAULT_TAB_EXPORT, name: false, ...style }, 'Riff', parts);
+    return host;
+  };
+  const letters = (host: Element) => [...host.querySelectorAll('text')].filter(t => ['T', 'A', 'B'].includes(t.textContent ?? '')).length;
+  const firstFret = (host: Element) => Math.min(...[...host.querySelectorAll('text')].filter(t => t.textContent === '0').map(t => Number(t.getAttribute('x'))));
+
+  it('leaves out every time signature of the tab alone, and the room for it', () => {
+    const shown = svgOf({});
+    const bare = svgOf({ timeSignatures: false });
+    expect(shown.querySelectorAll('[data-testid="time-signature"]')).toHaveLength(2);
+    expect(bare.querySelectorAll('[data-testid="time-signature"]')).toHaveLength(0);
+    expect(firstFret(bare)).toBeLessThan(firstFret(shown));
+  });
+
+  it('leaves out TAB at the start of each line of the tab alone, and the room for it', () => {
+    expect(letters(svgOf({}))).toBe(3);
+    const bare = svgOf({ tabLetters: false });
+    expect(letters(bare)).toBe(0);
+    expect(firstFret(bare)).toBeLessThan(firstFret(svgOf({})));
+  });
+
+  it('keeps both with the staff', () => {
+    const both = svgOf({ timeSignatures: false, tabLetters: false }, 'both');
+    expect(letters(both)).toBe(3);
+    expect(both.textContent).toBe(svgOf({}, 'both').textContent);
+    expect(firstFret(both)).toBe(firstFret(svgOf({}, 'both')));
+  });
+
+  it('leaves out the text annotations from the image and from the files\' clip', () => {
+    expect(svgOf({}).textContent).toContain('let ring');
+    expect(svgOf({ texts: false }).textContent).not.toContain('let ring');
+    expect(svgOf({ texts: false }).textContent).not.toContain('slowly');
+    const bare = exportedClip(texted, { texts: false });
+    expect(bare.tracks[0].bars.flatMap(b => b.voices.flat()).some(c => c.text !== undefined)).toBe(false);
+    expect(exportedClip(texted, { texts: true })).toBe(texted);
+    // The clip itself keeps them.
+    expect(texted.tracks[0].bars[0].voices[0][0].text).toBe('let ring');
   });
 });

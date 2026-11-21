@@ -72,20 +72,55 @@ describe('export and copy selected bars', { timeout: 20000 }, () => {
     const bars = within(dialog).getByRole('group', { name: 'Bar numbers' });
     fireEvent.click(within(bars).getByRole('button', { name: 'From 1' }));
     expect(numbers()).toEqual(['1', '2']);
-    fireEvent.click(within(bars).getByRole('button', { name: 'Hide' }));
+    fireEvent.click(within(bars).getByRole('button', { name: 'None' }));
     expect(numbers()).toEqual([]);
-    fireEvent.click(within(bars).getByRole('button', { name: 'As in the song' }));
+    fireEvent.click(within(bars).getByRole('button', { name: 'From arrangement' }));
     expect(numbers()).toEqual(['2', '3']);
     const start = within(dialog).getByRole('group', { name: 'Start with' });
     const tempo = within(start).getByRole('button', { name: 'Tempo' });
     expect(tempo).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(tempo);
     expect(tempo).toHaveAttribute('aria-pressed', 'false');
-    expect(JSON.parse(localStorage.getItem(TAB_EXPORT_KEY)!)).toMatchObject({ barNumbers: 'song', startTempo: false, startKey: true });
+    expect(JSON.parse(localStorage.getItem(TAB_EXPORT_KEY)!)).toMatchObject({ barNumbers: 'arrangement', startTempo: false, startKey: true });
     // The whole clip's Export has no Start with.
     fireEvent.click(within(dialog).getByRole('button', { name: 'Close export' }));
     fireEvent.click(screen.getByRole('button', { name: 'Export' }));
     expect(screen.queryByRole('group', { name: 'Start with' })).toBeNull();
+  });
+
+  it('a press outside the dialog closes it, as Esc does; a press inside or a drag out of it doesn\'t', async () => {
+    await openWith(FOUR);
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+    const dialog = screen.getByRole('dialog', { name: /Export/ });
+    const inner = within(dialog).getByRole('combobox', { name: 'Format' });
+    fireEvent.pointerDown(inner);
+    fireEvent.click(dialog);
+    expect(dialog).toHaveAttribute('open');
+    fireEvent.pointerDown(dialog);
+    fireEvent.click(dialog);
+    expect(dialog).not.toHaveAttribute('open');
+  });
+
+  it('offers Time signature and TAB only with the tab alone, and Text annotations in every format', async () => {
+    await openWith(FOUR);
+    fireEvent.click(screen.getByRole('button', { name: 'Tab' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+    const dialog = screen.getByRole('dialog', { name: /Export/ });
+    expect(within(dialog).getByRole('group', { name: 'Time signature' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('group', { name: 'TAB' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('group', { name: 'Background' })).toHaveTextContent('WhiteTransparent');
+    fireEvent.click(within(within(dialog).getByRole('group', { name: 'TAB' })).getByRole('button', { name: 'Hide' }));
+    const preview = within(dialog).getByTestId('export-preview');
+    expect([...preview.querySelectorAll('text')].some(t => t.textContent === 'T')).toBe(false);
+    fireEvent.change(within(dialog).getByRole('combobox', { name: 'Format' }), { target: { value: 'alphatex' } });
+    expect(within(dialog).getByRole('group', { name: 'Text annotations' })).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Close export' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Both' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+    const both = screen.getByRole('dialog', { name: /Export/ });
+    expect(within(both).queryByRole('group', { name: 'Time signature' })).toBeNull();
+    expect(within(both).queryByRole('group', { name: 'TAB' })).toBeNull();
+    expect(JSON.parse(localStorage.getItem(TAB_EXPORT_KEY)!)).toMatchObject({ tabLetters: false });
   });
 
   it('with nothing selected, a right-click beside the notes exports the bar pressed', async () => {

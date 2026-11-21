@@ -5,10 +5,11 @@ import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import { FONT_FAMILY } from '@/components/chords/export/exportImage';
 import { BACKDROP } from '@/components/chords/export/exportStyle';
-import type { Part, Tempo } from './clip';
+import type { Clip, Column, Part, Tempo } from './clip';
 import { creditsOf, HEAD, shownTuning, tuningBlock, withCapo, type TuningBlock } from './credits';
-import { layoutClip, type Parts } from './layout';
+import { layoutClip, type LeftOut, type Parts } from './layout';
 import { tempoParts } from './layoutText';
+import { without } from './editing';
 import { TabClip } from './TabClip';
 import { CHART_GAP, chartDrawing } from './ChordChart';
 import { chartChords, layoutChart } from './chordDiagrams';
@@ -22,30 +23,36 @@ export const TAB_EXPORT_KEY = 'frets.tab.export';
 export interface TabExportStyle {
   /** How wide the image is, in pixels; the tab wraps onto more lines to fit. */
   width: TabExportWidth;
-  /** Nothing behind the tab; otherwise white, as the preview shows it. */
+  /** Background: Transparent, nothing behind the tab; otherwise White, as the preview shows it. */
   transparent: boolean;
   /** The clip's name above the tab. */
   name: boolean;
   /**
-   * The images' bar numbers: as the song numbers them (an image of bars 9–12 reads 9 to 12), from 1, or
-   * none. Shown as the View options draw them unless hidden here.
+   * The images' bar numbers: as the arrangement numbers them (an image of bars 9–12 reads 9 to 12), from 1,
+   * or none. Shown as the View options draw them unless None here.
    */
   barNumbers: ExportBarNumbers;
+  /** An image of the tab alone draws its time signatures, and "TAB" at each line's start; the staff always has both. */
+  timeSignatures: boolean;
+  tabLetters: boolean;
+  /** Text annotations, in every format. */
+  texts: boolean;
   /** Selected bars start with the key, time signature (with its Beat groups) and tempo in force there; off, only what their first bar sets itself. */
   startKey: boolean;
   startTime: boolean;
   startTempo: boolean;
 }
 
-export const EXPORT_BAR_NUMBERS = ['song', 'one', 'hide'] as const;
+export const EXPORT_BAR_NUMBERS = ['arrangement', 'one', 'none'] as const;
 export type ExportBarNumbers = (typeof EXPORT_BAR_NUMBERS)[number];
-export const EXPORT_BAR_NUMBER_NAMES: Record<ExportBarNumbers, string> = { song: 'As in the song', one: 'From 1', hide: 'Hide' };
+export const EXPORT_BAR_NUMBER_NAMES: Record<ExportBarNumbers, string> = { arrangement: 'From arrangement', one: 'From 1', none: 'None' };
 
 export const TAB_EXPORT_WIDTHS = [480, 640, 800, 1000, 1200] as const;
 export type TabExportWidth = (typeof TAB_EXPORT_WIDTHS)[number];
 
 export const DEFAULT_TAB_EXPORT: TabExportStyle = {
-  width: 800, transparent: false, name: true, barNumbers: 'song', startKey: true, startTime: true, startTempo: true,
+  width: 800, transparent: false, name: true, barNumbers: 'arrangement', timeSignatures: true, tabLetters: true, texts: true,
+  startKey: true, startTime: true, startTempo: true,
 };
 
 /** Saved choices, with a default for any field missing or invalid. */
@@ -57,15 +64,39 @@ export function parseTabExportStyle(raw: unknown): TabExportStyle {
     transparent: typeof o.transparent === 'boolean' ? o.transparent : d.transparent,
     name: typeof o.name === 'boolean' ? o.name : d.name,
     barNumbers: EXPORT_BAR_NUMBERS.find(b => b === o.barNumbers) ?? d.barNumbers,
+    timeSignatures: typeof o.timeSignatures === 'boolean' ? o.timeSignatures : d.timeSignatures,
+    tabLetters: typeof o.tabLetters === 'boolean' ? o.tabLetters : d.tabLetters,
+    texts: typeof o.texts === 'boolean' ? o.texts : d.texts,
     startKey: typeof o.startKey === 'boolean' ? o.startKey : d.startKey,
     startTime: typeof o.startTime === 'boolean' ? o.startTime : d.startTime,
     startTempo: typeof o.startTempo === 'boolean' ? o.startTempo : d.startTempo,
   };
 }
 
-/** The View options an image is drawn with: the page's, its bar numbers hidden when the Export choices hide them. */
+/** The View options an image is drawn with: the page's, with no bar numbers when the Export choices say None. */
 export function exportView(view: TabView, style: TabExportStyle): TabView {
-  return style.barNumbers === 'hide' ? { ...view, barNumbers: 'none' } : view;
+  return style.barNumbers === 'none' ? { ...view, barNumbers: 'none' } : view;
+}
+
+/** What an image of the tab alone leaves out by the Export choices; the layout ignores it with the staff. */
+const leftOutOf = (style: TabExportStyle): LeftOut => ({ timeSignatures: !style.timeSignatures, tabLetters: !style.tabLetters });
+
+/** The columns with no text annotation. */
+const untexted = <T extends { columns: Column[] }>(bar: T): T =>
+  bar.columns.some(c => c.text !== undefined) ? { ...bar, columns: bar.columns.map(c => (c.text === undefined ? c : without(c, 'text'))) } : bar;
+
+/** The part as an image draws it: laid out as the view has it, and without its text annotations when the Export choices leave them out. */
+function imageClip(clip: Part, style: TabExportStyle, view: TabView): Part {
+  const shown = laidOut(clip, view);
+  if (style.texts) return shown;
+  return { ...shown, bars: shown.bars.map(bar => untexted({ ...bar, otherVoices: bar.otherVoices?.map(untexted) })) };
+}
+
+/** The whole clip without its text annotations when the Export choices leave them out: what the files hold. */
+export function exportedClip(clip: Clip, style: Pick<TabExportStyle, 'texts'>): Clip {
+  if (style.texts) return clip;
+  const strip = (columns: Column[]) => untexted({ columns }).columns;
+  return { ...clip, tracks: clip.tracks.map(track => ({ ...track, bars: track.bars.map(bar => ({ ...bar, voices: bar.voices.map(strip) })) })) };
 }
 
 /** Black ink, as the chord export's black and white: an image is printed or pasted anywhere. */
@@ -177,7 +208,7 @@ function HeadDrawing({ head, width, ink }: { head: Head; width: number; ink: str
 export function tabImageSize(clip: Part, style: TabExportStyle, title: string, parts: Parts = 'tab', view: TabView = DEFAULT_VIEW): { width: number; height: number } {
   const zoom = view.size / 100;
   const inner = (style.width - 2 * PAD) / zoom;
-  const tab = layoutClip(laidOut(clip, view), inner, parts, view.chordDiagrams);
+  const tab = layoutClip(imageClip(clip, style, view), inner, parts, view.chordDiagrams, false, leftOutOf(style));
   return { width: style.width, height: Math.ceil(tab.height * zoom) + 2 * PAD + headTop(headOf(clip, style, title, view), zoom) + chartRoom(clip, inner, view, zoom) };
 }
 
@@ -218,7 +249,7 @@ export function TabImage({ clip, style, title, parts = 'tab', view = DEFAULT_VIE
       </g>
       {chart && <g transform={`translate(${PAD} ${PAD + chartTop}) scale(${zoom})`}>{chart.drawing}</g>}
       <TabClip
-        clip={laidOut(clip, view)} width={inner} zoom={zoom} parts={parts} barNumbers={view.barNumbers} look={look} title={head.title || 'Tab'}
+        clip={imageClip(clip, style, view)} leftOut={leftOutOf(style)} width={inner} zoom={zoom} parts={parts} barNumbers={view.barNumbers} look={look} title={head.title || 'Tab'}
         x={PAD} y={PAD + top + chartRoom(clip, inner, view, zoom)} chordDiagrams={view.chordDiagrams}
       />
     </svg>

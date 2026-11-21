@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useEffectEvent, useId, useRef, useState, type ReactNode } from 'react';
 import { copySvgAsPng, copySvgCode, svgToPng } from '@/components/chords/export/exportImage';
 import { Segmented } from '@/components/controls';
 import { HoverTips } from '@/components/HoverTips';
@@ -13,13 +13,13 @@ import { SAVE_KINDS, saveFile, type SaveKind } from './saveFile';
 import type { Clip } from './clip';
 import { barsName, clipOfBars, imagePart, type BarRange } from './barExport';
 import {
-  EXPORT_BAR_NUMBERS, EXPORT_BAR_NUMBER_NAMES, TAB_EXPORT_WIDTHS, TabImage, exportView, tabFileName, tabImageSize, tabSvg, type TabExportStyle,
+  EXPORT_BAR_NUMBERS, EXPORT_BAR_NUMBER_NAMES, TAB_EXPORT_WIDTHS, TabImage, exportView, exportedClip, tabFileName, tabImageSize, tabSvg, type TabExportStyle,
 } from './exportTab';
 import type { TabView } from './viewOptions';
 import type { Parts } from './layout';
 
 const SHOW_HIDE = [['show', 'Show'], ['hide', 'Hide']] as const;
-const ON_OFF = [['on', 'On'], ['off', 'Off']] as const;
+const BACKGROUNDS = [['white', 'White'], ['transparent', 'Transparent']] as const;
 const WIDTHS = TAB_EXPORT_WIDTHS.map(w => [w, String(w)] as const);
 const BAR_NUMBERS = EXPORT_BAR_NUMBERS.map(b => [b, EXPORT_BAR_NUMBER_NAMES[b]] as const);
 /** Start with's three toggles, each on what the cut's first bar says that an earlier bar set. */
@@ -76,8 +76,10 @@ export function TabExportDialog({ clip: whole, bars = null, track, parts, view, 
   const [status, setStatus] = useState('');
   // Kept while the page is open, so the dialog opens again on the format last used.
   const [format, setFormat] = useState<TabExportFormat>('png');
-  const clip = bars ? clipOfBars(whole, bars, style) : whole;
-  const part = imagePart(whole, track, bars, style);
+  // Every format leaves out the text annotations when the choices say so.
+  const source = exportedClip(whole, style);
+  const clip = bars ? clipOfBars(source, bars, style) : source;
+  const part = imagePart(source, track, bars, style);
   const what = bars ? barsName(whole, bars) : null;
   // The image's title is the clip's name, shown or hidden by Clip name.
   const title = clip.name;
@@ -94,6 +96,29 @@ export function TabExportDialog({ clip: whole, bars = null, track, parts, view, 
     if (open && !el.open) el.showModal();
     else if (!open && el.open) el.close();
   }, [open]);
+
+  // A press outside the dialog closes it, as Esc does (Jeremy, 2026-11-21), as `Modal`'s backdrop does. Its content
+  // sits in the inner wrapper, so only the backdrop targets the dialog itself; the press must start there too, so a
+  // drag out of a field doesn't close it.
+  const close = useEffectEvent(onClose);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let pressedBackdrop = false;
+    const onPointerDown = (e: PointerEvent) => {
+      pressedBackdrop = e.target === el;
+    };
+    const onClick = (e: MouseEvent) => {
+      if (e.target === el && pressedBackdrop) close();
+      pressedBackdrop = false;
+    };
+    el.addEventListener('pointerdown', onPointerDown);
+    el.addEventListener('click', onClick);
+    return () => {
+      el.removeEventListener('pointerdown', onPointerDown);
+      el.removeEventListener('click', onClick);
+    };
+  }, []);
 
   const set = (patch: Partial<TabExportStyle>) => {
     onStyle({ ...style, ...patch });
@@ -190,10 +215,10 @@ export function TabExportDialog({ clip: whole, bars = null, track, parts, view, 
               <div className="export-choices">
                   <span>Size<span className="export-unit"> (px wide)</span></span>
                   <Segmented label="Size" value={style.width} onChange={w => set({ width: w })} options={WIDTHS} />
-                  <span>Transparent background</span>
+                  <span>Background</span>
                   <Segmented
-                    label="Transparent background" value={style.transparent ? 'on' : 'off'}
-                    onChange={v => set({ transparent: v === 'on' })} options={ON_OFF}
+                    label="Background" value={style.transparent ? 'transparent' : 'white'}
+                    onChange={v => set({ transparent: v === 'transparent' })} options={BACKGROUNDS}
                   />
                   <span>Clip name</span>
                   <Segmented
@@ -202,8 +227,31 @@ export function TabExportDialog({ clip: whole, bars = null, track, parts, view, 
                   />
                   <span>Bar numbers</span>
                   <Segmented label="Bar numbers" value={style.barNumbers} onChange={b => set({ barNumbers: b })} options={BAR_NUMBERS} />
+                  {/* The tab alone: its time signatures and "TAB" may be left out; the staff keeps both (Jeremy, 2026-11-21). */}
+                  {parts === 'tab' && (
+                    <>
+                      <span>Time signature</span>
+                      <Segmented
+                        label="Time signature" value={style.timeSignatures ? 'show' : 'hide'}
+                        onChange={v => set({ timeSignatures: v === 'show' })} options={SHOW_HIDE}
+                      />
+                      <span>TAB</span>
+                      <Segmented
+                        label="TAB" value={style.tabLetters ? 'show' : 'hide'}
+                        onChange={v => set({ tabLetters: v === 'show' })} options={SHOW_HIDE}
+                      />
+                    </>
+                  )}
               </div>
             </Fold>
+            {/* Every format. */}
+            <div className="export-choices">
+              <span>Text annotations</span>
+              <Segmented
+                label="Text annotations" value={style.texts ? 'show' : 'hide'}
+                onChange={v => set({ texts: v === 'show' })} options={SHOW_HIDE}
+              />
+            </div>
             {/* Some bars, in every format: what their first bar says that was set before them (Jeremy, 2026-11-21). */}
             {bars && (
               <div className="export-choices">

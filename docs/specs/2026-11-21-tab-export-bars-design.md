@@ -85,18 +85,38 @@ PNG." ("bar 4" for one); a failure says "Couldn't copy: …" in red.
   "Selected bars start with the key" (time signature, tempo), and used by
   Copy as PNG too.
 
+## More choices (Jeremy, 2026-11-21, after the first preview)
+
+All saved with the Export choices (`frets.tab.export`) and listed in
+Settings › Tab › Export; they apply to the whole clip's export as well as
+to some bars', and Copy as PNG follows them.
+
+- **Background**: **White** (the default) | **Transparent**, the image
+  choice that was "Transparent background" On | Off (`transparent`).
+- **Time signature** and **TAB**, Show | Hide, only while the page shows
+  the tab alone (with the staff both always stay). Hide leaves out every
+  time signature drawn on the tab (the first line's and each change), or
+  "TAB" at each line's start, and the room each takes, so the first
+  number moves left (`timeSignatures`, `tabLetters`; `LeftOut` in
+  `layout.ts`).
+- **Text annotations**, Show | Hide, in every format: Hide leaves every
+  text annotation out of the image and the files (`texts`;
+  `exportedClip`). The arrangement keeps them.
+- A press outside the dialog closes it, as Esc and × do. A press that
+  starts inside (a drag out of a field) doesn't (as `Modal` does).
+
 ## Bar numbers (a choice)
 
-- The images' choices get **Bar numbers**: **As in the song** (the
-  default), **From 1** or **Hide**. Saved as `barNumbers` in the Export
+- The images' choices get **Bar numbers**: **From arrangement** (the
+  default), **From 1** or **None**. Saved as `barNumbers` in the Export
   choices and listed in Settings › Tab › Export; Copy as PNG (the bars' and
-  the clip's) uses it too. Hide draws none whatever the View options say;
+  the clip's) uses it too. None draws none whatever the View options say;
   the other two draw them as the View options do (every bar, each line's
   first, or none).
-- As in the song, the images (PNG, SVG, and Copy as PNG) number the bars
+- From arrangement, the images (PNG, SVG, and Copy as PNG) number the bars
   as the song does: an image of bars 9–12 reads 9 to 12, as a picture of
   the page would. The part drawn carries `firstNumber`, which `barNumber`
-  counts from. For the whole clip As in the song and From 1 are the same.
+  counts from. For the whole clip From arrangement and From 1 are the same.
 - The files (ASCII tab, alphaTex, MusicXML, Guitar Pro) are new pieces and
   count from 1, as MuseScore's Save Selection does.
 - A Pickup bar isn't counted, as everywhere: the bar after it is bar 1.
@@ -146,7 +166,14 @@ PNG." ("bar 4" for one); a failure says "Couldn't copy: …" in red.
   signature kept; each toggle on its own.
 - Bar numbers From 1: the cut counts from 1.
 - The parser keeps the four new choices and defaults invalid ones.
-- Page: From 1 and Hide change the preview's numbers; Start with's toggles
+- Page: From 1 and None change the preview's numbers; Start with's toggles
   are saved; the whole clip's Export has no Start with.
+- Leaving out the tab's time signatures removes both of them and moves
+  the first number left; TAB likewise; with the staff, nothing changes.
+- Text annotations left out of the image and of the files' clip; the
+  arrangement keeps them; the parser keeps the three new choices.
+- Page: a press outside closes the dialog, a press starting inside doesn't.
+- Page: Time signature and TAB only with the tab alone; Background reads
+  White | Transparent; Text annotations shows for alphaTex too.
 - Page: the bar menu lists them before Chat…, which stays last
   (`barMenu.test.tsx`, `export.test.tsx`, `chatPopover.test.tsx`).

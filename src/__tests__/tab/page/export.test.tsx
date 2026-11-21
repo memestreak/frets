@@ -71,7 +71,7 @@ describe('TabPage export', () => {
     expect(within(dialog).getByTestId('export-size')).toHaveTextContent(/^800 × \d+ px, on white$/);
     // A choice changes the preview's size line and is remembered.
     fireEvent.click(within(within(dialog).getByRole('group', { name: 'Size' })).getByRole('button', { name: '480' }));
-    fireEvent.click(within(within(dialog).getByRole('group', { name: 'Transparent background' })).getByRole('button', { name: 'On' }));
+    fireEvent.click(within(within(dialog).getByRole('group', { name: 'Background' })).getByRole('button', { name: 'Transparent' }));
     expect(within(dialog).getByTestId('export-size')).toHaveTextContent(/^480 × \d+ px, transparent$/);
     await waitFor(() => expect(JSON.parse(localStorage.getItem(TAB_EXPORT_KEY)!)).toMatchObject({ width: 480, transparent: true }));
     fireEvent.click(within(within(dialog).getByRole('group', { name: 'Clip name' })).getByRole('button', { name: 'Hide' }));
@@ -92,7 +92,7 @@ describe('TabPage export', () => {
     const shows = () => ({
       // Shut, the preview stays drawn (it folds away) but is hidden.
       preview: within(dialog).getByTestId('export-preview-fold').getAttribute('aria-hidden') !== 'true',
-      choices: ['Size', 'Transparent background', 'Clip name'].filter(g => within(dialog).queryByRole('group', { name: g })).length,
+      choices: ['Size', 'Background', 'Clip name'].filter(g => within(dialog).queryByRole('group', { name: g })).length,
       copy: within(dialog).queryByRole('button', { name: 'Copy' }) !== null,
       downloads: within(dialog).getAllByRole('button', { name: /Download/ }).length,
     });

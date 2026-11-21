@@ -66,11 +66,11 @@ export function barsName(clip: Clip, [first, last]: BarRange): string {
 
 /**
  * Track `track` of the clip, or of bars `range` of it as the Export choices `style` cut them: what an image
- * draws. With the choices' bar numbers as in the song, the bars keep the numbers they have in the whole
+ * draws. With the choices' bar numbers From arrangement, the bars keep the numbers they have in the whole
  * clip, as a picture of bars 9–12 of the song should read; else they count from 1.
  */
 export function imagePart(clip: Clip, track: number, range: BarRange | null, style: StartWith & Pick<TabExportStyle, 'barNumbers'>): Part {
   if (!range) return partOf(clip, track);
   const part = partOf(clipOfBars(clip, range, style), track);
-  return style.barNumbers === 'song' ? { ...part, firstNumber: barNumber(marksOf(clip), range[0]) } : part;
+  return style.barNumbers === 'arrangement' ? { ...part, firstNumber: barNumber(marksOf(clip), range[0]) } : part;
 }

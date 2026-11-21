@@ -239,7 +239,20 @@ export interface Layout {
   parts: Parts;
   systems: System[];
   height: number;
+  /** Whether "TAB" is drawn at each line's start: always, but in an image of the tab alone that leaves it out. */
+  tabLetters: boolean;
 }
+
+/**
+ * What an image of the tab alone may leave out (`docs/specs/2026-11-21-tab-export-bars-design.md`): every time
+ * signature, and "TAB" at each line's start, with the room they take. With the notation staff both stay.
+ */
+export interface LeftOut {
+  timeSignatures?: boolean;
+  tabLetters?: boolean;
+}
+/** Small room in front of a line of tab that leaves out its time signature or "TAB", so its first number isn't on the edge. */
+const BARE_MARGIN = 4;
 
 /** Which way a column's stem goes: down when its heads sit mostly on or above the middle line. */
 export function stemUpFor(heads: Head[]): boolean {
@@ -415,16 +428,18 @@ function followAnchor(placed: PlacedColumn): void {
  * `capoRow`: "Capo 3" over the first line, for show_tab, which has no score head; the Tab page and its
  * exports draw the capo in the head instead (issue #463).
  */
-export function layoutClip(clip: Part, width: number, parts: Parts = 'tab', diagrams = false, capoRow = false): Layout {
+export function layoutClip(clip: Part, width: number, parts: Parts = 'tab', diagrams = false, capoRow = false, leftOut: LeftOut = {}): Layout {
   const staff = parts !== 'tab';
+  const noTime = !staff && !!leftOut.timeSignatures;
+  const noLetters = !staff && !!leftOut.tabLetters;
   // In front of the staff: the time signature (drawn on the first line only, but every line leaves its
   // room, so the lines start one under another). No string names: the score's head shows the tuning
   // (Jeremy, 2026-10-29). On the notation staff the clef and every line's key signature follow; the tab leaves the same room, so the bars line up.
   // With the notation staff, the first line's time signature goes after the clef and key signature
   // instead, as printed music has it (Jeremy, 2026-10-27).
-  const lineStart = parts === 'both' ? BRACKET_MARGIN : staff ? STAFF_MARGIN : TIME_WIDTH;
+  const lineStart = parts === 'both' ? BRACKET_MARGIN : staff ? STAFF_MARGIN : noTime ? BARE_MARGIN : TIME_WIDTH;
   const widestKey = staff ? Math.max(0, ...clip.bars.map((_, b) => keyWidth(keyAt(clip, b).fifths))) : 0;
-  const keyStart = lineStart + CLEF_WIDTH;
+  const keyStart = lineStart + (noLetters ? BARE_MARGIN : CLEF_WIDTH);
   const head = keyStart + widestKey;
   const firstKey = staff ? keyWidth(keyAt(clip, 0).fifths) : 0;
   const firstTimeX = staff ? keyStart + firstKey + STAFF_TIME_WIDTH / 2 - 2 : TIME_WIDTH / 2 - 2;
@@ -457,7 +472,7 @@ export function layoutClip(clip: Part, width: number, parts: Parts = 'tab', diag
   const finish = () => {
     const first = drafts.length === 0;
     drafts.push({
-      bars: current, timeX: first ? firstTimeX : null, lineStart, staffStart: first ? firstHead : head, keyX: keyStart, first, textRows: 1, textUnderRows: 1, sectionRows: 1,
+      bars: current, timeX: first && !noTime ? firstTimeX : null, lineStart, staffStart: first ? firstHead : head, keyX: keyStart, first, textRows: 1, textUnderRows: 1, sectionRows: 1,
     });
     complete.push(true);
     current = [];
@@ -466,8 +481,8 @@ export function layoutClip(clip: Part, width: number, parts: Parts = 'tab', diag
   };
   clip.bars.forEach((bar, index) => {
     // A run of free-time bars shows the time signature again, in brackets, where it starts.
-    const freeStart = index > 0 && startsFreeTime(clip, index);
-    const timeChange = changesTime(clip, index) || freeStart;
+    const freeStart = !noTime && index > 0 && startsFreeTime(clip, index);
+    const timeChange = !noTime && (changesTime(clip, index) || freeStart);
     let keyChange = staff && index > 0 && changesKey(clip, index) ? keyWidth(keyAt(clip, index).fifths) : 0;
     const count = rests.get(index);
     if (count) run = { span: { x0: 0, x1: 0 }, count, end: index + count - 1, share: MULTI_REST_WIDTH / count };
@@ -623,7 +638,7 @@ export function layoutClip(clip: Part, width: number, parts: Parts = 'tab', diag
       top += rows.height;
       return system;
     });
-    return { parts, systems, height: top };
+    return { parts, systems, height: top, tabLetters: !noLetters };
   };
   const reaches = drafts.map(draft => staffReach(draft.bars, staff));
   const layout = stack(reaches);

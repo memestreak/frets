@@ -23,8 +23,8 @@ The dialog is shaped like REAPER's Preferences.
   is filled. There is no Find box for now (Jeremy, 2026-10-29).
 - **Right: one section at a time**, in a framed pane headed `Group › Section`.
   Each field is a row with its label on the left and, on the right, the same
-  control its shortcut on the page uses (G7): Export's Transparent stays On |
-  Off and Clip name Show | Hide, the sizes and counts are number fields, the
+  control its shortcut on the page uses (G7): Export's Background is White |
+  Transparent and Clip name Show | Hide, the sizes and counts are number fields, the
   volumes are knobs, and the on/off fields that View options, Play's menu and
   the Metronome menu tick are check boxes. Footer toggles (Hear notes,
   Metronome, Show playback controls) are check boxes too. A check box carries
@@ -60,7 +60,7 @@ The dialog is shaped like REAPER's Preferences.
 | Tab › ASCII Tab | Rhythm | `frets.tab.ascii` |
 | Tab › AlphaTex | Line numbers | `frets.tab.alphatex` |
 | Tab › Editing | Fill short bars with rests (off by default; see `2026-10-29-tab-fill-bars-setting-design.md`) | `frets.tab.editing` |
-| Tab › Export | Size (px wide), Transparent, Clip name, Bar numbers, Selected bars start with the key / time signature / tempo | `frets.tab.export` |
+| Tab › Export | Size (px wide), Background, Clip name, Bar numbers, Time signature and TAB (tab alone), Text annotations, Selected bars start with the key / time signature / tempo | `frets.tab.export` |
 
 ## Storage
 
