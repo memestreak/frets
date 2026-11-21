@@ -32,9 +32,13 @@ export interface TabExportStyle {
    * or none. Shown as the View options draw them unless None here.
    */
   barNumbers: ExportBarNumbers;
-  /** An image of the tab alone draws its time signatures, and "TAB" at each line's start; the staff always has both. */
+  /**
+   * An image of the tab alone draws its time signatures, "TAB" at each line's start, and its rhythm (stems,
+   * beams, flags, dots, tuplet numbers and rests) under the strings; the staff always has all three.
+   */
   timeSignatures: boolean;
   tabLetters: boolean;
+  rhythm: boolean;
   /** Text annotations, in every format. */
   texts: boolean;
   /** Selected bars start with the key, time signature (with its Beat groups) and tempo in force there; off, only what their first bar sets itself. */
@@ -51,7 +55,7 @@ export const TAB_EXPORT_WIDTHS = [480, 640, 800, 1000, 1200] as const;
 export type TabExportWidth = (typeof TAB_EXPORT_WIDTHS)[number];
 
 export const DEFAULT_TAB_EXPORT: TabExportStyle = {
-  width: 800, transparent: false, name: true, barNumbers: 'arrangement', timeSignatures: true, tabLetters: true, texts: true,
+  width: 800, transparent: false, name: true, barNumbers: 'arrangement', timeSignatures: true, tabLetters: true, rhythm: true, texts: true,
   startKey: true, startTime: true, startTempo: true,
 };
 
@@ -66,6 +70,7 @@ export function parseTabExportStyle(raw: unknown): TabExportStyle {
     barNumbers: EXPORT_BAR_NUMBERS.find(b => b === o.barNumbers) ?? d.barNumbers,
     timeSignatures: typeof o.timeSignatures === 'boolean' ? o.timeSignatures : d.timeSignatures,
     tabLetters: typeof o.tabLetters === 'boolean' ? o.tabLetters : d.tabLetters,
+    rhythm: typeof o.rhythm === 'boolean' ? o.rhythm : d.rhythm,
     texts: typeof o.texts === 'boolean' ? o.texts : d.texts,
     startKey: typeof o.startKey === 'boolean' ? o.startKey : d.startKey,
     startTime: typeof o.startTime === 'boolean' ? o.startTime : d.startTime,
@@ -79,7 +84,9 @@ export function exportView(view: TabView, style: TabExportStyle): TabView {
 }
 
 /** What an image of the tab alone leaves out by the Export choices; the layout ignores it with the staff. */
-const leftOutOf = (style: TabExportStyle): LeftOut => ({ timeSignatures: !style.timeSignatures, tabLetters: !style.tabLetters });
+const leftOutOf = (style: TabExportStyle): LeftOut => ({
+  timeSignatures: !style.timeSignatures, tabLetters: !style.tabLetters, rhythm: !style.rhythm,
+});
 
 /** The columns with no text annotation. */
 const untexted = <T extends { columns: Column[] }>(bar: T): T =>

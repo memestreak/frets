@@ -60,7 +60,7 @@ The dialog is shaped like REAPER's Preferences.
 | Tab › ASCII Tab | Rhythm | `frets.tab.ascii` |
 | Tab › AlphaTex | Line numbers | `frets.tab.alphatex` |
 | Tab › Editing | Fill short bars with rests (off by default; see `2026-10-29-tab-fill-bars-setting-design.md`) | `frets.tab.editing` |
-| Tab › Export | Size (px wide), Background, Clip name, Bar numbers, Time signature and TAB (tab alone), Text annotations, Selected bars start with the key / time signature / tempo | `frets.tab.export` |
+| Tab › Export | Size (px wide), Background, Clip name, Bar numbers, Time signature, TAB and Rhythm (tab alone), Text annotations, Selected bars start with the key / time signature / tempo | `frets.tab.export` |
 
 ## Storage
 

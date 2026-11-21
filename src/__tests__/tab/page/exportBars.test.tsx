@@ -101,13 +101,17 @@ describe('export and copy selected bars', { timeout: 20000 }, () => {
     expect(dialog).not.toHaveAttribute('open');
   });
 
-  it('offers Time signature and TAB only with the tab alone, and Text annotations in every format', async () => {
+  it('offers Time signature, TAB and Rhythm only with the tab alone, and Text annotations in every format', async () => {
     await openWith(FOUR);
     fireEvent.click(screen.getByRole('button', { name: 'Tab' }));
     fireEvent.click(screen.getByRole('button', { name: 'Export' }));
     const dialog = screen.getByRole('dialog', { name: /Export/ });
     expect(within(dialog).getByRole('group', { name: 'Time signature' })).toBeInTheDocument();
     expect(within(dialog).getByRole('group', { name: 'TAB' })).toBeInTheDocument();
+    const previewHeight = () => Number(within(dialog).getByTestId('export-preview').querySelector('svg')!.getAttribute('height'));
+    const tall = previewHeight();
+    fireEvent.click(within(within(dialog).getByRole('group', { name: 'Rhythm' })).getByRole('button', { name: 'Hide' }));
+    expect(previewHeight()).toBeLessThan(tall);
     expect(within(dialog).getByRole('group', { name: 'Background' })).toHaveTextContent('WhiteTransparent');
     fireEvent.click(within(within(dialog).getByRole('group', { name: 'TAB' })).getByRole('button', { name: 'Hide' }));
     const preview = within(dialog).getByTestId('export-preview');
@@ -120,7 +124,8 @@ describe('export and copy selected bars', { timeout: 20000 }, () => {
     const both = screen.getByRole('dialog', { name: /Export/ });
     expect(within(both).queryByRole('group', { name: 'Time signature' })).toBeNull();
     expect(within(both).queryByRole('group', { name: 'TAB' })).toBeNull();
-    expect(JSON.parse(localStorage.getItem(TAB_EXPORT_KEY)!)).toMatchObject({ tabLetters: false });
+    expect(within(both).queryByRole('group', { name: 'Rhythm' })).toBeNull();
+    expect(JSON.parse(localStorage.getItem(TAB_EXPORT_KEY)!)).toMatchObject({ tabLetters: false, rhythm: false });
   });
 
   it('with nothing selected, a right-click beside the notes exports the bar pressed', async () => {

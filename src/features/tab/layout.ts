@@ -245,11 +245,13 @@ export interface Layout {
 
 /**
  * What an image of the tab alone may leave out (`docs/specs/2026-11-21-tab-export-bars-design.md`): every time
- * signature, and "TAB" at each line's start, with the room they take. With the notation staff both stay.
+ * signature, "TAB" at each line's start, and the rhythm under the strings, with the room they take. With the
+ * notation staff all three stay.
  */
 export interface LeftOut {
   timeSignatures?: boolean;
   tabLetters?: boolean;
+  rhythm?: boolean;
 }
 /** Small room in front of a line of tab that leaves out its time signature or "TAB", so its first number isn't on the edge. */
 const BARE_MARGIN = 4;
@@ -633,7 +635,7 @@ export function layoutClip(clip: Part, width: number, parts: Parts = 'tab', diag
     let top = 0;
     const systems = drafts.map((draft, si): System => {
       const indices = draft.bars.map(b => b.index);
-      const rows = rowsFor(lineClip(clip, indices, draft.first && capoRow), parts, reaches[si], indices.some(i => startsFreeTime(clip, i)), draft.textRows, draft.textUnderRows, draft.sectionRows, diagrams);
+      const rows = rowsFor(lineClip(clip, indices, draft.first && capoRow), parts, reaches[si], indices.some(i => startsFreeTime(clip, i)), draft.textRows, draft.textUnderRows, draft.sectionRows, diagrams, !leftOut.rhythm);
       const system = { ...draft, rows, top };
       top += rows.height;
       return system;

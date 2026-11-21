@@ -227,7 +227,7 @@ export function TabExportDialog({ clip: whole, bars = null, track, parts, view, 
                   />
                   <span>Bar numbers</span>
                   <Segmented label="Bar numbers" value={style.barNumbers} onChange={b => set({ barNumbers: b })} options={BAR_NUMBERS} />
-                  {/* The tab alone: its time signatures and "TAB" may be left out; the staff keeps both (Jeremy, 2026-11-21). */}
+                  {/* The tab alone: its time signatures, "TAB" and rhythm may be left out; the staff keeps all three (Jeremy, 2026-11-21). */}
                   {parts === 'tab' && (
                     <>
                       <span>Time signature</span>
@@ -239,6 +239,11 @@ export function TabExportDialog({ clip: whole, bars = null, track, parts, view, 
                       <Segmented
                         label="TAB" value={style.tabLetters ? 'show' : 'hide'}
                         onChange={v => set({ tabLetters: v === 'show' })} options={SHOW_HIDE}
+                      />
+                      <span>Rhythm</span>
+                      <Segmented
+                        label="Rhythm" value={style.rhythm ? 'show' : 'hide'}
+                        onChange={v => set({ rhythm: v === 'show' })} options={SHOW_HIDE}
                       />
                     </>
                   )}

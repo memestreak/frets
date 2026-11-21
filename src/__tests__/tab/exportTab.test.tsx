@@ -26,9 +26,9 @@ describe('parseTabExportStyle', () => {
     expect(parseTabExportStyle({ barNumbers: 'one', startKey: false, startTime: false, startTempo: false }))
       .toEqual({ ...DEFAULT_TAB_EXPORT, barNumbers: 'one', startKey: false, startTime: false, startTempo: false });
     expect(parseTabExportStyle({ barNumbers: 'every', startKey: 'no' })).toEqual(DEFAULT_TAB_EXPORT);
-    expect(parseTabExportStyle({ timeSignatures: false, tabLetters: false, texts: false }))
-      .toEqual({ ...DEFAULT_TAB_EXPORT, timeSignatures: false, tabLetters: false, texts: false });
-    expect(parseTabExportStyle({ timeSignatures: 'no', tabLetters: 0, texts: null, barNumbers: 'song' })).toEqual(DEFAULT_TAB_EXPORT);
+    expect(parseTabExportStyle({ timeSignatures: false, tabLetters: false, rhythm: false, texts: false }))
+      .toEqual({ ...DEFAULT_TAB_EXPORT, timeSignatures: false, tabLetters: false, rhythm: false, texts: false });
+    expect(parseTabExportStyle({ timeSignatures: 'no', tabLetters: 0, rhythm: 'off', texts: null, barNumbers: 'song' })).toEqual(DEFAULT_TAB_EXPORT);
     expect(parseTabExportStyle({ width: 700, transparent: 'yes' })).toEqual(DEFAULT_TAB_EXPORT);
   });
 });
@@ -122,6 +122,27 @@ describe('what an export leaves out (issue #532)', () => {
     const bare = svgOf({ tabLetters: false });
     expect(letters(bare)).toBe(0);
     expect(firstFret(bare)).toBeLessThan(firstFret(svgOf({})));
+  });
+
+  it('leaves out the rhythm under the tab alone (stems, beams, rests, tuplet numbers), and the room for it', () => {
+    const rhythmic = read('\\ts (4 4)\n0.6.8 2.6.8 r.4 :8 3.6{tu 3} 5.6{tu 3} 3.6{tu 3} 0.6.4 |');
+    const svg = (style: Partial<typeof DEFAULT_TAB_EXPORT>, parts: 'tab' | 'both' = 'tab') => {
+      const host = document.createElement('div');
+      host.innerHTML = tabSvg(partOf(rhythmic), { ...DEFAULT_TAB_EXPORT, name: false, ...style }, 'Riff', parts);
+      return host;
+    };
+    const height = (host: Element) => Number(host.querySelector('svg')!.getAttribute('height'));
+    const drawn = (host: Element) => ['tab-beam', 'rest', 'tuplet'].map(id => host.querySelectorAll(`[data-testid="${id}"]`).length);
+    const shown = svg({});
+    const bare = svg({ rhythm: false });
+    expect(drawn(shown).every(n => n > 0)).toBe(true);
+    expect(drawn(bare)).toEqual([0, 0, 0]);
+    expect(bare.querySelectorAll('line').length).toBeLessThan(shown.querySelectorAll('line').length);
+    expect(height(bare)).toBeLessThan(height(shown));
+    // With the staff, the staff carries the rhythm whatever the choice.
+    const both = svg({ rhythm: false }, 'both');
+    expect(height(both)).toBe(height(svg({}, 'both')));
+    expect(both.querySelectorAll('line').length).toBe(svg({}, 'both').querySelectorAll('line').length);
   });
 
   it('keeps both with the staff', () => {

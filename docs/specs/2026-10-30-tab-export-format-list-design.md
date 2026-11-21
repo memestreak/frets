@@ -32,7 +32,7 @@ From top to bottom:
    - **Clip name** Show | Hide. The name is the clip's own; the dialog no
      longer has a field to change it for one export.
    - **Bar numbers** From arrangement | From 1 | None, and with the tab
-     alone **Time signature** and **TAB** Show | Hide
+     alone **Time signature**, **TAB** and **Rhythm** Show | Hide
      (`docs/specs/2026-11-21-tab-export-bars-design.md`).
    - For every format, **Text annotations** Show | Hide (the same spec).
    - A press outside the dialog closes it, as Esc does (the same spec).

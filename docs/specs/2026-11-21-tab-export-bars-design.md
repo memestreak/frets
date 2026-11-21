@@ -93,12 +93,15 @@ to some bars', and Copy as PNG follows them.
 
 - **Background**: **White** (the default) | **Transparent**, the image
   choice that was "Transparent background" On | Off (`transparent`).
-- **Time signature** and **TAB**, Show | Hide, only while the page shows
-  the tab alone (with the staff both always stay). Hide leaves out every
-  time signature drawn on the tab (the first line's and each change), or
-  "TAB" at each line's start, and the room each takes, so the first
-  number moves left (`timeSignatures`, `tabLetters`; `LeftOut` in
-  `layout.ts`).
+- **Time signature**, **TAB** and **Rhythm**, Show | Hide, only while the
+  page shows the tab alone (with the staff, which carries the rhythm, all
+  three always stay). Hide leaves out every time signature drawn on the tab
+  (the first line's and each change), "TAB" at each line's start, or the
+  rhythm under the strings (stems, beams, flags, dots, tremolo slashes,
+  tuplet numbers and rests), and the room each takes: the first number
+  moves left, the lines get shorter (`timeSignatures`, `tabLetters`,
+  `rhythm`; `LeftOut` in `layout.ts`). Rhythm is for the images; the ASCII
+  tab's rhythm line still follows the View options.
 - **Text annotations**, Show | Hide, in every format: Hide leaves every
   text annotation out of the image and the files (`texts`;
   `exportedClip`). The arrangement keeps them.
@@ -169,11 +172,14 @@ to some bars', and Copy as PNG follows them.
 - Page: From 1 and None change the preview's numbers; Start with's toggles
   are saved; the whole clip's Export has no Start with.
 - Leaving out the tab's time signatures removes both of them and moves
-  the first number left; TAB likewise; with the staff, nothing changes.
+  the first number left; TAB likewise; Rhythm removes the beams, rests and
+  tuplet numbers and makes the image shorter; with the staff, nothing
+  changes.
 - Text annotations left out of the image and of the files' clip; the
-  arrangement keeps them; the parser keeps the three new choices.
+  arrangement keeps them; the parser keeps the four new choices.
 - Page: a press outside closes the dialog, a press starting inside doesn't.
-- Page: Time signature and TAB only with the tab alone; Background reads
+- Page: Time signature, TAB and Rhythm only with the tab alone, Rhythm's
+  Hide shortening the preview; Background reads
   White | Transparent; Text annotations shows for alphaTex too.
 - Page: the bar menu lists them before Chat…, which stays last
   (`barMenu.test.tsx`, `export.test.tsx`, `chatPopover.test.tsx`).
