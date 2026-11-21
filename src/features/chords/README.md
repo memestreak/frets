@@ -13,7 +13,8 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   magnifier, or `/`); `src/lib/theory/chordSearch.ts` reads the name typed there.
   `ChordHeader.tsx`, `ShapeGroups.tsx`, `ShapeMover.tsx`
   are its parts (space toggles the Arpeggio, `src/hooks/useSpaceKey.ts`); it also
-  uses `src/components/chords/export/`, shared with the Scale lab:
+  uses `src/components/chords/export/`, shared with the Scale lab and the
+  Tab page's chords (`docs/specs/2026-11-21-tab-chord-export-design.md`):
   right-click, a long press or Shift+F10 on a shape diagram (or the
   neck; `useShapeExport`, once per page) opens a menu
   (the page's own items, then Copy as PNG, Export options…) and the Export dialog, whose Name

@@ -4,6 +4,7 @@
  * written, the names and fingering of a column's notes, and the chord a diagram is drawn with. Pure.
  */
 import { PAGE_LOOK, type DiagramLook } from '@/components/chords/ChordDiagram';
+import type { ExportShape } from '@/components/chords/export/exportImage';
 import { findShapes, type Shape } from '@/lib/chords/shapes';
 import { nameNotes } from '@/lib/theory/chordNames';
 import { chordOf, withBass, type ChordInfo } from '@/lib/theory/chords';
@@ -85,4 +86,17 @@ export function chordToDraw(part: Part, name: string, shape: Shape): ChordInfo |
     if (chord && fits(chord, shape, tuning)) return chord;
   }
   return null;
+}
+
+/**
+ * A chord of the Chord set as the shared Export dialog and Copy as PNG take it (issue #531): its own shape
+ * (from its definition), drawn on the track's tuning, named as the set names it. Null when the chord has no
+ * shape, or one no chord can be drawn with, as the Chords panel then shows no diagram.
+ */
+export function exportShapeOf(part: Part, name: string): ExportShape | null {
+  const frets = chordDefOf(part.chords, name)?.frets;
+  if (!frets || frets.every(f => f === null)) return null;
+  const shape = toShape(frets);
+  const chord = chordToDraw(part, name, shape);
+  return chord ? { chord, shape, name, tuning: lowFirst(part) } : null;
 }

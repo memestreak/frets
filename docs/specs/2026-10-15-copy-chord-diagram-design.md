@@ -12,6 +12,10 @@ be edited, starting from the deduced one.
 
 ## Where
 
+Since 2026-11-21 the Tab page's chords (a Chord set tile, a Chord chart
+chord, a chord name) export through the same items and dialog, on their
+track's tuning: `docs/specs/2026-11-21-tab-chord-export-design.md`.
+
 Every small shape diagram in the Open and Moveable groups
 (`ShapeGroups`), so the Chord library and the Chord lab both have it,
 and the Chord lab's neck, which exports the shape played (whether or not
