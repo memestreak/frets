@@ -14,7 +14,7 @@ export const BEAT_TEXT_LINE = 13;
 /** The room kept between a text's widest line and the next text along the line. */
 export const BEAT_TEXT_GAP = 8;
 
-/** About how wide one plain (italic) letter of a text is: a guess, as the layout knows no fonts. */
+/** About how wide one plain letter of a text is: a guess, as the layout knows no fonts. */
 const LETTER = 5.6;
 /** How much wider a bold letter is: Figtree's bold over its regular, about 12% (issue #446). */
 export const BOLD_WIDER = 1.12;

@@ -81,7 +81,8 @@ nothing then has to be placed after text whose width is unknown.
 ## Free text over a beat (later, 2026-10-26)
 
 Jeremy asked for alphaTex's `txt "..."` after chord names. It is
-`Column.text`, drawn in italics, 11px, in a row of its own under the chord
+`Column.text`, drawn upright, 11px (in italics until 2026-11-21, when
+Jeremy asked for it upright), in a row of its own under the chord
 names (there only when a column has text), starting just left of its
 column and running right; it does not widen the column. (Since 2026-11-03,
 issue #323: a long text wraps onto more lines over its column; see
