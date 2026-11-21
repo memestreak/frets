@@ -3,7 +3,7 @@ import { readAscii } from '@/features/tab/ascii';
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import {
-  DEFAULT_TAB_EXPORT, exportedClip, parseTabExportStyle, tabFileName, tabImageSize, tabSvg,
+  DEFAULT_TAB_EXPORT, exportedClip, exportView, parseTabExportStyle, tabFileName, tabImageSize, tabSvg,
 } from '@/features/tab/exportTab';
 import { DEFAULT_VIEW } from '@/features/tab/viewOptions';
 import { type Clip, partOf } from '@/features/tab/clip';
@@ -26,9 +26,10 @@ describe('parseTabExportStyle', () => {
     expect(parseTabExportStyle({ barNumbers: 'one', startKey: false, startTime: false, startTempo: false }))
       .toEqual({ ...DEFAULT_TAB_EXPORT, barNumbers: 'one', startKey: false, startTime: false, startTempo: false });
     expect(parseTabExportStyle({ barNumbers: 'every', startKey: 'no' })).toEqual(DEFAULT_TAB_EXPORT);
-    expect(parseTabExportStyle({ timeSignatures: false, tabLetters: false, rhythm: false, texts: false }))
-      .toEqual({ ...DEFAULT_TAB_EXPORT, timeSignatures: false, tabLetters: false, rhythm: false, texts: false });
-    expect(parseTabExportStyle({ timeSignatures: 'no', tabLetters: 0, rhythm: 'off', texts: null, barNumbers: 'song' })).toEqual(DEFAULT_TAB_EXPORT);
+    expect(parseTabExportStyle({ timeSignatures: false, tabLetters: false, rhythm: false, chordDiagrams: true, texts: false }))
+      .toEqual({ ...DEFAULT_TAB_EXPORT, timeSignatures: false, tabLetters: false, rhythm: false, chordDiagrams: true, texts: false });
+    expect(parseTabExportStyle({ timeSignatures: 'no', tabLetters: 0, rhythm: 'off', chordDiagrams: 1, texts: null, barNumbers: 'song' })).toEqual(DEFAULT_TAB_EXPORT);
+    expect(DEFAULT_TAB_EXPORT.chordDiagrams).toBe(false);
     expect(parseTabExportStyle({ width: 700, transparent: 'yes' })).toEqual(DEFAULT_TAB_EXPORT);
   });
 });
@@ -143,6 +144,37 @@ describe('what an export leaves out (issue #532)', () => {
     const both = svg({ rhythm: false }, 'both');
     expect(height(both)).toBe(height(svg({}, 'both')));
     expect(both.querySelectorAll('line').length).toBe(svg({}, 'both').querySelectorAll('line').length);
+  });
+
+  describe('chord diagrams, and the head of some bars', () => {
+    const chorded = read('\\tempo 110\n\\ts (4 4)\n\\chord ("Am7" 5 5 5 5 7 5)\n\\chord ("Dm7" 5 6 5 7 5 x)\n5.6.2{ch "Am7"} 5.5.2{ch "Dm7"} |');
+    const view = { ...DEFAULT_VIEW, chordChart: true, chordDiagrams: true };
+    const svg = (style: Partial<typeof DEFAULT_TAB_EXPORT>, excerpt = false) => {
+      const host = document.createElement('div');
+      host.innerHTML = tabSvg(partOf(chorded), { ...DEFAULT_TAB_EXPORT, ...style }, 'Riff', 'tab', exportView(view, { ...DEFAULT_TAB_EXPORT, ...style }), excerpt);
+      return host;
+    };
+    // The dots drawn on the tab's own drawing, not the Chord chart's.
+    const tabDots = (host: Element) => [...host.querySelectorAll('svg svg circle')].length;
+
+    it('draws the diagrams over the notes only when the Export choices show them, whatever the page shows', () => {
+      expect(tabDots(svg({}))).toBe(0);
+      expect(tabDots(svg({ chordDiagrams: true }))).toBeGreaterThan(0);
+      expect(svg({}).textContent).toContain('Am7');
+      expect(exportView({ ...DEFAULT_VIEW, chordDiagrams: false }, { ...DEFAULT_TAB_EXPORT, chordDiagrams: true }).chordDiagrams).toBe(true);
+    });
+
+    it('the whole clip keeps its head and Chord chart; some bars have neither, only the name', () => {
+      const whole = svg({});
+      expect(whole.querySelector('[data-testid="score-tempo-drawn"]')).not.toBeNull();
+      expect(whole.querySelector('[data-testid="chord-chart"]')).not.toBeNull();
+      const bars = svg({}, true);
+      expect(bars.querySelector('[data-testid="score-tempo-drawn"]')).toBeNull();
+      expect(bars.querySelector('[data-testid="chord-chart"]')).toBeNull();
+      expect(bars.querySelector('[data-testid="score-head-drawn"]')!.textContent).toBe('Riff');
+      expect(svg({ name: false }, true).querySelector('[data-testid="score-head-drawn"]')!.textContent).toBe('');
+      expect(Number(bars.querySelector('svg')!.getAttribute('height'))).toBeLessThan(Number(whole.querySelector('svg')!.getAttribute('height')));
+    });
   });
 
   it('keeps both with the staff', () => {

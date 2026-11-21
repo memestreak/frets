@@ -544,7 +544,7 @@ export default function TabPage() {
   /** Copy as PNG on the bars the menu takes: the Export dialog's PNG of them, with its saved choices. */
   const copyBarsAsPng = async (bars: BarRange) => {
     try {
-      await copySvgAsPng(tabSvg(imagePart(whole, track, bars, exportStyle), exportStyle, whole.name, parts, exportView(shown, exportStyle)));
+      await copySvgAsPng(tabSvg(imagePart(whole, track, bars, exportStyle), exportStyle, whole.name, parts, exportView(shown, exportStyle), true));
       setNotice({ tone: 'info', lines: [`Copied ${barsName(whole, bars)} as PNG.`] });
     } catch (e) {
       setNotice({ tone: 'error', lines: [`Couldn't copy: ${e instanceof Error ? e.message : String(e)}`] });

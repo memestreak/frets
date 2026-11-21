@@ -71,6 +71,17 @@ PNG." ("bar 4" for one); a failure says "Couldn't copy: …" in red.
 - The clip's own line layout (`\systemsLayout`) was for the whole clip, so
   the cut fills its lines by width.
 
+## The bars' image has no head (Jeremy, 2026-11-21)
+
+An image of some bars (PNG, SVG, Copy as PNG) draws over the tab only the
+clip's name, when Clip name shows: no credits, tuning, tempo or Chord
+chart (`excerpt` in `TabImage`, `tabSvg`, `tabImageSize`). The whole
+clip's keeps them. The files still say the key, time signature and tempo
+as Start with sets.
+
+The Export dialog scrolls between its heading and its buttons when it is
+taller than the window, so its last row (Start with) is never cut off.
+
 ## Start with (a choice)
 
 - Under the Format list, only for some bars and for every format: **Start
@@ -102,6 +113,11 @@ to some bars', and Copy as PNG follows them.
   moves left, the lines get shorter (`timeSignatures`, `tabLetters`,
   `rhythm`; `LeftOut` in `layout.ts`). Rhythm is for the images; the ASCII
   tab's rhythm line still follows the View options.
+- **Chord diagrams**, Show | Hide (Hide by default), in the images: a
+  diagram under each chord name over the notes, whatever the page's View
+  options show; Hide leaves the names alone (`chordDiagrams`, set on the
+  view by `exportView`). The Chord chart still follows the View options
+  for the whole clip.
 - **Text annotations**, Show | Hide, in every format: Hide leaves every
   text annotation out of the image and the files (`texts`;
   `exportedClip`). The arrangement keeps them.
@@ -178,6 +194,12 @@ to some bars', and Copy as PNG follows them.
 - Text annotations left out of the image and of the files' clip; the
   arrangement keeps them; the parser keeps the four new choices.
 - Page: a press outside closes the dialog, a press starting inside doesn't.
+- Chord diagrams over the notes only with the choice on, whatever the
+  View options; Hide by default; the parser keeps it.
+- Some bars' image: no tempo or Chord chart, the name alone or nothing,
+  shorter than the whole clip's; the whole clip keeps both.
+- Page: the bars' Copy as PNG and preview have no tempo; the whole clip's
+  preview does.
 - Page: Time signature, TAB and Rhythm only with the tab alone, Rhythm's
   Hide shortening the preview; Background reads
   White | Transparent; Text annotations shows for alphaTex too.

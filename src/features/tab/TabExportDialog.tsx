@@ -125,10 +125,10 @@ export function TabExportDialog({ clip: whole, bars = null, track, parts, view, 
     setStatus('');
   };
   const fail = (e: unknown) => setStatus(`Couldn't: ${e instanceof Error ? e.message : String(e)}`);
-  const svg = () => tabSvg(part, style, title, parts, exportView(view, style));
+  const svg = () => tabSvg(part, style, title, parts, exportView(view, style), bars !== null);
   const ascii = () => writeAscii(part, { rhythm: view.asciiRhythm, chords: view.asciiChords });
   // Laid out only while open: shut, the dialog draws nothing, and the page draws it on every change (issue #302).
-  const { width, height } = open ? tabImageSize(part, style, title, parts, exportView(view, style)) : { width: 0, height: 0 };
+  const { width, height } = open ? tabImageSize(part, style, title, parts, exportView(view, style), bars !== null) : { width: 0, height: 0 };
   const baseName = tabFileName(what ? `${clip.name.trim() || 'Tab'} ${what.replace('–', '-')}` : clip.name);
 
   /** What each format saves: its kind (name ending, type) and the file. */
@@ -189,7 +189,7 @@ export function TabExportDialog({ clip: whole, bars = null, track, parts, view, 
           <div className="settings-dialog-body">
             <Fold open={isImage(format)} testId="export-preview-fold">
               <div className="export-preview" data-testid="export-preview">
-                <TabImage clip={part} style={style} title={title} parts={parts} view={exportView(view, style)} />
+                <TabImage clip={part} style={style} title={title} parts={parts} view={exportView(view, style)} excerpt={bars !== null} />
               </div>
               <p className="export-size" data-testid="export-size">
                 {width} × {height} px, {style.transparent ? 'transparent' : 'on white'}
@@ -224,6 +224,11 @@ export function TabExportDialog({ clip: whole, bars = null, track, parts, view, 
                   <Segmented
                     label="Clip name" value={style.name ? 'show' : 'hide'}
                     onChange={v => set({ name: v === 'show' })} options={SHOW_HIDE}
+                  />
+                  <span>Chord diagrams</span>
+                  <Segmented
+                    label="Chord diagrams" value={style.chordDiagrams ? 'show' : 'hide'}
+                    onChange={v => set({ chordDiagrams: v === 'show' })} options={SHOW_HIDE}
                   />
                   <span>Bar numbers</span>
                   <Segmented label="Bar numbers" value={style.barNumbers} onChange={b => set({ barNumbers: b })} options={BAR_NUMBERS} />

@@ -39,6 +39,8 @@ export interface TabExportStyle {
   timeSignatures: boolean;
   tabLetters: boolean;
   rhythm: boolean;
+  /** The images draw a chord diagram under each chord name over the notes; off, the names alone. */
+  chordDiagrams: boolean;
   /** Text annotations, in every format. */
   texts: boolean;
   /** Selected bars start with the key, time signature (with its Beat groups) and tempo in force there; off, only what their first bar sets itself. */
@@ -55,7 +57,7 @@ export const TAB_EXPORT_WIDTHS = [480, 640, 800, 1000, 1200] as const;
 export type TabExportWidth = (typeof TAB_EXPORT_WIDTHS)[number];
 
 export const DEFAULT_TAB_EXPORT: TabExportStyle = {
-  width: 800, transparent: false, name: true, barNumbers: 'arrangement', timeSignatures: true, tabLetters: true, rhythm: true, texts: true,
+  width: 800, transparent: false, name: true, barNumbers: 'arrangement', timeSignatures: true, tabLetters: true, rhythm: true, chordDiagrams: false, texts: true,
   startKey: true, startTime: true, startTempo: true,
 };
 
@@ -71,6 +73,7 @@ export function parseTabExportStyle(raw: unknown): TabExportStyle {
     timeSignatures: typeof o.timeSignatures === 'boolean' ? o.timeSignatures : d.timeSignatures,
     tabLetters: typeof o.tabLetters === 'boolean' ? o.tabLetters : d.tabLetters,
     rhythm: typeof o.rhythm === 'boolean' ? o.rhythm : d.rhythm,
+    chordDiagrams: typeof o.chordDiagrams === 'boolean' ? o.chordDiagrams : d.chordDiagrams,
     texts: typeof o.texts === 'boolean' ? o.texts : d.texts,
     startKey: typeof o.startKey === 'boolean' ? o.startKey : d.startKey,
     startTime: typeof o.startTime === 'boolean' ? o.startTime : d.startTime,
@@ -78,9 +81,12 @@ export function parseTabExportStyle(raw: unknown): TabExportStyle {
   };
 }
 
-/** The View options an image is drawn with: the page's, with no bar numbers when the Export choices say None. */
+/**
+ * The View options an image is drawn with: the page's, with no bar numbers when the Export choices say
+ * None, and chord diagrams over the notes as the Export choices say, whatever the page shows.
+ */
 export function exportView(view: TabView, style: TabExportStyle): TabView {
-  return style.barNumbers === 'none' ? { ...view, barNumbers: 'none' } : view;
+  return { ...view, barNumbers: style.barNumbers === 'none' ? 'none' : view.barNumbers, chordDiagrams: style.chordDiagrams };
 }
 
 /** What an image of the tab alone leaves out by the Export choices; the layout ignores it with the staff. */
@@ -132,8 +138,10 @@ interface Head {
   tempo: Tempo | null;
 }
 
-function headOf(clip: Part, style: TabExportStyle, title: string, view: TabView): Head {
+function headOf(clip: Part, style: TabExportStyle, title: string, view: TabView, excerpt: boolean): Head {
   const shown = style.name && title.trim() !== '' ? title.trim() : '';
+  // Some bars: the name alone, if shown; never the credits, tuning or tempo (Jeremy, 2026-11-21).
+  if (excerpt) return { title: shown, artist: null, credits: [], tuning: null, tempo: null };
   const { artist, lines } = creditsOf(clip);
   // The tuning as the page shows it: its name only when its details are collapsed (issue #296).
   // The capo after the tuning's name; in standard tuning, which goes unsaid, "Capo 4th fret" alone (issue #463).
@@ -212,19 +220,19 @@ function HeadDrawing({ head, width, ink }: { head: Head; width: number; ink: str
 }
 
 /** The image's size in pixels. */
-export function tabImageSize(clip: Part, style: TabExportStyle, title: string, parts: Parts = 'tab', view: TabView = DEFAULT_VIEW): { width: number; height: number } {
+export function tabImageSize(clip: Part, style: TabExportStyle, title: string, parts: Parts = 'tab', view: TabView = DEFAULT_VIEW, excerpt = false): { width: number; height: number } {
   const zoom = view.size / 100;
   const inner = (style.width - 2 * PAD) / zoom;
   const tab = layoutClip(imageClip(clip, style, view), inner, parts, view.chordDiagrams, false, leftOutOf(style));
-  return { width: style.width, height: Math.ceil(tab.height * zoom) + 2 * PAD + headTop(headOf(clip, style, title, view), zoom) + chartRoom(clip, inner, view, zoom) };
+  return { width: style.width, height: Math.ceil(tab.height * zoom) + 2 * PAD + headTop(headOf(clip, style, title, view, excerpt), zoom) + chartRoom(clip, inner, view, zoom, excerpt) };
 }
 
-/** The Chord chart's chords, as the page shows it under the head (issue #242); none when off. */
-const chartOf = (clip: Part, view: TabView) => (view.chordChart ? chartChords(clip) : []);
+/** The Chord chart's chords, as the page shows it under the head (issue #242); none when off, or for some bars. */
+const chartOf = (clip: Part, view: TabView, excerpt: boolean) => (view.chordChart && !excerpt ? chartChords(clip) : []);
 
 /** The room the Chord chart takes under the head, in pixels: none without one. */
-function chartRoom(clip: Part, inner: number, view: TabView, zoom: number): number {
-  const chords = chartOf(clip, view);
+function chartRoom(clip: Part, inner: number, view: TabView, zoom: number, excerpt: boolean): number {
+  const chords = chartOf(clip, view, excerpt);
   return chords.length > 0 ? Math.ceil((layoutChart(chords, inner).height + CHART_GAP) * zoom) : 0;
 }
 
@@ -232,16 +240,19 @@ function chartRoom(clip: Part, inner: number, view: TabView, zoom: number): numb
  * The clip as an image: the page's own `TabClip` in black, under the score's head as the page draws
  * it (the title only if the style shows the name), on white unless transparent; the staff, the tab or
  * both, as the page shows them, at the page's Size. The Export dialog's preview draws the same.
+ * An `excerpt` (some bars) has no head but the name, and no Chord chart.
  */
-export function TabImage({ clip, style, title, parts = 'tab', view = DEFAULT_VIEW }: { clip: Part; style: TabExportStyle; title: string; parts?: Parts; view?: TabView }) {
-  const { width, height } = tabImageSize(clip, style, title, parts, view);
+export function TabImage({ clip, style, title, parts = 'tab', view = DEFAULT_VIEW, excerpt = false }: {
+  clip: Part; style: TabExportStyle; title: string; parts?: Parts; view?: TabView; excerpt?: boolean;
+}) {
+  const { width, height } = tabImageSize(clip, style, title, parts, view, excerpt);
   // At a Size other than 100% the tab and its head are drawn bigger or smaller, so as many bars fit a line as on the page.
   const zoom = view.size / 100;
-  const head = headOf(clip, style, title, view);
+  const head = headOf(clip, style, title, view, excerpt);
   const inner = (width - 2 * PAD) / zoom;
   const look = exportLook(view);
   const top = headTop(head, zoom);
-  const chords = chartOf(clip, view);
+  const chords = chartOf(clip, view, excerpt);
   const chart = chords.length > 0 ? chartDrawing(chords, inner, look) : null;
   // Under a head the chart starts where the tab would; with none, at the top.
   const chartTop = Math.max(0, top);
@@ -257,17 +268,17 @@ export function TabImage({ clip, style, title, parts = 'tab', view = DEFAULT_VIE
       {chart && <g transform={`translate(${PAD} ${PAD + chartTop}) scale(${zoom})`}>{chart.drawing}</g>}
       <TabClip
         clip={imageClip(clip, style, view)} leftOut={leftOutOf(style)} width={inner} zoom={zoom} parts={parts} barNumbers={view.barNumbers} look={look} title={head.title || 'Tab'}
-        x={PAD} y={PAD + top + chartRoom(clip, inner, view, zoom)} chordDiagrams={view.chordDiagrams}
+        x={PAD} y={PAD + top + chartRoom(clip, inner, view, zoom, excerpt)} chordDiagrams={view.chordDiagrams}
       />
     </svg>
   );
 }
 
 /** The image as standalone SVG code. */
-export function tabSvg(clip: Part, style: TabExportStyle, title: string, parts: Parts = 'tab', view: TabView = DEFAULT_VIEW): string {
+export function tabSvg(clip: Part, style: TabExportStyle, title: string, parts: Parts = 'tab', view: TabView = DEFAULT_VIEW, excerpt = false): string {
   const host = document.createElement('div');
   const root = createRoot(host);
-  flushSync(() => root.render(createElement(TabImage, { clip, style, title, parts, view })));
+  flushSync(() => root.render(createElement(TabImage, { clip, style, title, parts, view, excerpt })));
   const svg = host.querySelector('svg')!;
   root.unmount();
   svg.removeAttribute('class');

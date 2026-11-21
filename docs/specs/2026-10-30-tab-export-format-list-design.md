@@ -31,6 +31,8 @@ From top to bottom:
      white pixels).
    - **Clip name** Show | Hide. The name is the clip's own; the dialog no
      longer has a field to change it for one export.
+   - **Chord diagrams** Show | Hide, Hide by default
+     (`docs/specs/2026-11-21-tab-export-bars-design.md`).
    - **Bar numbers** From arrangement | From 1 | None, and with the tab
      alone **Time signature**, **TAB** and **Rhythm** Show | Hide
      (`docs/specs/2026-11-21-tab-export-bars-design.md`).

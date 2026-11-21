@@ -3,13 +3,13 @@
  * menu's Copy as PNG and Export options…, on the bars a selection touches, else the bar pressed.
  */
 import { vi } from 'vitest';
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import { partOf } from '@/features/tab/clip';
 import { layoutClip, stringY } from '@/features/tab/layout';
 import { TAB_EXPORT_KEY } from '@/features/tab/exportTab';
-import { setUpPage, openWith, editor, keys, notice, alphaTex } from './helpers';
+import { setUpPage, openWith, editor, keys, notice, alphaTex, renderAt, SLOW } from './helpers';
 
 const copied = vi.hoisted(() => [] as string[]);
 vi.mock('@/components/chords/export/exportImage', async original => ({
@@ -183,6 +183,25 @@ describe('export and copy selected bars', { timeout: 20000 }, () => {
     await waitFor(() => expect(notice()).toHaveTextContent('Copied bars 2–3 as PNG.'));
     expect(copied).toHaveLength(1);
     expect(numbersIn(copied[0])).toEqual([2, 3]);
+  });
+
+  it('the bars\' image has no tempo, tuning or Chord chart over it; the whole clip\'s keeps them', async () => {
+    renderAt(`#tab=${encodeURIComponent('\\tempo 110\n\\ts (4 4)\n' + FOUR)}`);
+    await waitFor(() => expect(alphaTex()).toContain('5.6.1'), SLOW);
+    act(() => editor().focus());
+    selectBarsTwoAndThree();
+    rightClick(spot(2, 0));
+    choose('Copy as PNG');
+    await waitFor(() => expect(copied).toHaveLength(1));
+    expect(copied[0]).not.toContain('score-tempo-drawn');
+    rightClick(spot(2, 0));
+    choose('Export options…');
+    const dialog = screen.getByRole('dialog', { name: 'Export bars 2–3' });
+    expect(within(dialog).getByTestId('export-preview').querySelector('[data-testid="score-tempo-drawn"]')).toBeNull();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Close export' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Export' }));
+    const whole = screen.getByRole('dialog', { name: /Export/ });
+    expect(within(whole).getByTestId('export-preview').querySelector('[data-testid="score-tempo-drawn"]')).not.toBeNull();
   });
 
   it('on selected notes the note menu has them too; on one note with nothing selected, it hasn\'t', async () => {

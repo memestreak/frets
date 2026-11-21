@@ -404,6 +404,7 @@ export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: Playback
           choiceField('width', 'Size (px wide)', TAB_EXPORT_WIDTHS.map(w => [w, String(w)] as const)),
           twoWayField('transparent', 'Background', 'Transparent', 'White', { noFirst: true }),
           twoWayField('name', 'Clip name', 'Show', 'Hide'),
+          twoWayField('chordDiagrams', 'Chord diagrams', 'Show', 'Hide'),
           choiceField<TabExportStyle, 'barNumbers', ExportBarNumbers>('barNumbers', 'Bar numbers', EXPORT_BAR_NUMBERS.map(b => [b, EXPORT_BAR_NUMBER_NAMES[b]] as const)),
           twoWayField('timeSignatures', 'Time signature (tab alone)', 'Show', 'Hide'),
           twoWayField('tabLetters', 'TAB (tab alone)', 'Show', 'Hide'),
