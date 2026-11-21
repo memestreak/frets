@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useEffectEvent, useId, useRef, useState, type ReactNode } from 'react';
 import { copySvgAsPng, copySvgCode, svgToPng } from '@/components/chords/export/exportImage';
 import { Segmented } from '@/components/controls';
 import { HoverTips } from '@/components/HoverTips';
@@ -10,16 +10,20 @@ import { writeAscii } from './ascii';
 import { musicXmlLosses, writeMusicXml } from './musicxml';
 import { writeGuitarPro } from './guitarPro';
 import { SAVE_KINDS, saveFile, type SaveKind } from './saveFile';
-import { partOf, type Clip } from './clip';
+import type { Clip } from './clip';
+import { barsName, clipOfBars, imagePart, type BarRange } from './barExport';
 import {
-  TAB_EXPORT_WIDTHS, TabImage, tabFileName, tabImageSize, tabSvg, type TabExportStyle,
+  EXPORT_BAR_NUMBERS, EXPORT_BAR_NUMBER_NAMES, TAB_EXPORT_WIDTHS, TabImage, exportView, exportedClip, tabFileName, tabImageSize, tabSvg, type TabExportStyle,
 } from './exportTab';
 import type { TabView } from './viewOptions';
 import type { Parts } from './layout';
 
 const SHOW_HIDE = [['show', 'Show'], ['hide', 'Hide']] as const;
-const ON_OFF = [['on', 'On'], ['off', 'Off']] as const;
+const BACKGROUNDS = [['white', 'White'], ['transparent', 'Transparent']] as const;
 const WIDTHS = TAB_EXPORT_WIDTHS.map(w => [w, String(w)] as const);
+const BAR_NUMBERS = EXPORT_BAR_NUMBERS.map(b => [b, EXPORT_BAR_NUMBER_NAMES[b]] as const);
+/** Start with's three toggles, each on what the cut's first bar says that an earlier bar set. */
+const STARTS = [['startKey', 'Key'], ['startTime', 'Time signature'], ['startTempo', 'Tempo']] as const;
 
 /** The formats the dialog downloads, in the order its Format list shows them. */
 export const TAB_EXPORT_FORMATS = ['png', 'svg', 'ascii', 'alphatex', 'musicxml', 'guitarPro'] as const;
@@ -46,10 +50,15 @@ const isImage = (format: TabExportFormat) => format === 'png' || format === 'svg
  * happened. The page's Export button opens it, as does the tab's right-click
  * menu, on the format last picked. It stays open after an action; × or Esc
  * close it.
+ *
+ * Opened from the tab's right-click menu on some bars (Export options…), it holds only those bars, in every
+ * format, its heading and file names saying which (`docs/specs/2026-11-21-tab-export-bars-design.md`).
  */
-export function TabExportDialog({ clip, track, parts, view, open, style, onStyle, onClose }: {
+export function TabExportDialog({ clip: whole, bars = null, track, parts, view, open, style, onStyle, onClose }: {
   /** The whole clip, every track: saved as alphaTex, MusicXML and Guitar Pro; the images and ASCII tab are of the track the page shows. */
   clip: Clip;
+  /** The bars it holds; none, the whole clip. */
+  bars?: BarRange | null;
   /** The track the page shows. */
   track: number;
   /** What the page shows, which the image draws too: the staff, the tab or both. */
@@ -67,7 +76,11 @@ export function TabExportDialog({ clip, track, parts, view, open, style, onStyle
   const [status, setStatus] = useState('');
   // Kept while the page is open, so the dialog opens again on the format last used.
   const [format, setFormat] = useState<TabExportFormat>('png');
-  const part = partOf(clip, track);
+  // Every format leaves out the text annotations when the choices say so.
+  const source = exportedClip(whole, style);
+  const clip = bars ? clipOfBars(source, bars, style) : source;
+  const part = imagePart(source, track, bars, style);
+  const what = bars ? barsName(whole, bars) : null;
   // The image's title is the clip's name, shown or hidden by Clip name.
   const title = clip.name;
   // Each opening starts on a blank status line.
@@ -84,16 +97,39 @@ export function TabExportDialog({ clip, track, parts, view, open, style, onStyle
     else if (!open && el.open) el.close();
   }, [open]);
 
+  // A press outside the dialog closes it, as Esc does (Jeremy, 2026-11-21), as `Modal`'s backdrop does. Its content
+  // sits in the inner wrapper, so only the backdrop targets the dialog itself; the press must start there too, so a
+  // drag out of a field doesn't close it.
+  const close = useEffectEvent(onClose);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    let pressedBackdrop = false;
+    const onPointerDown = (e: PointerEvent) => {
+      pressedBackdrop = e.target === el;
+    };
+    const onClick = (e: MouseEvent) => {
+      if (e.target === el && pressedBackdrop) close();
+      pressedBackdrop = false;
+    };
+    el.addEventListener('pointerdown', onPointerDown);
+    el.addEventListener('click', onClick);
+    return () => {
+      el.removeEventListener('pointerdown', onPointerDown);
+      el.removeEventListener('click', onClick);
+    };
+  }, []);
+
   const set = (patch: Partial<TabExportStyle>) => {
     onStyle({ ...style, ...patch });
     setStatus('');
   };
   const fail = (e: unknown) => setStatus(`Couldn't: ${e instanceof Error ? e.message : String(e)}`);
-  const svg = () => tabSvg(part, style, title, parts, view);
+  const svg = () => tabSvg(part, style, title, parts, exportView(view, style));
   const ascii = () => writeAscii(part, { rhythm: view.asciiRhythm, chords: view.asciiChords });
   // Laid out only while open: shut, the dialog draws nothing, and the page draws it on every change (issue #302).
-  const { width, height } = open ? tabImageSize(part, style, title, parts, view) : { width: 0, height: 0 };
-  const baseName = tabFileName(clip.name);
+  const { width, height } = open ? tabImageSize(part, style, title, parts, exportView(view, style)) : { width: 0, height: 0 };
+  const baseName = tabFileName(what ? `${clip.name.trim() || 'Tab'} ${what.replace('–', '-')}` : clip.name);
 
   /** What each format saves: its kind (name ending, type) and the file. */
   const files: Record<TabExportFormat, { kind: SaveKind; make: () => Blob | Promise<Blob> }> = {
@@ -145,7 +181,7 @@ export function TabExportDialog({ clip, track, parts, view, open, style, onStyle
         <HoverTips>
         <div className="settings-dialog-inner">
           <div className="flex items-center justify-between gap-3">
-            <h3 id={headingId} className="dialog-title m-0">Export {clip.name.trim() || 'tab'}</h3>
+            <h3 id={headingId} className="dialog-title m-0">Export {what ?? (clip.name.trim() || 'tab')}</h3>
             <button type="button" className="btn btn-ghost btn-icon" aria-label="Close export" onClick={onClose}>
               <CloseIcon />
             </button>
@@ -153,7 +189,7 @@ export function TabExportDialog({ clip, track, parts, view, open, style, onStyle
           <div className="settings-dialog-body">
             <Fold open={isImage(format)} testId="export-preview-fold">
               <div className="export-preview" data-testid="export-preview">
-                <TabImage clip={part} style={style} title={title} parts={parts} view={view} />
+                <TabImage clip={part} style={style} title={title} parts={parts} view={exportView(view, style)} />
               </div>
               <p className="export-size" data-testid="export-size">
                 {width} × {height} px, {style.transparent ? 'transparent' : 'on white'}
@@ -179,18 +215,61 @@ export function TabExportDialog({ clip, track, parts, view, open, style, onStyle
               <div className="export-choices">
                   <span>Size<span className="export-unit"> (px wide)</span></span>
                   <Segmented label="Size" value={style.width} onChange={w => set({ width: w })} options={WIDTHS} />
-                  <span>Transparent background</span>
+                  <span>Background</span>
                   <Segmented
-                    label="Transparent background" value={style.transparent ? 'on' : 'off'}
-                    onChange={v => set({ transparent: v === 'on' })} options={ON_OFF}
+                    label="Background" value={style.transparent ? 'transparent' : 'white'}
+                    onChange={v => set({ transparent: v === 'transparent' })} options={BACKGROUNDS}
                   />
                   <span>Clip name</span>
                   <Segmented
                     label="Clip name" value={style.name ? 'show' : 'hide'}
                     onChange={v => set({ name: v === 'show' })} options={SHOW_HIDE}
                   />
+                  <span>Bar numbers</span>
+                  <Segmented label="Bar numbers" value={style.barNumbers} onChange={b => set({ barNumbers: b })} options={BAR_NUMBERS} />
+                  {/* The tab alone: its time signatures, "TAB" and rhythm may be left out; the staff keeps all three (Jeremy, 2026-11-21). */}
+                  {parts === 'tab' && (
+                    <>
+                      <span>Time signature</span>
+                      <Segmented
+                        label="Time signature" value={style.timeSignatures ? 'show' : 'hide'}
+                        onChange={v => set({ timeSignatures: v === 'show' })} options={SHOW_HIDE}
+                      />
+                      <span>TAB</span>
+                      <Segmented
+                        label="TAB" value={style.tabLetters ? 'show' : 'hide'}
+                        onChange={v => set({ tabLetters: v === 'show' })} options={SHOW_HIDE}
+                      />
+                      <span>Rhythm</span>
+                      <Segmented
+                        label="Rhythm" value={style.rhythm ? 'show' : 'hide'}
+                        onChange={v => set({ rhythm: v === 'show' })} options={SHOW_HIDE}
+                      />
+                    </>
+                  )}
               </div>
             </Fold>
+            {/* Every format. */}
+            <div className="export-choices">
+              <span>Text annotations</span>
+              <Segmented
+                label="Text annotations" value={style.texts ? 'show' : 'hide'}
+                onChange={v => set({ texts: v === 'show' })} options={SHOW_HIDE}
+              />
+            </div>
+            {/* Some bars, in every format: what their first bar says that was set before them (Jeremy, 2026-11-21). */}
+            {bars && (
+              <div className="export-choices">
+                <span>Start with</span>
+                <div className="seg" role="group" aria-label="Start with">
+                  {STARTS.map(([field, text]) => (
+                    <button key={field} type="button" className="seg-opt" aria-pressed={style[field]} onClick={() => set({ [field]: !style[field] })}>
+                      {text}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
             <span className="mr-auto text-(--ink-muted)" role="status">{status}</span>

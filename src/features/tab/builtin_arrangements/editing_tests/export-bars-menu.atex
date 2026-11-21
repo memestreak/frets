@@ -1,0 +1,11 @@
+\title "Selected bars export on their own"
+\ts (4 4)
+\ks G \tempo 90
+  3.6.1{txt "**1.** Select Both view\nBoth, at the top left of the clip"} |
+\ts (3 4) 5.5.2{d txt "Bar 2 is in 3/4, key of G, 90 bpm"} |
+-.5.2 7.5.4{txt "**2.** Press this 7\nThen Shift+Right arrow key"} |
+5.4.2{d txt "**3.** Right-click this 5 on the tab\nPick Export options…"} |
+7.4.4{txt "**4.** Check the preview\nOnly bars 3 and 4, numbered 3, 4"}
+  9.4.4{txt "**5.** Check its start\n3/4, one sharp, 90 bpm, a plain 5"}
+  10.4.4{txt "**6.** Press Tempo in Start with\nThe 90 bpm goes"} |
+

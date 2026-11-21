@@ -26,10 +26,19 @@ From top to bottom:
 4. Under Format, for PNG and SVG only (Jeremy, 2026-10-31: Format above
    the size and the other options; size only where it applies):
    - **Size (px wide)**, as before.
-   - **Transparent background** On | Off (was "Transparent"; SVG leaves out
-     its white rectangle, PNG its white pixels).
+   - **Background** White | Transparent (was "Transparent background" On |
+     Off, 2026-11-21; Transparent: SVG leaves out its white rectangle, PNG its
+     white pixels).
    - **Clip name** Show | Hide. The name is the clip's own; the dialog no
      longer has a field to change it for one export.
+   - **Bar numbers** From arrangement | From 1 | None, and with the tab
+     alone **Time signature**, **TAB** and **Rhythm** Show | Hide
+     (`docs/specs/2026-11-21-tab-export-bars-design.md`).
+   - For every format, **Text annotations** Show | Hide (the same spec).
+   - A press outside the dialog closes it, as Esc does (the same spec).
+   - Opened on some bars from the right-click menu, the heading names them
+     and a **Start with** row (Key, Time signature, Tempo) shows for every
+     format (the same spec).
 5. The status line on the left; on the right **Copy** and **Download**
    (primary).
    - **Download** saves the picked format through `saveFile.ts`, the same

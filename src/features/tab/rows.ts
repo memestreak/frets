@@ -174,6 +174,8 @@ export function rowsFor(
   sectionLines = 1,
   /** Chord diagrams under the names (the View options' Chord diagrams). */
   diagrams = false,
+  /** Whether the tab alone draws its rhythm (stems, beams, flags, rests): an export may leave it out, with its room. */
+  stems = true,
 ): Rows {
   const tab = parts !== 'staff';
   // Every Voice's columns: another Voice's chord names, texts and marks take their rows too (step 9).
@@ -295,11 +297,12 @@ export function rowsFor(
   const stacked = columns.some(c => c.notes.filter(n => n?.bend).length > 1) || notes.some(n => n.bend?.from !== undefined)
     ? BEND_LABEL_STEP : 0;
   // A bar of two Voices with no staff over the tab: the up-stem Voices' stems go over the tab (step 9, Q4).
-  const stemsOver = score === null && clip.bars.some(bar => severalVoices(bar, clip.voice ?? 0));
+  const stemsOver = score === null && stems && clip.bars.some(bar => severalVoices(bar, clip.voice ?? 0));
   const staffTop = Math.max(score ? score.bottom + 30 : STAFF_HEADROOM, y + (bends ? ROW_GAP + BEND_RISE + BEND_LABEL_RAISE + stacked : 16)) + (stemsOver ? STEMS_OVER_ROOM : 0);
   const staffBottom = staffTop + 5 * STRING_GAP;
-  // Under a staff, the staff carries the rhythm (Jeremy, 2026-10-27): the tab has no stems.
-  const tabStems = score === null;
+  // Under a staff, the staff carries the rhythm (Jeremy, 2026-10-27): the tab has no stems. An export of
+  // the tab alone may leave them out too (issue #532).
+  const tabStems = score === null && stems;
   // The whammy bar's lines and their labels go under the tab, and the stems under them.
   const dives = used.whammy ? staffBottom + DIVES_GAP : null;
   const under = dives === null ? staffBottom : dives + DIVES_ROOM;

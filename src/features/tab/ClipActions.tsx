@@ -5,7 +5,7 @@ import { copySvgAsPng, svgToPng } from '@/components/chords/export/exportImage';
 import { writeAlphaTex } from './alphatex';
 import { writeAscii } from './ascii';
 import { partOf, type Clip } from './clip';
-import { tabSvg, type TabExportStyle } from './exportTab';
+import { exportView, tabSvg, type TabExportStyle } from './exportTab';
 import { writeMusicXml } from './musicxml';
 import { writeGuitarPro } from './guitarPro';
 import type { Parts } from './layout';
@@ -76,7 +76,7 @@ export function useClipActions({ clip, track, view, parts, shown, onShown, expor
   };
 
   /** The picture as the Export dialog makes it, with its saved choices. */
-  const picture = () => tabSvg(part, exportStyle, clip.name, parts, shown);
+  const picture = () => tabSvg(part, exportStyle, clip.name, parts, exportView(shown, exportStyle));
 
   /** The ASCII and alphaTex views copy their text; the Notation view copies the picture as the Export dialog's PNG. */
   const copy = async () => {
