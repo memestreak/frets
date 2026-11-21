@@ -3,6 +3,7 @@ import { flushSync } from 'react-dom';
 import { createRoot } from 'react-dom/client';
 import { ChordDiagram, DIAGRAM_WIDTH, diagramSize } from '@/components/chords/ChordDiagram';
 import type { ChordInfo } from '@/lib/theory/chords';
+import type { Tuning } from '@/lib/music';
 import { shapeKey, type Shape } from '@/lib/chords/shapes';
 import { BACKDROP, exportLook, type ExportStyle } from './exportStyle';
 
@@ -12,6 +13,8 @@ export interface ExportShape {
   shape: Shape;
   /** The deduced name, or the one typed in the Export dialog; may be empty. */
   name: string;
+  /** The guitar's tuning, low string first, which colours each dot by its tone; standard by default (a Tab track's own). */
+  tuning?: Tuning;
 }
 
 /** The image's size in pixels: the diagram's own, scaled so five frets are `style.size` wide. */
@@ -31,11 +34,11 @@ const FIGTREE_URL = new URL('../../../app/fonts/figtree-latin.woff2', import.met
  * filled with white.
  */
 export function diagramSvg(shape: ExportShape, style: ExportStyle): string {
-  const { chord, name } = shape;
+  const { chord, name, tuning } = shape;
   const host = document.createElement('div');
   const root = createRoot(host);
   flushSync(() => {
-    root.render(createElement(ChordDiagram, { chord, shape: shape.shape, look: exportLook(style, name) }));
+    root.render(createElement(ChordDiagram, { chord, shape: shape.shape, look: exportLook(style, name), tuning }));
   });
   const svg = host.querySelector('svg')!;
   root.unmount();
@@ -159,7 +162,7 @@ const dragImages = new Map<string, DragImage>();
 const drawing = new Set<string>();
 
 const dragKey = (shape: ExportShape, style: ExportStyle) =>
-  `${shape.chord.symbol}|${exportFileName(shape)}|${JSON.stringify(style)}`;
+  `${shape.chord.symbol}|${exportFileName(shape)}|${shape.tuning?.join(',') ?? ''}|${JSON.stringify(style)}`;
 
 const dataUrlOf = (blob: Blob) => new Promise<string>((resolve, reject) => {
   const reader = new FileReader();

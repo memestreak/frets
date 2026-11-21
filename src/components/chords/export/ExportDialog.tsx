@@ -84,7 +84,7 @@ export function ExportDialog({ shape, style, onStyle, onClose }: ExportDialogPro
         <div className="settings-dialog-inner">
           <div className="flex items-center justify-between gap-3">
             <h3 id={headingId} className="dialog-title m-0">
-              Export {shown.name || 'shape'}, {shapeCaption(shown.shape)}
+              Export {shown.name || 'shape'}, {shapeCaption(shown.shape, shown.tuning)}
             </h3>
             <button
               type="button" className="btn btn-ghost btn-icon" aria-label="Close export"
@@ -99,7 +99,7 @@ export function ExportDialog({ shape, style, onStyle, onClose }: ExportDialogPro
               data-testid="export-preview"
             >
               <ChordDiagram
-                chord={shown.chord} shape={shown.shape} look={exportLook(style, name)}
+                chord={shown.chord} shape={shown.shape} look={exportLook(style, name)} tuning={shown.tuning}
               />
             </div>
             <p className="export-size" data-testid="export-size">

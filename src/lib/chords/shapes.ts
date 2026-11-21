@@ -1,4 +1,4 @@
-import { isStandardTuning, STRING_NAMES, TUNING, type Tuning } from '@/lib/music';
+import { isStandardTuning, SHARP_NAMES, STRING_NAMES, TUNING, type Tuning } from '@/lib/music';
 import type { ChordInfo } from '@/lib/theory/chords';
 import { mod12 } from '@/lib/theory/notes';
 import { publishedShapes } from './publishedShapes';
@@ -282,12 +282,17 @@ export function moveShape(v: Shape, by: number, maxFret: number): Shape | null {
 }
 
 /** "root on A · frets 5–7", or "root on A · open" for a shape with no fretted notes. */
-export function shapeCaption(v: Shape): string {
+export function shapeCaption(v: Shape, tuning?: Tuning): string {
   const fretted = frettedNotes(v);
   const where = fretted.length
     ? `frets ${Math.min(...fretted)}–${Math.max(...fretted)}`
     : 'open';
-  return `root on ${STRING_NAMES[soundingStrings(v)[0]]} · ${where}`;
+  return `root on ${stringName(soundingStrings(v)[0], tuning)} · ${where}`;
+}
+
+/** A string's name: E A D G B e in standard tuning, else its open note (D on drop D's lowest). */
+function stringName(string: number, tuning?: Tuning): string {
+  return !tuning || isStandardTuning(tuning) ? STRING_NAMES[string] : SHARP_NAMES[mod12(tuning[string])];
 }
 
 /** The first fret a diagram shows: 1 for an open shape or one within the first four frets, else its lowest fret. */

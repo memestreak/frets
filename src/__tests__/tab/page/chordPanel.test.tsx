@@ -174,10 +174,11 @@ describe('the Chords panel', () => {
     }
   });
 
-  it('a right-click on a tile picks it and opens its menu: Insert, Edit, Rename, Copy to new chord, and Delete only when unused', async () => {
+  it('a right-click on a tile picks it and opens its menu: Insert, Edit, Rename, Copy to new chord, the export\'s two, and Delete only when unused', async () => {
     await open();
     fireEvent.click(paletteHeader('Chords'));
-    expect(menuOf('C').getAllByRole('menuitem').map(i => i.textContent)).toEqual(['Insert', 'Edit', 'Rename', 'Copy to new chord', 'Delete']);
+    expect(menuOf('C').getAllByRole('menuitem').map(i => i.textContent))
+      .toEqual(['Insert', 'Edit', 'Rename', 'Copy to new chord', 'Copy as PNG', 'Export options…', 'Delete']);
     expect(tile('C')).toHaveAttribute('aria-pressed', 'true');
     fireEvent.keyDown(screen.getByRole('menu', { name: 'C' }), { key: 'Escape' });
     expect(menuOf('G').queryByRole('menuitem', { name: 'Delete' })).toBeNull();

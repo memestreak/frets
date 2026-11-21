@@ -9,6 +9,10 @@ import { EXPORT_STORAGE_KEY, parseExportStyle } from './exportStyle';
 import { ShapeMenu, type MenuItem } from './ShapeMenu';
 import { menuSpot, useMenuTrigger, type MenuTriggerProps } from './useMenuTrigger';
 
+/** The export items' labels, shared by every menu that exports (the Tab page's bars too), so they read the same. */
+export const COPY_AS_PNG = 'Copy as PNG';
+export const EXPORT_OPTIONS = 'Export options…';
+
 /** How long "Copied as PNG" stays up. */
 const NOTICE_MS = 2500;
 /**
@@ -34,6 +38,18 @@ export interface ShapeExportTriggerProps extends MenuTriggerProps {
   onDragStart?: (e: React.DragEvent<HTMLElement>) => void;
 }
 
+/** What `useShapeExport` gives a page. */
+export interface ShapeExport {
+  /** Props for a diagram that opens the export menu itself, with the page's `items` above the export ones. */
+  triggerProps: (
+    shape: ExportShape, opts?: { drag?: boolean; items?: MenuItem[] },
+  ) => ShapeExportTriggerProps;
+  /** Copy as PNG and Export options…, for a menu the page opens itself (the Tab page's chords). */
+  exportItems: (shape: ExportShape) => MenuItem[];
+  /** The menu, the Export dialog and the notice, to render once. */
+  ui: ReactNode;
+}
+
 /**
  * Exporting shapes: right-click, a long press or Shift+F10 on anything
  * given `triggerProps` (a shape diagram, the Chord lab's neck) opens a menu
@@ -42,15 +58,11 @@ export interface ShapeExportTriggerProps extends MenuTriggerProps {
  * (the Scale lab's Open in Chords). Opening it selects nothing and taps nothing.
  * With `drag`, and a mouse or trackpad, the diagram can also be dragged
  * into another app or page, or onto the desktop, as a PNG with the saved
- * choices. One per page, so the shapes and the neck share the saved
- * choices. Returns those props and the menu, dialog and notice to render.
+ * choices. A page whose diagrams have their own menu (the Tab page's Chord
+ * set, Chord chart and chord names) adds `exportItems` to it instead. One
+ * per page, so every diagram on it shares the saved choices.
  */
-export function useShapeExport(): {
-  triggerProps: (
-    shape: ExportShape, opts?: { drag?: boolean; items?: MenuItem[] },
-  ) => ShapeExportTriggerProps;
-  ui: ReactNode;
-} {
+export function useShapeExport(): ShapeExport {
   const [style, setStyle] = useState(() => parseExportStyle(loadJson(EXPORT_STORAGE_KEY)));
   usePersist(EXPORT_STORAGE_KEY, style);
   const [menu, setMenu] = useState<MenuState | null>(null);
@@ -102,6 +114,18 @@ export function useShapeExport(): {
     ...trigger.props((el, x, y) => openMenu(shape, items, el, x, y)),
   });
 
+  const exportItems = (shape: ExportShape): MenuItem[] => [
+    {
+      label: COPY_AS_PNG,
+      onSelect: () => {
+        copyPng(shape, style).then(setNotice, (e: unknown) => {
+          setNotice(`Couldn't copy: ${e instanceof Error ? e.message : String(e)}`);
+        });
+      },
+    },
+    { label: EXPORT_OPTIONS, onSelect: () => setDialogFor(shape) },
+  ];
+
   const closeMenu = (refocus: boolean) => {
     if (refocus) menu?.returnTo.focus();
     setMenu(null);
@@ -112,18 +136,7 @@ export function useShapeExport(): {
       {menu && (
         <ShapeMenu
           key={`${menu.x},${menu.y}`} x={menu.x} y={menu.y} label="Shape" onClose={closeMenu}
-          items={[
-            ...menu.items,
-            {
-              label: 'Copy as PNG',
-              onSelect: () => {
-                copyPng(menu.shape, style).then(setNotice, (e: unknown) => {
-                  setNotice(`Couldn't copy: ${e instanceof Error ? e.message : String(e)}`);
-                });
-              },
-            },
-            { label: 'Export options…', onSelect: () => setDialogFor(menu.shape) },
-          ]}
+          items={[...menu.items, ...exportItems(menu.shape)]}
         />
       )}
       <ExportDialog
@@ -136,5 +149,5 @@ export function useShapeExport(): {
     </>
   );
 
-  return { triggerProps, ui };
+  return { triggerProps, exportItems, ui };
 }

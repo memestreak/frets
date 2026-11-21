@@ -13,9 +13,10 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { ShapeMenu, type MenuItem } from '@/components/chords/export/ShapeMenu';
 import { menuSpot, useMenuTrigger } from '@/components/chords/export/useMenuTrigger';
+import type { ShapeExport } from '@/components/chords/export/useShapeExport';
 import { ChordDiagram } from '@/components/chords/ChordDiagram';
 import { chordDefOf, chordSet, withChordShape, withNewChord, withoutChord, withRenamedChord, freeName, type ChordEntry } from './chordSet';
-import { chordToDraw, lowFirst, PLAIN_LOOK, shapeFor, toFrets, toShape } from './chordShapes';
+import { chordToDraw, exportShapeOf, lowFirst, PLAIN_LOOK, shapeFor, toFrets, toShape } from './chordShapes';
 import { ticks, timeAt, WHOLE, type Column, type Duration, type Part, type Track } from './clip';
 import { columnAt, emptyColumn, withColumn, type Cursor } from './editing';
 import { ChordEditor, ChordShapesEditor } from './ChordEditor';
@@ -83,6 +84,8 @@ interface ChordPanelProps {
   onHear: (frets: readonly (number | null)[]) => void;
   /** Gives the focus back to the tab, when the chord editor closes. */
   onDone: () => void;
+  /** The page's chord export (issue #531): Copy as PNG and Export options… in a tile's menu. */
+  shapeExport?: Pick<ShapeExport, 'exportItems'>;
 }
 
 /** A tile's room in px, with the gap after it: four to a row at the panel's first width (17rem). */
@@ -132,7 +135,7 @@ export function cursorPlace(clip: Part, cursor: Cursor): string {
 /** What the chord editor is open for: a new chord (+), a chord of the set, a copy of one, or nothing (closed). */
 type EditorFor = { kind: 'add' } | { kind: 'edit'; name: string; rename?: boolean; change?: boolean } | { kind: 'copy'; name: string; newName: string };
 
-export function ChordPanel({ clip, track, cursor, tabFocused, at, follow, onChange, inputLength, onInsertAtInput, hear, onHear, onDone }: ChordPanelProps) {
+export function ChordPanel({ clip, track, cursor, tabFocused, at, follow, onChange, inputLength, onInsertAtInput, hear, onHear, onDone, shapeExport }: ChordPanelProps) {
   /** The chord picked in the list: what Insert writes. Moving the cursor doesn't change it (Jeremy, 2026-11-06). */
   const [picked, setPicked] = useState<string | null>(null);
   const [editorFor, setEditorFor] = useState<EditorFor | null>(null);
@@ -235,14 +238,16 @@ export function ChordPanel({ clip, track, cursor, tabFocused, at, follow, onChan
   const changing = editorFor?.kind === 'edit' && Boolean(editorFor.change);
   const editorOpen = editorFor?.kind === 'add' || editorOn !== null;
 
-  /** A chord's right-click menu (or long press, or Shift+F10). */
+  /** A chord's right-click menu (or long press, or Shift+F10): the panel's items, the export's for a chord with a diagram, then Delete. */
   const menuItems = (n: string): MenuItem[] => {
     const entry = set.find(e => e.name === n);
+    const exported = shapeExport && exportShapeOf(clip, n);
     return [
       { label: tabFocused && column ? `Insert at ${cursorPlace(clip, cursor)}` : 'Insert', onSelect: () => insert(n) },
       { label: 'Edit', onSelect: () => openOn(n) },
       { label: 'Rename', onSelect: () => { setPicked(n); setEditorFor({ kind: 'edit', name: n, rename: true }); } },
       { label: 'Copy to new chord', onSelect: () => copy(n) },
+      ...(exported ? shapeExport.exportItems(exported) : []),
       ...(entry && entry.uses === 0 ? [{ label: 'Delete', onSelect: () => remove(entry) }] : []),
     ];
   };

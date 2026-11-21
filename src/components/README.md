@@ -35,7 +35,7 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
   and dot colours as tokens, and `DEGREES`, the colour per degree number),
   `src/components/chords/` (`ChordDiagram`, the small shape diagram, coloured by an optional `look`;
   `ToneKey`; `chordDots.ts`, shape and arpeggio dots and a shape's muted strings
-  for the neck; `export/`, the shapes' menu (`ShapeMenu`, with submenus: an item's `items`, opened by a press, hover or →), Export dialog and PNG export),
+  for the neck; `export/`, the shapes' menu (`ShapeMenu`, with submenus: an item's `items`, opened by a press, hover or →), Export dialog and PNG export, on any tuning; `useShapeExport` serves the Chords page, the Scale lab and the Tab page's chords, its `exportItems` for a page's own menu),
   `src/components/controls.tsx` and `icons.tsx`, `src/components/HoverTips.tsx`
   (the one-second tip for any `data-tip`; the Circle of fifths and the Tab
   palette), `src/components/DotLabels.tsx`
@@ -99,6 +99,9 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
 
 ## Specs
 
+- `docs/specs/2026-11-21-tab-chord-export-design.md`: the Tab page's
+  chords export through the same menu items and Export dialog, on their
+  track's tuning
 - `docs/specs/2026-11-16-tab-toolbars-in-the-bar-design.md`: a page's own
   buttons in the site's bar, before the theme switch (`PageActions`)
 - `docs/specs/2026-11-09-light-default-theme-design.md`: Light with nothing

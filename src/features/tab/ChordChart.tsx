@@ -11,8 +11,10 @@
  * in the Chords panel, and Esc or a press elsewhere lets it go.
  */
 import { useState, type KeyboardEvent } from 'react';
+import type { ExportShape } from '@/components/chords/export/exportImage';
 import { ShapeMenu } from '@/components/chords/export/ShapeMenu';
 import { menuSpot, useMenuTrigger } from '@/components/chords/export/useMenuTrigger';
+import type { ShapeExport } from '@/components/chords/export/useShapeExport';
 import { ChordGrid } from './ChordGrid';
 import { GRID_LABEL, GRID_NAME, gridSize, layoutChart, type ChartChord, type ShapedChord } from './chordDiagrams';
 import { litLook, PAGE_LOOK, type TabLook } from './tabLook';
@@ -33,9 +35,13 @@ export function chartDrawing(chords: readonly ShapedChord[], width: number, look
   return { drawing, height };
 }
 
-/** The chart on the page, as wide as the drawing under it; `onEdit` opens a chord's editor, `onPick` hears of a press picking one. */
-export function ChordChart({ chords, width, onEdit, onPick }: {
+/**
+ * The chart on the page, as wide as the drawing under it; `onEdit` opens a chord's editor, `onPick` hears of a press picking one.
+ * With `exportOf` (the chord as its track draws it) and `shapeExport`, a chord's menu also has Copy as PNG and Export options… (issue #531).
+ */
+export function ChordChart({ chords, width, onEdit, onPick, exportOf, shapeExport }: {
   chords: readonly ChartChord[]; width: number; onEdit: (chord: ChartChord) => void; onPick?: (chord: ChartChord) => void;
+  exportOf?: (chord: ChartChord) => ExportShape | null; shapeExport?: Pick<ShapeExport, 'exportItems'>;
 }) {
   const [picked, setPicked] = useState<number | null>(null);
   const [menu, setMenu] = useState<{ x: number; y: number; index: number } | null>(null);
@@ -45,6 +51,10 @@ export function ChordChart({ chords, width, onEdit, onPick }: {
   const edit = (i: number) => {
     setPicked(null);
     onEdit(chords[i]);
+  };
+  const exportItems = (i: number) => {
+    const exported = shapeExport && exportOf?.(chords[i]);
+    return exported ? shapeExport.exportItems(exported) : [];
   };
   const onKeyDown = (e: KeyboardEvent<SVGGElement>, i: number) => {
     if (e.key === 'Enter') {
@@ -86,7 +96,7 @@ export function ChordChart({ chords, width, onEdit, onPick }: {
         <ShapeMenu
           x={menu.x} y={menu.y} label="Chord"
           onClose={() => { setMenu(null); setPicked(null); }}
-          items={[{ label: 'Edit', onSelect: () => edit(menu.index) }]}
+          items={[{ label: 'Edit', onSelect: () => edit(menu.index) }, ...exportItems(menu.index)]}
         />
       )}
     </>

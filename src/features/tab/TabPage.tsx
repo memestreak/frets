@@ -4,6 +4,8 @@ import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react'
 import { HoverTips } from '@/components/HoverTips';
 import { ShapeMenu } from '@/components/chords/export/ShapeMenu';
 import { menuSpot, useMenuTrigger } from '@/components/chords/export/useMenuTrigger';
+import type { ExportShape } from '@/components/chords/export/exportImage';
+import { useShapeExport } from '@/components/chords/export/useShapeExport';
 import { usePreferenceSaveProblem } from '@/hooks/usePersist';
 import { GearIcon } from '@/components/icons';
 import { SettingsDialog } from '@/components/settings/SettingsDialog';
@@ -57,6 +59,7 @@ import { lengthIsOn, startLength } from './inputLength';
 import { ScoreHead } from './ScoreHead';
 import { ChordChart } from './ChordChart';
 import { chartChords, type ChartChord } from './chordDiagrams';
+import { exportShapeOf } from './chordShapes';
 
 import { laidOut, paletteOf, sectionsOf, shownColours, viewOf, type ColourPair, type TabView } from './viewOptions';
 import { TAB_SETTINGS_START, tabSettingsGroup, useTabPrefs } from './tabSettings';
@@ -200,6 +203,8 @@ export default function TabPage() {
   const [menuPress, setMenuPress] = useState<boolean | null>(null);
   const [exporting, setExporting] = useState(false);
   const menuTrigger = useMenuTrigger();
+  /** Copy as PNG and Export options… for the chords: the Chord set's tiles, the Chord chart and a chord name's menu (issue #531). */
+  const shapeExport = useShapeExport();
   const [importing, setImporting] = useState(false);
   // The Metronome dialog, from a right-click on the footer's Metronome (issue #477).
   const [metronomeOpen, setMetronomeOpen] = useState(false);
@@ -352,6 +357,17 @@ export default function TabPage() {
     setChordsAt({ name: columnAt(clip, { ...cursor, ...place })?.chord ?? null });
     palettes.show('chords');
     editorRef.current?.focus({ preventScroll: true });
+  };
+  const exportItemsOf = (shape: ExportShape | null) => (shape ? shapeExport.exportItems(shape) : []);
+  /** A chord name's chord as the export takes it, when it has a diagram to draw. */
+  const exportOfName = (index: number) => {
+    const name = columnAt(clip, { ...cursor, ...placeOf(clip, index) })?.chord;
+    return name ? exportShapeOf(clip, name) : null;
+  };
+  /** A Chord chart chord as the export takes it, drawn on its own track's tuning. */
+  const exportOfChart = (chord: ChartChord) => {
+    const owner = chord.owner === 0 ? drawn : drawn.alongside?.[chord.owner - 1];
+    return owner ? exportShapeOf(owner, chord.name) : null;
   };
   /** A Chord chart chord's Edit: its track shown, if another's, and the Chords panel open at it. */
   const editChartChord = (chord: ChartChord) => {
@@ -887,6 +903,7 @@ export default function TabPage() {
             hear={playbackSettings.hearChords}
             onHear={frets => playback.hearShape(frets)}
             onDone={() => editorRef.current?.focus({ preventScroll: true })}
+            shapeExport={shapeExport}
           />
         )}
         chat={
@@ -949,7 +966,10 @@ export default function TabPage() {
                 onExpand={() => setShown({ ...shown, header: true })}
               />
               </HoverTips>
-              <ChordChart chords={chart} width={clipWidth} onEdit={editChartChord} onPick={chord => { if (chord.owner === 0) setChordFollow({ name: chord.name }); }} />
+              <ChordChart
+                chords={chart} width={clipWidth} onEdit={editChartChord} onPick={chord => { if (chord.owner === 0) setChordFollow({ name: chord.name }); }}
+                exportOf={exportOfChart} shapeExport={shapeExport}
+              />
             </>
             : <>
               {/* The page keeps its heading for screen readers. */}
@@ -1051,6 +1071,7 @@ export default function TabPage() {
       {/* Only while open, so its fields' names aren't in the page the rest of the time. */}
       {metronomeOpen && <MetronomeDialog open metronome={metronome} onMetronome={setMetronome} onClose={() => setMetronomeOpen(false)} />}
       {file.dialogs}
+      {shapeExport.ui}
       {menu && (
         <ShapeMenu
           x={menu.x} y={menu.y} label={menu.hit ? 'Selected' : menu.onNote ? 'Note' : 'Bar'}
@@ -1068,6 +1089,8 @@ export default function TabPage() {
           items={menu.hit ? [
             // A picked word or repeat's count: Edit, then Delete; a mark, a repeat's start or a double bar: Delete; bar 1's signatures: Edit.
             ...(hasEdit(menu.hit) ? [{ label: 'Edit', onSelect: () => editPicked(menu.hit!) }] : []),
+            // A chord name with a diagram: Copy as PNG and Export options…, as its tile in the Chord set has (issue #531).
+            ...(menu.hit.kind === 'chord' ? exportItemsOf(exportOfName(menu.hit.index)) : []),
             ...(hasDelete(menu.hit) ? [{ label: 'Delete', onSelect: () => deletePicked(menu.hit!) }] : []),
           ] : !menu.onNote ? [
             // The bar menu. Insert first, then Delete bar: the bars a selection touches, else the one pressed (Jeremy,
