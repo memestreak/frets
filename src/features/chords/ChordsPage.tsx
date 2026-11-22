@@ -29,6 +29,18 @@ import { NameList } from './NameList';
 import { useShapeExport } from '@/components/chords/export/useShapeExport';
 import { ShapeGroups } from './ShapeGroups';
 import { ShapeMover } from './ShapeMover';
+import { useMock, type Mock } from '@/components/mocks/useMock';
+
+/** How a picked shape and name look, while Jeremy picks one without red. */
+const SELECT_LOOK: Mock = {
+  param: 'mock', label: 'Selected',
+  options: [
+    { value: 'a', label: 'a Denim, as Tab' },
+    { value: 'b', label: 'b Denim ring' },
+    { value: 'c', label: 'c Ink ring' },
+    { value: 'today', label: 'Today' },
+  ],
+};
 
 /** The neck shows the open strings through this fret. */
 const MAX_FRET = 15;
@@ -155,8 +167,11 @@ function Chords({ arpeggio, onArpeggio, labels, onLabels }: ChordsProps) {
   // The URL names what is on the neck.
   const here = href(chord, frets);
   useEffect(() => {
-    if (window.location.pathname + window.location.search !== here) {
-      window.history.replaceState(null, '', here);
+    // MOCK: keep ?mock= in the URL while the select look is picked.
+    const mock = new URLSearchParams(window.location.search).get('mock');
+    const target = mock ? `${here}${here.includes('?') ? '&' : '?'}mock=${mock}` : here;
+    if (window.location.pathname + window.location.search !== target) {
+      window.history.replaceState(null, '', target);
     }
   }, [here]);
 
@@ -229,8 +244,10 @@ function Chords({ arpeggio, onArpeggio, labels, onLabels }: ChordsProps) {
   // and the Arpeggio button says when the arpeggio is showing.
   const caption = chord ? '' : 'Tap a fret to play it on that string; tap it again to mute the string.';
 
+  const look = useMock(SELECT_LOOK);
+
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)] content-start gap-5">
+    <div className="grid grid-cols-[minmax(0,1fr)] content-start gap-5" data-select-look={look}>
       <ChordHeader
         title={title}
         formula={chord ? formulaOf(chord) : ''}
