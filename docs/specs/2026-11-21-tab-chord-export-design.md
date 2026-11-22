@@ -30,7 +30,7 @@ spec says only where the Tab page differs.
   (a name only typed over a column, "N.C."), or a shape no chord can be
   drawn with, has no diagram on the page, so its menu has no export items.
 - **The image.** The Chords page's own: `ChordDiagram` with the Export
-  dialog's choices (Colours, Size, Transparent, Intervals, Chord name,
+  dialog's choices (Colours, Size, Background, Intervals, Chord name,
   Name), not the Tab page's plain upright book diagram. It is drawn on the
   chord's track's tuning (a Chord chart chord: its own track's), as the
   tile is, so on drop D the low string's open D is the D chord's root, and

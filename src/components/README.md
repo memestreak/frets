@@ -99,6 +99,9 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
 
 ## Specs
 
+- `docs/specs/2026-11-22-chord-export-background-design.md`: Export's
+  Transparent becomes Background (White, Transparent); a bigger fret number
+  closer to the board, and a bigger ×
 - `docs/specs/2026-11-21-tab-chord-export-design.md`: the Tab page's
   chords export through the same menu items and Export dialog, on their
   track's tuning

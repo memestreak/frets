@@ -25,6 +25,18 @@ describe('ChordDiagram', () => {
     );
     expect(fretNumbers(container)).toEqual(['3']);
   });
+
+  it('draws the fret number at 12 units, 19 under the board, and × at 18', () => {
+    const { container } = render(
+      <ChordDiagram chord={chordOf('C', 'M')} shape={[null, 3, 2, 0, 1, 0]} />,
+    );
+    const texts = [...container.querySelectorAll('text')];
+    const number = texts.find(t => t.textContent === '1')!;
+    const lowString = Math.max(...[...container.querySelectorAll('line')].map(l => Number(l.getAttribute('y1'))));
+    expect(number.getAttribute('font-size')).toBe('12');
+    expect(Number(number.getAttribute('y')) - lowString).toBe(19);
+    expect(texts.find(t => t.textContent === '×')!.getAttribute('font-size')).toBe('18');
+  });
 });
 
 describe('toneAt', () => {

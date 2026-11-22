@@ -89,7 +89,7 @@ describe('diagramSvg', () => {
   it('is a standalone SVG with concrete colours and no classes', () => {
     const svg = svgOf();
     expect(svg.match(/xmlns="http:\/\/www.w3.org\/2000\/svg"/g)).toHaveLength(1);
-    expect(svg).toMatch(/viewBox="0 0 148 154" width="300" height="312"/);
+    expect(svg).toMatch(/viewBox="0 0 148 149" width="300" height="302"/);
     expect(svg).not.toContain('var(');
     expect(svg).not.toContain('class=');
     expect(svg).not.toContain('aria-hidden');
@@ -112,8 +112,8 @@ describe('diagramSvg', () => {
   it('leaves the name out when asked or empty, and the band it sits in', () => {
     const without = svgOf({ name: false });
     expect(without).not.toContain('Am7');
-    expect(without).toMatch(/viewBox="0 0 148 128" width="300" height="259"/);
-    expect(svgOf({}, BARRE_AM7, '  ')).toMatch(/height="259"/);
+    expect(without).toMatch(/viewBox="0 0 148 123" width="300" height="249"/);
+    expect(svgOf({}, BARRE_AM7, '  ')).toMatch(/height="249"/);
   });
 
   it('prints the name it is given', () => {
@@ -125,26 +125,26 @@ describe('diagramSvg', () => {
     const wide = diagramSvg(
       { chord: am7, shape: [5, null, 5, 5, 5, 8], name: 'Am7' }, DEFAULT_EXPORT_STYLE,
     );
-    expect(wide).toMatch(/viewBox="0 0 148 154" width="300"/);
+    expect(wide).toMatch(/viewBox="0 0 148 149" width="300"/);
     const wider = diagramSvg(
       { chord: chordOf('A', 'm'), shape: [5, 7, 7, null, null, 12], name: 'Am' }, DEFAULT_EXPORT_STYLE,
     );
-    expect(wider).toMatch(/viewBox="0 0 220 154" width="446"/); // eight frets from 5
+    expect(wider).toMatch(/viewBox="0 0 220 149" width="446"/); // eight frets from 5
   });
 
   it('draws five frets as wide as the size chosen', () => {
     const shape = { chord: am7, shape: BARRE_AM7, name: 'Am7' };
     const at = (size: ExportStyle['size']) => exportPixels(shape, { ...DEFAULT_EXPORT_STYLE, size });
-    expect(at(150)).toEqual({ width: 150, height: 156 });
-    expect(at(225)).toEqual({ width: 225, height: 234 });
-    expect(at(450)).toEqual({ width: 450, height: 468 });
-    expect(at(600)).toEqual({ width: 600, height: 624 });
-    expect(svgOf({ size: 150 })).toMatch(/width="150" height="156"/);
+    expect(at(150)).toEqual({ width: 150, height: 151 });
+    expect(at(225)).toEqual({ width: 225, height: 227 });
+    expect(at(450)).toEqual({ width: 450, height: 453 });
+    expect(at(600)).toEqual({ width: 600, height: 604 });
+    expect(svgOf({ size: 150 })).toMatch(/width="150" height="151"/);
   });
 
   it('is transparent unless asked, then filled with white', () => {
     expect(svgOf()).not.toContain('<rect width="148"');
-    expect(svgOf({ transparent: false })).toMatch(/^<svg[^>]*><rect width="148" height="154" fill="#ffffff"/);
+    expect(svgOf({ transparent: false })).toMatch(/^<svg[^>]*><rect width="148" height="149" fill="#ffffff"/);
   });
 
   it('names the file after the name and the shape', () => {
@@ -246,12 +246,11 @@ describe('the shapes export menu', () => {
       within(within(dialog).getByRole('group', { name: group }))
         .getByRole('button', { pressed: true }).textContent;
     expect(pressed('Colours')).toBe('Black & white');
-    expect(within(dialog).queryByRole('group', { name: 'Background' })).toBeNull();
     expect(pressed('Intervals')).toBe('Hide');
     expect(pressed('Chord name')).toBe('Show');
     expect(pressed('Size')).toBe('300');
-    expect(pressed('Transparent')).toBe('On');
-    expect(screen.getByTestId('export-size')).toHaveTextContent('300 × 312 px, transparent');
+    expect(pressed('Background')).toBe('Transparent');
+    expect(screen.getByTestId('export-size')).toHaveTextContent('300 × 302 px, transparent');
 
     fireEvent.click(within(within(dialog).getByRole('group', { name: 'Colours' }))
       .getByRole('button', { name: 'Degree colours' }));
@@ -271,8 +270,8 @@ describe('the shapes export menu', () => {
       within(within(dialog).getByRole('group', { name: group })).getByRole('button', { name: option }),
     );
     choose('Size', '150');
-    choose('Transparent', 'Off');
-    expect(screen.getByTestId('export-size')).toHaveTextContent('150 × 156 px, on white');
+    choose('Background', 'White');
+    expect(screen.getByTestId('export-size')).toHaveTextContent('150 × 151 px, on white');
     expect(JSON.parse(localStorage.getItem(EXPORT_STORAGE_KEY)!)).toEqual(
       { ...DEFAULT_EXPORT_STYLE, size: 150, transparent: false },
     );

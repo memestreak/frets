@@ -18,7 +18,7 @@ interface ExportDialogProps {
 
 const SHOW_HIDE = [['show', 'Show'], ['hide', 'Hide']] as const;
 const HIDE_SHOW = [['hide', 'Hide'], ['show', 'Show']] as const;
-const ON_OFF = [['on', 'On'], ['off', 'Off']] as const;
+const BACKGROUNDS = [['white', 'White'], ['transparent', 'Transparent']] as const;
 const showHide = (on: boolean) => (on ? 'show' : 'hide');
 const SIZES = EXPORT_SIZES.map(size => [size, String(size)] as const);
 
@@ -115,10 +115,10 @@ export function ExportDialog({ shape, style, onStyle, onClose }: ExportDialogPro
               <Segmented
                 label="Size" value={style.size} onChange={size => set({ size })} options={SIZES}
               />
-              <span>Transparent</span>
+              <span>Background</span>
               <Segmented
-                label="Transparent" value={style.transparent ? 'on' : 'off'}
-                onChange={v => set({ transparent: v === 'on' })} options={ON_OFF}
+                label="Background" value={style.transparent ? 'transparent' : 'white'}
+                onChange={v => set({ transparent: v === 'transparent' })} options={BACKGROUNDS}
               />
               <span>Intervals</span>
               <Segmented

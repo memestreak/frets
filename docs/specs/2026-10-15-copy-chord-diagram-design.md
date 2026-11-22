@@ -49,7 +49,7 @@ step the selected shape).
 
 A native modal `<dialog>`, titled with the chord and the shape ("Export
 Am7, root on A · frets 1–2"), with a live preview of the image, three
-choices, each a segmented control, and a Name field (Size and Transparent
+choices, each a segmented control, and a Name field (Size and Background
 followed in `docs/specs/2026-10-17-export-size-design.md`):
 
 | Choice | Options | Default |
@@ -98,7 +98,7 @@ font but doesn't embed it (it would triple the file); the PNG embeds it
 while drawing, so it looks the same everywhere.
 
 - **PNG**: 150 to 600 pixels wide, as chosen, transparent wherever nothing
-  is drawn unless Transparent is off (see
+  is drawn unless Background is White (see
   `docs/specs/2026-10-17-export-size-design.md`; it was 4× the diagram).
 - **SVG**: standalone, with `width`, `height` and `viewBox`, no CSS
   variables or classes.

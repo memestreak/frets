@@ -13,9 +13,10 @@ defaults proposed).
   - **Size (px wide)**: 150, 225, 300, 450, 600. On a phone the row reads
     just "Size", and the controls' options are a little narrower, so every
     row stays on one line.
-  - **Transparent**: On, Off.
+  - **Background**: White, Transparent (was **Transparent**: On, Off until
+    `docs/specs/2026-11-22-chord-export-background-design.md`).
 - A line under the preview says what comes out for the shape shown:
-  `300 × 312 px, transparent`, or `… px, on white`.
+  `300 × 302 px, transparent`, or `… px, on white`.
 
 ## Behaviour
 
@@ -23,14 +24,14 @@ defaults proposed).
   reaches further (one tapped on the neck) is drawn at the same scale, so
   it comes out wider: eight frets at 300 come out 446 px wide. The height
   follows, with or without the name.
-- Transparent Off fills the image with what the preview shows: white
+- Background White fills the image with what the preview shows: white
   (`#ffffff`). The colour lives in `BACKDROP` (`exportStyle.ts`) and in
   `globals.css`; a test keeps them in step. (Dark grey, `#1b1b1b`, went
-  with the Background choice on 2026-10-18.)
+  with an earlier background choice, removed 2026-10-18.)
 - Copy as PNG, Copy SVG, both downloads, the menu's Copy as PNG and
   dragging a shape out all use both choices.
 - The SVG keeps its `viewBox` in diagram units and gets the chosen width
-  and height, so it pastes at that size; Off adds a filled rectangle behind
+  and height, so it pastes at that size; White adds a filled rectangle behind
   the diagram.
 - The PNG is the SVG drawn at its own width and height (no fixed scale).
 - Defaults: 300 px, transparent. Both are saved with the other choices in
