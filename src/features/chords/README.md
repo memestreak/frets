@@ -30,6 +30,9 @@ Moved out of CLAUDE.md; keep it current when this folder's files change.
 
 ## Specs
 
+- `docs/specs/2026-11-22-chord-export-background-design.md`: Export's
+  Transparent becomes Background (White, Transparent); a bigger fret number
+  closer to the board, and a bigger ×
 - `docs/specs/2026-10-30-music-theory-core-design.md`: all music theory moves
   into src/lib/theory/, the only tonal importer
 - `docs/specs/2026-10-19-chords-header-design.md`: the Chords header follows

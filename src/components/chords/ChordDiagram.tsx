@@ -10,7 +10,11 @@ const STRING_GAP = 18;
 const LEFT = 22; // room for × and open-string rings left of the nut
 const TOP = 10;
 const TITLE = 26; // band above the board for the chord name, when drawn
-const BOTTOM = 28; // room for the starting fret number, always drawn, clear of the last string
+const BOTTOM = 23; // room for the starting fret number, always drawn, clear of a dot on the last string
+const FRET_NUMBER_SIZE = 12;
+/** The fret number's baseline below the board: its top clears a dot on the low string. */
+const FRET_NUMBER_DROP = 19;
+const MUTED_SIZE = 18; // ×, as big as the neck's
 const DOT_R = 8.5;
 const OPEN_R = 6; // an open string's ring
 const BOARD_HEIGHT = 5 * STRING_GAP;
@@ -117,7 +121,7 @@ export function ChordDiagram({ chord, shape, startFret, look = PAGE_LOOK, tuning
         />
       ))}
       <text
-        x={x(start)} y={height - 6} textAnchor="middle" fontSize={9}
+        x={x(start)} y={top + BOARD_HEIGHT + FRET_NUMBER_DROP} textAnchor="middle" fontSize={FRET_NUMBER_SIZE}
         style={{ fill: look.muted }}
       >
         {start}
@@ -128,7 +132,7 @@ export function ChordDiagram({ chord, shape, startFret, look = PAGE_LOOK, tuning
           return (
             <text
               key={s} x={LEFT / 2} y={cy} textAnchor="middle"
-              dominantBaseline="central" fontSize={15} style={{ fill: look.muted }}
+              dominantBaseline="central" fontSize={MUTED_SIZE} style={{ fill: look.muted }}
             >
               ×
             </text>
