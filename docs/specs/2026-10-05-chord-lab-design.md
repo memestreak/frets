@@ -38,7 +38,8 @@ Progressions and voice leading come later.
    - **Name it** (right): every name for the notes, best first, each a
      button with a line saying why ("root in the bass", "♭3 in the bass",
      "no 5"). Picking one relabels the dots, shapes and title against its
-     root. With fewer than two different notes it says "Tap two or more
+     root. The picked name looks like a picked shape: the sunken surface
+     with a denim (`--select`) ring, never red (2026-11-22). With fewer than two different notes it says "Tap two or more
      notes to name them."; when nothing fits, "No chord name fits these
      notes."
    - **Shapes** (left): the library's colour key and its **Open** and
