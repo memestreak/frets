@@ -54,10 +54,11 @@
   cursor: pointer;
 }
 /* No hover fill (Jeremy, 2026-10-06). The selected shape sits on the
-   sunken surface with a ring; a tinted fill hid its root-coloured dots. */
+   sunken surface with a ring; a tinted fill hid its root-coloured dots.
+   The ring is denim (--select), not red, which stays for problems (2026-11-22). */
 .shape-btn[aria-pressed='true'] {
   background: var(--surface-sunken);
-  box-shadow: inset 0 0 0 2px var(--primary);
+  box-shadow: inset 0 0 0 2px var(--select);
 }
 /* The selected shape's ring already shows where the arrow keys are, so
    no focus outline on top of it; an unselected shape keeps its outline. */
