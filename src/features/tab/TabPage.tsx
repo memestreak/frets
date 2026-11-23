@@ -5,7 +5,7 @@ import { HoverTips } from '@/components/HoverTips';
 import { ShapeMenu } from '@/components/chords/export/ShapeMenu';
 import { menuSpot, useMenuTrigger } from '@/components/chords/export/useMenuTrigger';
 import type { ExportShape } from '@/components/chords/export/exportImage';
-import { useShapeExport } from '@/components/chords/export/useShapeExport';
+import { COPY_AS_PNG, EXPORT_OPTIONS, useShapeExport } from '@/components/chords/export/useShapeExport';
 import { usePreferenceSaveProblem } from '@/hooks/usePersist';
 import { GearIcon } from '@/components/icons';
 import { SettingsDialog } from '@/components/settings/SettingsDialog';
@@ -49,6 +49,9 @@ import { usePalettes } from './paletteLayout';
 import { ChatPanel } from './chat/ChatPanel';
 import { ChordPanel, HearChordsToggle } from './ChordPanel';
 import { TabExportDialog } from './TabExportDialog';
+import { barsName, imagePart, type BarRange } from './barExport';
+import { exportView, tabSvg } from './exportTab';
+import { copySvgAsPng } from '@/components/chords/export/exportImage';
 import { writeAlphaTex, writePart } from './alphatex';
 import { DEFAULT_FX } from './effects';
 import { instrumentTag, soundFor, substituteNote } from './instrument';
@@ -201,7 +204,8 @@ export default function TabPage() {
   const [menu, setMenu] = useState<{ x: number; y: number; hit: Picked | null; onNote: boolean } | null>(null);
   /** What the last right-click or touch on the tab was on: a note, or beside the notes; null after any other press. */
   const [menuPress, setMenuPress] = useState<boolean | null>(null);
-  const [exporting, setExporting] = useState(false);
+  // Open on the whole clip (bars null) or on the bars the right-click menu took.
+  const [exporting, setExporting] = useState<{ bars: BarRange | null } | null>(null);
   const menuTrigger = useMenuTrigger();
   /** Copy as PNG and Export options… for the chords: the Chord set's tiles, the Chord chart and a chord name's menu (issue #531). */
   const shapeExport = useShapeExport();
@@ -537,6 +541,20 @@ export default function TabPage() {
   const menuBars: [number, number] = selection ? selectedBars(clip, selection) : [cursor.bar, cursor.bar];
   /** Paste writes over what is there; this puts the clipboard's tab in before the cursor instead (issue #238). In both menus. */
   const insertPasteItem = { label: 'Insert paste', onSelect: () => void navigator.clipboard?.readText().then(text => { if (text) void pasteTab(text, true); }, () => {}) };
+  /** Copy as PNG on the bars the menu takes: the Export dialog's PNG of them, with its saved choices. */
+  const copyBarsAsPng = async (bars: BarRange) => {
+    try {
+      await copySvgAsPng(tabSvg(imagePart(whole, track, bars, exportStyle), exportStyle, whole.name, parts, exportView(shown, exportStyle), true));
+      setNotice({ tone: 'info', lines: [`Copied ${barsName(whole, bars)} as PNG.`] });
+    } catch (e) {
+      setNotice({ tone: 'error', lines: [`Couldn't copy: ${e instanceof Error ? e.message : String(e)}`] });
+    }
+  };
+  /** The Chords page's two export items, after the page's own as there (Chat… stays last), on the bars the menu takes (issue #532). */
+  const barExportItems = [
+    { label: COPY_AS_PNG, onSelect: () => void copyBarsAsPng(menuBars) },
+    { label: EXPORT_OPTIONS, onSelect: () => setExporting({ bars: menuBars }) },
+  ];
   const removeBars = ([first, last]: [number, number]) => {
     const next = deleteBars(clip, first, last);
     commit(next.clip, { ...cursor, ...next.cursor }, null);
@@ -868,7 +886,7 @@ export default function TabPage() {
         </button>
         <button type="button" className="btn btn-secondary" title={`Save as (${MOD}⇧S)`} onClick={file.saveAs}>Save as…</button>
         <button type="button" className="btn btn-secondary" onClick={() => file.confirmLeave(() => setImporting(true))}>Import…</button>
-        <button type="button" className="btn btn-secondary" onClick={() => setExporting(true)}>Export</button>
+        <button type="button" className="btn btn-secondary" onClick={() => setExporting({ bars: null })}>Export</button>
         {/* The last of the page's actions (Jeremy, 2026-10-29); the ⚠ after it while settings can't be saved (G5). */}
         <button
           type="button" className="btn btn-secondary btn-icon" aria-label="Settings" title="Settings"
@@ -1106,6 +1124,7 @@ export default function TabPage() {
             insertPasteItem,
             // A selection of whole bars (an arpeggio over a bar): the chord its notes make.
             ...(selection ? chordFromNotesItem : []),
+            ...barExportItems,
             chatItem,
           ] : [
             // The note menu. Picked or selected notes: into another Voice (Q11); a selection over several Voices: one of them alone (Q21).
@@ -1122,6 +1141,8 @@ export default function TabPage() {
             // On notes that can take a Beam override, the two beam tools, ticked as set (spec Q9).
             ...(canBeamTarget(clip, beamTarget, 'break') ? [{ label: 'Break beam before', checked: beamLit(clip, beamTarget, 'break'), onSelect: () => onTool('beamBreak') }] : []),
             ...(canBeamTarget(clip, beamTarget, 'join') ? [{ label: 'Join beam to previous', checked: beamLit(clip, beamTarget, 'join'), onSelect: () => onTool('beamJoin') }] : []),
+            // On selected notes, every bar the selection touches; on one note, none (Q3).
+            ...(selection ? barExportItems : []),
             chatItem,
           ]}
         />
@@ -1129,8 +1150,8 @@ export default function TabPage() {
       {actions.popups}
       <SettingsDialog settingsGroups={settingsGroups} open={settingsOpen} at={settingsAt} onClose={() => setSettingsOpen(false)} />
       <TabExportDialog
-        clip={whole} track={track} parts={parts} view={shown} open={exporting} style={exportStyle} onStyle={setExportStyle}
-        onClose={() => setExporting(false)}
+        clip={whole} bars={exporting?.bars} track={track} parts={parts} view={shown} open={!!exporting} style={exportStyle} onStyle={setExportStyle}
+        onClose={() => setExporting(null)}
       />
     </div>
   );

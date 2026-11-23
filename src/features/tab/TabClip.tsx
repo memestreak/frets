@@ -1,6 +1,6 @@
 import { memo, useEffect, useId, useMemo, useRef, useState, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
 import { barNumber, bendCarries, bendRaises, bendLandings, legatoStarts, slideDirections, startsFreeTime, STRING_COUNT, timeAt, type Part, type Note } from './clip';
-import { layoutClip, lineAt, stringY, type Layout, type Parts, type System } from './layout';
+import { layoutClip, lineAt, stringY, type Layout, type LeftOut, type Parts, type System } from './layout';
 import { SPACE, STRING_GAP, stepY, type Rows } from './rows';
 import { labelWidth } from './widths';
 import { gridLines, stopNear, type GridLook } from './grid';
@@ -77,8 +77,10 @@ export interface DoubleClickPlace {
   rest: { bar: number; column: number } | null;
 }
 
-export const TabClip = memo(function TabClip({ clip, layout: given, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, typing = null, errors, onPick, onPickText, onPickMark, onPickColumn, onPickRhythm, onPickStaff, onDragStaff, onDragFret, onDragTime, timeStep, keepsPick, onDragSpan, onDragRange, onPickRect, onPickWarning, onMiss, onMenuPress, onDoubleClick, columnReach = 0, shadow = null, gridStep = null, gridLook = null, mutedVoices = false, voiceSelections, onPickVoice, chordDiagrams = false, x, y }: {
+export const TabClip = memo(function TabClip({ clip, layout: given, width, parts = 'tab', barNumbers = 'none', zoom = 1, look = PAGE_LOOK, title, highlight, picked, typing = null, errors, onPick, onPickText, onPickMark, onPickColumn, onPickRhythm, onPickStaff, onDragStaff, onDragFret, onDragTime, timeStep, keepsPick, onDragSpan, onDragRange, onPickRect, onPickWarning, onMiss, onMenuPress, onDoubleClick, columnReach = 0, shadow = null, gridStep = null, gridLook = null, mutedVoices = false, voiceSelections, onPickVoice, chordDiagrams = false, leftOut, x, y }: {
   clip: Part;
+  /** An image of the tab alone: what it leaves out (its time signatures, "TAB"), when `layout` isn't given. */
+  leftOut?: LeftOut;
   /** A diagram under every chord name with a shape (issue #242), when `layout` isn't given; a given layout says so itself. */
   chordDiagrams?: boolean;
   /**
@@ -208,7 +210,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
   /** A press on a rest, or on a stem under the tab alone, in normal mode (issues #276, #290): its bar and column, and whether Shift grows the selection to it. */
   onPickRhythm?: (at: { bar: number; column: number; lastBar?: number }, extend: boolean) => void;
 }) {
-  const layout = useMemo(() => given ?? layoutClip(clip, width, parts, chordDiagrams), [given, clip, width, parts, chordDiagrams]);
+  const layout = useMemo(() => given ?? layoutClip(clip, width, parts, chordDiagrams, false, leftOut), [given, clip, width, parts, chordDiagrams, leftOut]);
   // The picked word, bar line or mark is drawn in the selection's blue where it is (issue #276).
   const lights = markLights(layout, picked?.kind === 'mark' ? picked : null);
   // What the picked Mark belongs to (step 8): its notes tinted, its Attachment lines, a Span's Handles.
@@ -781,7 +783,7 @@ export const TabClip = memo(function TabClip({ clip, layout: given, width, parts
             system={drawn.systems[si]} rows={rows} index={si} clip={clip} look={look} slides={slides}
             previous={previous} joins={joins} legato={arcs.filter(a => a.system === si)} whammy={whammies[si]} lastBar={lastBar} maskId={`${maskId}-${si}`}
             selected={selectedRun} lit={lights.tab} word={pickedWord} typing={typing}
-            masked={voiceViews.map(v => v.layout.systems[si])}
+            masked={voiceViews.map(v => v.layout.systems[si])} tabLetters={layout.tabLetters}
           />
           {rows.score && onStaff && (
             <StaffDrawing
@@ -938,7 +940,9 @@ function Warning({ bar, x, y, text }: { bar: number; x: number; y: number; text:
   );
 }
 
-function SystemDrawing({ system, rows, index, clip, look, previous, slides, joins, legato, whammy, lastBar, maskId, selected, lit, word, typing, masked = [], notesOnly = false }: {
+function SystemDrawing({ system, rows, index, clip, look, previous, slides, joins, legato, whammy, lastBar, maskId, selected, lit, word, typing, masked = [], notesOnly = false, tabLetters = true }: {
+  /** "TAB" at the line's start: an image of the tab alone may leave it out. */
+  tabLetters?: boolean;
   system: System;
   /** The same line in the other Voices' layouts: the string lines stop short of their numbers too. */
   masked?: System[];
@@ -1000,7 +1004,7 @@ function SystemDrawing({ system, rows, index, clip, look, previous, slides, join
     <line key="open" x1={system.lineStart} x2={system.lineStart} y1={rows.staffTop} y2={rows.staffBottom} stroke={look.ink} strokeWidth={1.5} />,
   );
   const clefX = system.lineStart + 13;
-  ['T', 'A', 'B'].forEach((letter, k) => parts.push(
+  if (tabLetters) ['T', 'A', 'B'].forEach((letter, k) => parts.push(
     <text key={`clef-${letter}`} x={clefX} y={rows.staffTop + 21 + k * 20} fontSize={18} fontWeight={700} fill={look.ink} textAnchor="middle">{letter}</text>,
   ));
   // The time signature stands in front of the staff, and a change just inside the bar it starts; under

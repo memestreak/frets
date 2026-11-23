@@ -29,7 +29,7 @@ import {
   DEFAULT_COLOURS, DEFAULT_NOTATION, MAX_SIZE, MIN_SIZE, NOTATION_KEY, SIZE_STEP, parseAlphaTex, parseAscii, parseColours,
   parseNotation, type AlphaTexPrefs, type AsciiPrefs, type ColourPrefs, type Colours, type NotationPrefs,
 } from './viewOptions';
-import { DEFAULT_TAB_EXPORT, TAB_EXPORT_KEY, TAB_EXPORT_WIDTHS, parseTabExportStyle, type TabExportStyle } from './exportTab';
+import { DEFAULT_TAB_EXPORT, EXPORT_BAR_NUMBERS, EXPORT_BAR_NUMBER_NAMES, TAB_EXPORT_KEY, TAB_EXPORT_WIDTHS, parseTabExportStyle, type ExportBarNumbers, type TabExportStyle } from './exportTab';
 import { PARTS, type Parts } from './layout';
 import { DEFAULT_EDITING, EDITING_KEY, parseEditing, type ChordNames, type EditingPrefs } from './editingPrefs';
 import { DEFAULT_IMPORT, IMPORT_KEY, parseImportPrefs, type ImportPrefs } from './importPrefs';
@@ -112,13 +112,14 @@ function knobField<V, K extends keyof V & string>(key: K, label: string): Settin
   };
 }
 
-/** A yes or no as two named choices, as the Export dialog shows it (On | Off, Show | Hide). */
-function twoWayField<V, K extends keyof V & string>(key: K, label: string, yes: string, no: string): SettingsField<V> {
+/** A yes or no as two named choices, as the Export dialog shows it (On | Off, Show | Hide); `noFirst` lists the no first (White | Transparent). */
+function twoWayField<V, K extends keyof V & string>(key: K, label: string, yes: string, no: string, { noFirst = false } = {}): SettingsField<V> {
+  const options = [['yes', yes], ['no', no]] as const;
   return {
     key, label,
     control: ({ value, set, disabled }) => (
       <Segmented
-        label={label} value={value[key] ? 'yes' : 'no'} options={[['yes', yes], ['no', no]] as const} disabled={disabled}
+        label={label} value={value[key] ? 'yes' : 'no'} options={noFirst ? [options[1], options[0]] : options} disabled={disabled}
         onChange={choice => set({ ...value, [key]: choice === 'yes' })}
       />
     ),
@@ -401,8 +402,17 @@ export function tabSettingsGroup(prefs: TabPrefs, savePlayback: (value: Playback
         id: 'export', name: 'Export', value: prefs.exportStyle, defaults: DEFAULT_TAB_EXPORT, save: prefs.setExportStyle,
         fields: [
           choiceField('width', 'Size (px wide)', TAB_EXPORT_WIDTHS.map(w => [w, String(w)] as const)),
-          twoWayField('transparent', 'Transparent background', 'On', 'Off'),
+          twoWayField('transparent', 'Background', 'Transparent', 'White', { noFirst: true }),
           twoWayField('name', 'Clip name', 'Show', 'Hide'),
+          twoWayField('chordDiagrams', 'Chord diagrams', 'Show', 'Hide'),
+          choiceField<TabExportStyle, 'barNumbers', ExportBarNumbers>('barNumbers', 'Bar numbers', EXPORT_BAR_NUMBERS.map(b => [b, EXPORT_BAR_NUMBER_NAMES[b]] as const)),
+          twoWayField('timeSignatures', 'Time signature (tab alone)', 'Show', 'Hide'),
+          twoWayField('tabLetters', 'TAB (tab alone)', 'Show', 'Hide'),
+          twoWayField('rhythm', 'Rhythm (tab alone)', 'Show', 'Hide'),
+          twoWayField('texts', 'Text annotations', 'Show', 'Hide'),
+          checkField('startKey', 'Selected bars start with the key'),
+          checkField('startTime', 'Selected bars start with the time signature'),
+          checkField('startTempo', 'Selected bars start with the tempo'),
         ],
       }),
       section<ChatPrefs>({

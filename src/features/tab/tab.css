@@ -45,8 +45,11 @@
 .tab-export-format select { min-width: 10rem; }
 /* Labels take what the controls leave and wrap, so on a phone the five sizes keep to one line. */
 .tab-export-dialog .export-choices { grid-template-columns: minmax(0, 1fr) auto; }
-/* The tips' wrapper fills the dialog, so it keeps its width when only the Format list shows. */
-.tab-export-dialog > * { flex: 1; min-width: 0; }
+/* The tips' wrapper fills the dialog, so it keeps its width when only the Format list shows, and no
+   more than its height, so the body scrolls rather than its last rows being cut off. */
+.tab-export-dialog > * { flex: 1; min-width: 0; min-height: 0; display: flex; }
+/* In the scrolling body the folds keep their full height rather than shrinking to fit. */
+.tab-export-dialog .settings-dialog-body > * { flex-shrink: 0; }
 /* Its top stays put, so the dialog only grows and shrinks downward as the image's parts fold. */
 .settings-dialog.tab-export-dialog {
   margin-top: max(16px, 8dvh);

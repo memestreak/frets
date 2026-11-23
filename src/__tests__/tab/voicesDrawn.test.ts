@@ -14,7 +14,7 @@ import { clipAction } from '@/features/tab/clipState';
 import { setFret } from '@/features/tab/editing';
 import { layoutClip, type PlacedColumn } from '@/features/tab/layout';
 import { writeMusicXml } from '@/features/tab/musicxml';
-import { tabSvg } from '@/features/tab/exportTab';
+import { DEFAULT_TAB_EXPORT, tabSvg } from '@/features/tab/exportTab';
 import { TabClip } from '@/features/tab/TabClip';
 import {
   clashMessage, moveToVoice, pasteVoices, perVoice, sliceVoices, stepAcrossVoices, voiceSelections,
@@ -138,7 +138,7 @@ describe('the exports', () => {
   });
 
   it('PNG and SVG draw every Voice in ink, never muted', () => {
-    const svg = tabSvg(partOf(read(HALF_OVER_QUARTERS)), { width: 800, transparent: false, name: true }, 'Voices', 'both');
+    const svg = tabSvg(partOf(read(HALF_OVER_QUARTERS)), { ...DEFAULT_TAB_EXPORT, width: 800, transparent: false, name: true }, 'Voices', 'both');
     expect(svg).toContain('data-testid="other-voice"');
     expect(svg).not.toContain('data-muted');
     expect(svg).not.toContain(MUTED_VOICE_INK);

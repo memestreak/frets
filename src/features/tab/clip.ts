@@ -453,6 +453,11 @@ export interface Part {
   capo?: number;
   /** The clip's `header`. */
   header?: string[];
+  /**
+   * The number its first bar is drawn with, when it is some bars cut from a longer clip for an image
+   * (`barExport.ts`): an image of bars 9–12 numbers them 9 to 12. None, bars count from 1.
+   */
+  firstNumber?: number;
   systemsLayout?: number[];
   defaultSystemsLayout?: number;
   multiBarRests?: boolean;
@@ -552,8 +557,9 @@ export function meterOffset(clip: Pick<Part, 'time' | 'bars'>, index: number): n
   return barTicks(timeAt(clip, index)) - barSpan(clip, index);
 }
 
-/** The number bar `index` (from 0) is drawn and named with: counted from 1, a Pickup bar not counted. */
-export function barNumber(clip: Pick<Part, 'bars'>, index: number): number {
+/** The number bar `index` (from 0) is drawn and named with: counted from 1 (or the part's `firstNumber`), a Pickup bar not counted. */
+export function barNumber(clip: Pick<Part, 'bars' | 'firstNumber'>, index: number): number {
+  if (clip.firstNumber !== undefined) return clip.firstNumber + index;
   return hasPickup(clip) ? index : index + 1;
 }
 
