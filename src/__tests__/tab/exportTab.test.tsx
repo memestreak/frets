@@ -36,13 +36,20 @@ describe('parseTabExportStyle', () => {
 });
 
 describe('the tab as an image', () => {
-  it('is as wide as chosen, taller when narrower, and taller again with the name', () => {
+  it('is as wide as chosen and the same picture at every Size, its height scaling with its width; taller with the name', () => {
     const wide = tabImageSize(clip, { ...DEFAULT_TAB_EXPORT, width: 1200, transparent: true, name: false }, 'Riff');
+    const middle = tabImageSize(clip, { ...DEFAULT_TAB_EXPORT, width: 800, transparent: true, name: false }, 'Riff');
     const narrow = tabImageSize(clip, { ...DEFAULT_TAB_EXPORT, width: 480, transparent: true, name: false }, 'Riff');
     const named = tabImageSize(clip, { ...DEFAULT_TAB_EXPORT, width: 480, transparent: true, name: true }, 'Riff');
     expect(wide.width).toBe(1200);
     expect(narrow.width).toBe(480);
-    expect(narrow.height).toBeGreaterThan(wide.height);
+    expect(wide.height).toBe(Math.round(middle.height * 1.5));
+    expect(narrow.height).toBe(Math.round(middle.height * 0.6));
+    // The same drawing, scaled by the viewBox: only the outer width and height differ.
+    const svgAt = (width: 480 | 1200) => tabSvg(clip, { ...DEFAULT_TAB_EXPORT, width, name: false }, 'Riff');
+    const viewBox = (svg: string) => svg.match(/viewBox="([^"]*)"/)![1];
+    expect(viewBox(svgAt(480))).toBe(viewBox(svgAt(1200)));
+    expect(svgAt(480).replace(/^<svg[^>]*>/, '').replace(/_r_[a-z0-9]+_/g, '')).toBe(svgAt(1200).replace(/^<svg[^>]*>/, '').replace(/_r_[a-z0-9]+_/g, ''));
     expect(named.height).toBeGreaterThan(narrow.height);
     // An empty name takes no room.
     expect(tabImageSize(clip, { ...DEFAULT_TAB_EXPORT, width: 480, transparent: true, name: true }, ' ').height).toBe(narrow.height);

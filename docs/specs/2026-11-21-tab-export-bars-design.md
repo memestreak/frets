@@ -205,6 +205,8 @@ to some bars', and Copy as PNG follows them.
   shorter than the whole clip's; the whole clip keeps both.
 - Music short of the width is drawn in the middle; a full line isn't
   moved.
+- Size scales the whole image: 1200 is 1.5 times 800 in height too, the
+  same drawing.
 - Page: the bars' Copy as PNG and preview have no tempo; the whole clip's
   preview does.
 - Page: Time signature, TAB and Rhythm only with the tab alone, Rhythm's

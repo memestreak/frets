@@ -219,12 +219,25 @@ function HeadDrawing({ head, width, ink }: { head: Head; width: number; ink: str
   return <g data-testid="score-head-drawn">{parts}</g>;
 }
 
-/** The image's size in pixels. */
-export function tabImageSize(clip: Part, style: TabExportStyle, title: string, parts: Parts = 'tab', view: TabView = DEFAULT_VIEW, excerpt = false): { width: number; height: number } {
+/**
+ * The width every image is laid out at: Size (px wide) scales the whole picture from it, as a
+ * resolution, so lines break the same at every Size and a bigger image is the same picture bigger
+ * (Jeremy, 2026-11-23).
+ */
+const LAYOUT_WIDTH = 800;
+
+/** The image as laid out, in the units of `LAYOUT_WIDTH`, before Size scales it. */
+function laidOutSize(clip: Part, style: TabExportStyle, title: string, parts: Parts, view: TabView, excerpt: boolean): { width: number; height: number } {
   const zoom = view.size / 100;
-  const inner = (style.width - 2 * PAD) / zoom;
+  const inner = (LAYOUT_WIDTH - 2 * PAD) / zoom;
   const tab = layoutClip(imageClip(clip, style, view), inner, parts, view.chordDiagrams, false, leftOutOf(style));
-  return { width: style.width, height: Math.ceil(tab.height * zoom) + 2 * PAD + headTop(headOf(clip, style, title, view, excerpt), zoom) + chartRoom(clip, inner, view, zoom, excerpt) };
+  return { width: LAYOUT_WIDTH, height: Math.ceil(tab.height * zoom) + 2 * PAD + headTop(headOf(clip, style, title, view, excerpt), zoom) + chartRoom(clip, inner, view, zoom, excerpt) };
+}
+
+/** The image's size in pixels: its Size wide, and as tall as the picture scaled to that width. */
+export function tabImageSize(clip: Part, style: TabExportStyle, title: string, parts: Parts = 'tab', view: TabView = DEFAULT_VIEW, excerpt = false): { width: number; height: number } {
+  const { height } = laidOutSize(clip, style, title, parts, view, excerpt);
+  return { width: style.width, height: Math.round(height * style.width / LAYOUT_WIDTH) };
 }
 
 /** The Chord chart's chords, as the page shows it under the head (issue #242); none when off, or for some bars. */
@@ -245,7 +258,9 @@ function chartRoom(clip: Part, inner: number, view: TabView, zoom: number, excer
 export function TabImage({ clip, style, title, parts = 'tab', view = DEFAULT_VIEW, excerpt = false }: {
   clip: Part; style: TabExportStyle; title: string; parts?: Parts; view?: TabView; excerpt?: boolean;
 }) {
-  const { width, height } = tabImageSize(clip, style, title, parts, view, excerpt);
+  // Drawn at the layout width, then scaled to the Size by the viewBox.
+  const { width, height } = laidOutSize(clip, style, title, parts, view, excerpt);
+  const shown = tabImageSize(clip, style, title, parts, view, excerpt);
   // At a Size other than 100% the tab and its head are drawn bigger or smaller, so as many bars fit a line as on the page.
   const zoom = view.size / 100;
   const head = headOf(clip, style, title, view, excerpt);
@@ -262,7 +277,7 @@ export function TabImage({ clip, style, title, parts = 'tab', view = DEFAULT_VIE
   const shift = musicShift(layout, inner) * zoom;
   return (
     <svg
-      xmlns="http://www.w3.org/2000/svg" width={width} height={height} viewBox={`0 0 ${width} ${height}`}
+      xmlns="http://www.w3.org/2000/svg" width={shown.width} height={shown.height} viewBox={`0 0 ${width} ${height}`}
       fontFamily={FONT_FAMILY} className="tab-image"
     >
       {!style.transparent && <rect width={width} height={height} fill={look.paper} />}

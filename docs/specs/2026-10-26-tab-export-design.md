@@ -59,8 +59,10 @@ For PNG and SVG the dialog also shows, as the Chords page's does:
   it is transparent or on white.
 - **Choices,** each saved:
   - **Size (px wide):** 480, 640, 800, 1000 or 1200 (default 800). This is
-    the image's width. The tab wraps onto more lines to fit it, so a
-    narrower image is taller.
+    the image's width, as a resolution (Jeremy, 2026-11-23): every image
+    is laid out at 800 px, and Size scales the whole picture, so its
+    height scales with its width and its lines break the same at every
+    Size (`LAYOUT_WIDTH` in `exportTab.tsx`).
   - **Background:** White (default) or Transparent (2026-11-21; was
     "Transparent background" Off | On).
   - **Clip name:** Show (default) or Hide, above the tab. The name is the
