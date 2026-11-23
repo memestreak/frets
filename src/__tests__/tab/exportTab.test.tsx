@@ -3,9 +3,10 @@ import { readAscii } from '@/features/tab/ascii';
 import * as alphaTab from '@coderline/alphatab';
 import { readAlphaTexWith } from '@/features/tab/alphatexRead';
 import {
-  DEFAULT_TAB_EXPORT, exportedClip, exportView, parseTabExportStyle, tabFileName, tabImageSize, tabSvg,
+  DEFAULT_TAB_EXPORT, exportedClip, exportView, musicShift, parseTabExportStyle, tabFileName, tabImageSize, tabSvg,
 } from '@/features/tab/exportTab';
 import { DEFAULT_VIEW } from '@/features/tab/viewOptions';
+import { layoutClip } from '@/features/tab/layout';
 import { type Clip, partOf } from '@/features/tab/clip';
 
 const clip = partOf((readAscii([
@@ -175,6 +176,24 @@ describe('what an export leaves out (issue #532)', () => {
       expect(svg({ name: false }, true).querySelector('[data-testid="score-head-drawn"]')!.textContent).toBe('');
       expect(Number(bars.querySelector('svg')!.getAttribute('height'))).toBeLessThan(Number(whole.querySelector('svg')!.getAttribute('height')));
     });
+  });
+
+  it('draws music that doesn\'t fill a line in the middle, under the name; a full line stays put', () => {
+    const one = read('\\ts (4 4)\n0.6.4 2.6.4 3.6.4 5.6.4 |');
+    const layoutOne = layoutClip(partOf(one), 768, 'tab');
+    const end = layoutOne.systems[0].bars[0].x1;
+    expect(end).toBeLessThan(700);
+    expect(musicShift(layoutOne, 768)).toBeCloseTo((768 - end) / 2);
+    const many = read(`\\ts (4 4)\n${'0.6.4 2.6.4 3.6.4 5.6.4 7.6.4 8.6.4 7.6.4 5.6.4 |'.repeat(12)}`);
+    const layoutMany = layoutClip(partOf(many), 768, 'tab');
+    expect(layoutMany.systems.length).toBeGreaterThan(1);
+    expect(musicShift(layoutMany, 768)).toBe(0);
+    // In the image, the bar's middle is the image's middle.
+    const host = document.createElement('div');
+    host.innerHTML = tabSvg(partOf(one), DEFAULT_TAB_EXPORT, 'Riff', 'tab', DEFAULT_VIEW, true);
+    const tab = host.querySelector('svg svg')!;
+    const x = Number(tab.getAttribute('x'));
+    expect(x + end / 2).toBeCloseTo(DEFAULT_TAB_EXPORT.width / 2, 0);
   });
 
   it('keeps both with the staff', () => {

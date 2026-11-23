@@ -7,7 +7,7 @@ import { FONT_FAMILY } from '@/components/chords/export/exportImage';
 import { BACKDROP } from '@/components/chords/export/exportStyle';
 import type { Clip, Column, Part, Tempo } from './clip';
 import { creditsOf, HEAD, shownTuning, tuningBlock, withCapo, type TuningBlock } from './credits';
-import { layoutClip, type LeftOut, type Parts } from './layout';
+import { layoutClip, type Layout, type LeftOut, type Parts } from './layout';
 import { tempoParts } from './layoutText';
 import { without } from './editing';
 import { TabClip } from './TabClip';
@@ -256,6 +256,10 @@ export function TabImage({ clip, style, title, parts = 'tab', view = DEFAULT_VIE
   const chart = chords.length > 0 ? chartDrawing(chords, inner, look) : null;
   // Under a head the chart starts where the tab would; with none, at the top.
   const chartTop = Math.max(0, top);
+  const drawn = imageClip(clip, style, view);
+  const layout = layoutClip(drawn, inner, parts, view.chordDiagrams, false, leftOutOf(style));
+  // Music that doesn't fill a line (a bar or two) stands in the middle, under the name, rather than at the left.
+  const shift = musicShift(layout, inner) * zoom;
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg" width={width} height={height} viewBox={`0 0 ${width} ${height}`}
@@ -267,11 +271,21 @@ export function TabImage({ clip, style, title, parts = 'tab', view = DEFAULT_VIE
       </g>
       {chart && <g transform={`translate(${PAD} ${PAD + chartTop}) scale(${zoom})`}>{chart.drawing}</g>}
       <TabClip
-        clip={imageClip(clip, style, view)} leftOut={leftOutOf(style)} width={inner} zoom={zoom} parts={parts} barNumbers={view.barNumbers} look={look} title={head.title || 'Tab'}
-        x={PAD} y={PAD + top + chartRoom(clip, inner, view, zoom, excerpt)} chordDiagrams={view.chordDiagrams}
+        clip={drawn} layout={layout} width={inner} zoom={zoom} parts={parts} barNumbers={view.barNumbers} look={look} title={head.title || 'Tab'}
+        x={PAD + shift} y={PAD + top + chartRoom(clip, inner, view, zoom, excerpt)} chordDiagrams={view.chordDiagrams}
       />
     </svg>
   );
+}
+
+/**
+ * How far right to draw music none of whose lines reaches the width, so it stands in the middle:
+ * half the room its longest line leaves. Music that fills a line stays where it is, its last line at
+ * the left as printed music has it.
+ */
+export function musicShift(layout: Layout, width: number): number {
+  const longest = Math.max(0, ...layout.systems.map(s => s.bars[s.bars.length - 1]?.x1 ?? 0));
+  return longest > 0 && longest < width - 1 ? (width - longest) / 2 : 0;
 }
 
 /** The image as standalone SVG code. */

@@ -79,6 +79,11 @@ chart (`excerpt` in `TabImage`, `tabSvg`, `tabImageSize`). The whole
 clip's keeps them. The files still say the key, time signature and tempo
 as Start with sets.
 
+Music none of whose lines reaches the image's width (a bar or two) is
+drawn in the middle, under the centred name, not at the left
+(`musicShift`); music that fills a line stays where it is. This holds for
+the whole clip's image too.
+
 The Export dialog scrolls between its heading and its buttons when it is
 taller than the window, so its last row (Start with) is never cut off.
 
@@ -198,6 +203,8 @@ to some bars', and Copy as PNG follows them.
   View options; Hide by default; the parser keeps it.
 - Some bars' image: no tempo or Chord chart, the name alone or nothing,
   shorter than the whole clip's; the whole clip keeps both.
+- Music short of the width is drawn in the middle; a full line isn't
+  moved.
 - Page: the bars' Copy as PNG and preview have no tempo; the whole clip's
   preview does.
 - Page: Time signature, TAB and Rhythm only with the tab alone, Rhythm's
